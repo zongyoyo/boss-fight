@@ -5663,6 +5663,7 @@ GameObject:
   - component: {fileID: 39424280338868626}
   - component: {fileID: 1902438348746653522}
   - component: {fileID: 2374111745452930232}
+  - component: {fileID: 2826272191877481322}
   m_Layer: 0
   m_Name: DaoDunDog
   m_TagString: Player
@@ -5723,17 +5724,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a3b3d233ef82ae04bb9cffae80ec173a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Player.PlayerController
+  stats: {fileID: 11400000, guid: 12bf5db703747934abe53be7fd3d0c45, type: 2}
   cameraTransform: {fileID: 0}
-  runSpeed: 6
-  sprintSpeed: 9
-  acceleration: 40
-  turnSpeed: 720
-  blockSpeedMultiplier: 0.4
-  attackSpeedMultiplier: 0.2
-  jumpHeight: 1.2
-  gravity: -25
-  attackDuration: 0.55
-  comboWindow: 0.45
+  cameraController: {fileID: 0}
 --- !u!114 &2374111745452930232
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5747,6 +5740,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Player.DaoDunDogAnimator
   controller: {fileID: 1902438348746653522}
+  model: {fileID: 7730362344224359036}
   body: {fileID: 8503451769851983754}
   head: {fileID: 2483787841414278874}
   armR: {fileID: 1703460226396023624}
@@ -5785,6 +5779,20 @@ MonoBehaviour:
   blockArmPose: {x: -75, y: 40, z: 0}
   blockShieldFacing: {x: 0, y: -5, z: 0}
   blockBlendSpeed: 12
+  rollPivot: {x: 0, y: 0.6, z: 0}
+--- !u!114 &2826272191877481322
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8166751425164872580}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f1179320cc498ce4b9fad91a3b45ef0a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BossFight.Player.PlayerStamina
+  stats: {fileID: 11400000, guid: 12bf5db703747934abe53be7fd3d0c45, type: 2}
 --- !u!1 &8198196101880076762
 GameObject:
   m_ObjectHideFlags: 0

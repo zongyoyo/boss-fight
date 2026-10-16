@@ -3,8 +3,9 @@ using UnityEngine;
 namespace BossFight.Player
 {
     /// <summary>
-    /// 刀盾狗的程序化動畫（不用 Animator Controller）：走路擺腿、身體搖擺、揮刀、舉盾、跳躍收腿、搖尾巴（有尾巴時）。
+    /// 刀盾狗的程序化動畫（不用 Animator Controller）：走路擺腿、身體搖擺、舉盾、翻滾、空中收腿、搖尾巴（有尾巴時）。
     /// 只改各關節 pivot 的 localRotation / localPosition，pivot 由 Editor/DaoDunDogBuilder 建立並指派。
+    /// 揮刀關鍵姿勢（forehand / thrust / AttackPose）先保留，T2 做連擊時再接上攻擊狀態。
     /// </summary>
     [DisallowMultipleComponent]
     public class DaoDunDogAnimator : MonoBehaviour
@@ -30,6 +31,8 @@ namespace BossFight.Player
         public PlayerController controller;
 
         [Header("關節（由 DaoDunDogBuilder 指派）")]
+        [Tooltip("整個模型的根；翻滾時整個轉")]
+        public Transform model;
         public Transform body;
         public Transform head;
         public Transform armR;
@@ -76,19 +79,27 @@ namespace BossFight.Player
         public Vector3 blockShieldFacing = new Vector3(0f, -5f, 0f);
         [Min(0f)] public float blockBlendSpeed = 12f;
 
-        Quaternion bodyRest, headRest, armRRest, swordRest, armLRest, legRRest, legLRest, tailRest;
+        [Header("翻滾")]
+        [Tooltip("翻滾時模型繞這個點（角色局部座標）轉一圈，約在身體中心")]
+        public Vector3 rollPivot = new Vector3(0f, 0.6f, 0f);
+
+        Quaternion modelRest, bodyRest, headRest, armRRest, armLRest, legRRest, legLRest, tailRest;
         Quaternion shieldRestInBody;
-        Vector3 bodyRestPos;
-        float phase, moveWeight, airWeight, blockWeight, attackWeight;
+        Vector3 modelRestPos, bodyRestPos;
+        float phase, moveWeight, airWeight, blockWeight;
 
         void Awake()
         {
             if (controller == null) controller = GetComponentInParent<PlayerController>();
+            if (model != null)
+            {
+                modelRest = model.localRotation;
+                modelRestPos = model.localPosition;
+            }
             bodyRest = body.localRotation;
             bodyRestPos = body.localPosition;
             headRest = head.localRotation;
             armRRest = armR.localRotation;
-            swordRest = sword.localRotation;
             armLRest = armL.localRotation;
             legRRest = legR.localRotation;
             legLRest = legL.localRotation;
@@ -101,37 +112,42 @@ namespace BossFight.Player
             float dt = Time.deltaTime;
             var c = controller;
             float speed = c != null ? c.PlanarSpeed : 0f;
-            float run = c != null ? Mathf.Max(0.01f, c.runSpeed) : 1f;
-            float sprint01 = c != null ? Mathf.Clamp01((speed - run) / Mathf.Max(0.01f, c.sprintSpeed - run)) : 0f;
+            float run = c != null ? Mathf.Max(0.01f, c.MoveSpeed) : 1f;
             bool grounded = c == null || c.IsGrounded;
-            bool attacking = c != null && c.IsAttacking;
+            bool rolling = c != null && c.IsRolling;
 
-            moveWeight = Mathf.MoveTowards(moveWeight, grounded ? Mathf.Clamp01(speed / run) : 0f, dt * 6f);
-            airWeight = Mathf.MoveTowards(airWeight, grounded ? 0f : 1f, dt * 8f);
+            // 空中或翻滾時收腿；翻滾很短，收得快一點
+            moveWeight = Mathf.MoveTowards(moveWeight, grounded && !rolling ? Mathf.Clamp01(speed / run) : 0f, dt * 6f);
+            airWeight = Mathf.MoveTowards(airWeight, grounded && !rolling ? 0f : 1f, dt * (rolling ? 16f : 8f));
             blockWeight = Mathf.MoveTowards(blockWeight, c != null && c.IsBlocking ? 1f : 0f, dt * blockBlendSpeed);
-            attackWeight = Mathf.MoveTowards(attackWeight, attacking ? 1f : 0f, dt * 20f);
 
             phase = Mathf.Repeat(phase + speed / strideLength * dt, 1f);
             float s = Mathf.Sin(phase * 2f * Mathf.PI);
             float bob = Mathf.Abs(Mathf.Cos(phase * 2f * Mathf.PI)) * bobHeight * moveWeight;
             float breathe = Mathf.Sin(Time.time * 2.2f) * 0.012f * (1f - moveWeight);
 
-            // 揮刀姿勢與身體扭轉
-            float twist = 0f;
-            Quaternion attackArm = Quaternion.identity, attackWrist = Quaternion.identity;
-            if (attacking) AttackPose(c.AttackProgress, c.AttackIndex, out attackArm, out attackWrist, out twist);
+            // 翻滾：整隻狗繞身體中心往翻滾方向轉一圈（方向可以是側面或後面，跟面向無關）
+            if (model != null)
+            {
+                Quaternion roll = Quaternion.identity;
+                if (rolling)
+                {
+                    Vector3 axis = transform.InverseTransformDirection(Vector3.Cross(Vector3.up, c.RollDirection));
+                    roll = Quaternion.AngleAxis(360f * Mathf.SmoothStep(0f, 1f, c.RollProgress), axis);
+                }
+                model.localRotation = roll * modelRest;
+                model.localPosition = rollPivot + roll * (modelRestPos - rollPivot);
+            }
 
-            // 身體：上下起伏、前傾、左右搖、扭腰
+            // 身體：上下起伏、前傾、左右搖
             body.localPosition = bodyRestPos + Vector3.up * (bob + breathe);
-            body.localRotation = bodyRest * Quaternion.Euler(runLean * moveWeight * (1f + sprint01) - 6f * airWeight,
-                                                             twist * attackWeight,
-                                                             s * waddle * moveWeight);
+            body.localRotation = bodyRest * Quaternion.Euler(runLean * moveWeight - 6f * airWeight, 0f, s * waddle * moveWeight);
 
             // 頭：抵銷一半身體搖擺，保持穩定
-            head.localRotation = headRest * Quaternion.Euler(-bob * 60f, -twist * attackWeight * 0.4f, -s * waddle * 0.5f * moveWeight);
+            head.localRotation = headRest * Quaternion.Euler(-bob * 60f, 0f, -s * waddle * 0.5f * moveWeight);
 
             // 腿：前後擺；空中時青蛙腿往前往外張開
-            float legAmp = legSwing * moveWeight * (1f + 0.3f * sprint01);
+            float legAmp = legSwing * moveWeight;
             legR.localRotation = legRRest * Quaternion.Slerp(Quaternion.Euler(s * legAmp, 0f, 0f), Quaternion.Euler(-35f, 0f, 25f), airWeight);
             legL.localRotation = legLRest * Quaternion.Slerp(Quaternion.Euler(-s * legAmp, 0f, 0f), Quaternion.Euler(-35f, 0f, -25f), airWeight);
 
@@ -139,8 +155,7 @@ namespace BossFight.Player
             float armAmp = armSwing * moveWeight;
             Quaternion swingR = Quaternion.Slerp(Quaternion.Euler(-s * armAmp, 0f, 0f), Quaternion.Euler(-20f, 0f, 35f), airWeight);
             Quaternion swingL = Quaternion.Slerp(Quaternion.Euler(s * armAmp, 0f, 0f), Quaternion.Euler(-20f, 0f, -35f), airWeight);
-            armR.localRotation = armRRest * Quaternion.Slerp(swingR, attackArm, attackWeight);
-            sword.localRotation = swordRest * Quaternion.Slerp(Quaternion.identity, attackWrist, attackWeight);
+            armR.localRotation = armRRest * swingR;
             armL.localRotation = armLRest * Quaternion.Slerp(swingL, Quaternion.Euler(blockArmPose), blockWeight);
 
             // 盾面朝向在身體空間插值，抵銷左臂的旋轉

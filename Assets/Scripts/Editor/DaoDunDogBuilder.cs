@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using BossFight.Cameras;
 using BossFight.Player;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -11,7 +10,8 @@ namespace BossFight.EditorTools
     /// 用基本形體拼出刀盾狗（照公仔造型）：蛋形身體、頭身一體，上面橘、肚子和下巴奶油色；
     /// 長狗吻 + 黑鼻子 + 壞笑、半瞇杏仁眼、貼在頭側的小圓耳、短手、青蛙腳。
     /// 右手短刀，左手金邊黑底的鳶形盾（中間金色太陽紋）。
-    /// 存成 Assets/Prefabs/DaoDunDog.prefab，放到場景的 PlayerSpawn，並把 Main Camera 設成第三人稱鏡頭。
+    /// 存成 Assets/Prefabs/DaoDunDog.prefab（掛好 PlayerController、PlayerStamina 與 PlayerStats），放到場景的 PlayerSpawn，
+    /// 再用 CameraRigBuilder 建立 Cinemachine 鏡頭。
     /// 選單 Tools > Player > Build DaoDun Dog；重建時沿用場景中舊角色的位置。
     /// 尺寸以 +Z 為前方、腳底 y = 0，總高約 1.4 m。
     /// </summary>
@@ -22,7 +22,7 @@ namespace BossFight.EditorTools
         const string MeshDir = ModelDir + "/Meshes";
         const string PrefabDir = "Assets/Prefabs";
         const string PrefabPath = PrefabDir + "/DaoDunDog.prefab";
-        const float CameraPivotHeight = 1.1f;
+        const string StatsPath = "Assets/ScriptableObjects/Player/PlayerStats.asset";
 
         class Mats
         {
@@ -107,7 +107,7 @@ namespace BossFight.EditorTools
             Undo.RegisterCreatedObjectUndo(root, "Build DaoDun Dog");
             root.transform.SetPositionAndRotation(pos, rot);
 
-            SetupCamera(root);
+            CameraRigBuilder.Build(root.GetComponent<PlayerController>());
 
             Undo.CollapseUndoOperations(undoGroup);
             AssetDatabase.SaveAssets();
@@ -130,11 +130,16 @@ namespace BossFight.EditorTools
             cc.radius = 0.5f;
             cc.stepOffset = 0.3f;
             cc.skinWidth = 0.04f;
-            var pc = root.AddComponent<PlayerController>();
+            var pc = root.AddComponent<PlayerController>(); // RequireComponent 會一起加上 PlayerStamina
+            var stats = AssetDatabase.LoadAssetAtPath<PlayerStats>(StatsPath);
+            if (stats == null) Debug.LogWarning($"[Player] 找不到 {StatsPath}，PlayerController 與 PlayerStamina 的 stats 要手動指定。");
+            SetReference(pc, "stats", stats);
+            SetReference(root.GetComponent<PlayerStamina>(), "stats", stats);
             var anim = root.AddComponent<DaoDunDogAnimator>();
             anim.controller = pc;
 
             var model = Node(root.transform, "Model", Vector3.zero);
+            anim.model = model;
 
             // 身體：以髖部為軸，起伏/前傾/扭腰都轉這裡；腳不在底下，才不會跟著離地
             // 蛋形橘色身體 + 往前下方偏的奶油色肚子，正面下半就是奶油色
@@ -297,34 +302,15 @@ namespace BossFight.EditorTools
             return leg;
         }
 
-        // ---------- 鏡頭 ----------
-
-        static void SetupCamera(GameObject player)
-        {
-            var cam = Camera.main;
-            if (cam == null)
-            {
-                var go = new GameObject("Main Camera") { tag = "MainCamera" };
-                Undo.RegisterCreatedObjectUndo(go, "Create Main Camera");
-                cam = go.AddComponent<Camera>();
-                go.AddComponent<AudioListener>();
-            }
-
-            var tpc = cam.GetComponent<ThirdPersonCamera>();
-            if (tpc == null) tpc = Undo.AddComponent<ThirdPersonCamera>(cam.gameObject);
-            Undo.RecordObject(tpc, "Setup Camera");
-            tpc.target = player.transform;
-            tpc.pivotOffset = new Vector3(0f, CameraPivotHeight, 0f);
-            EditorUtility.SetDirty(tpc);
-
-            // 先擺到角色背後，編輯模式下的 Game 視圖也看得到角色
-            Undo.RecordObject(cam.transform, "Setup Camera");
-            var rot = Quaternion.Euler(tpc.startPitch, player.transform.eulerAngles.y, 0f);
-            cam.transform.SetPositionAndRotation(
-                player.transform.position + tpc.pivotOffset + rot * Vector3.back * tpc.distance, rot);
-        }
-
         // ---------- 工具 ----------
+
+        /// 指定私有 [SerializeField] 欄位。
+        static void SetReference(Object target, string field, Object value)
+        {
+            var so = new SerializedObject(target);
+            so.FindProperty(field).objectReferenceValue = value;
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
 
         static Transform Node(Transform parent, string name, Vector3 localPos)
         {

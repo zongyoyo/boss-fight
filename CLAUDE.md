@@ -19,16 +19,16 @@
 
 | 路徑 | 用途 |
 | --- | --- |
-| `Assets/Scripts/Core` | 跨系統共用：BattleManager、事件、傷害系統（DamageInfo、Hitbox、Hurtbox、IDamageable）、AudioManager、競技場（ArenaData、ArenaGenerator） |
-| `Assets/Scripts/Player` | PlayerController、PlayerStats 定義、DaoDunDogAnimator |
-| `Assets/Scripts/Camera` | CameraController（Cinemachine 第三人稱與鎖定 Boss）；目前暫用 ThirdPersonCamera |
+| `Assets/Scripts/Core` | 跨系統共用：BattleManager、事件、傷害系統（DamageInfo、Hitbox、Hurtbox、IDamageable）、AudioManager、競技場（ArenaData、ArenaGenerator）、LockOnTarget |
+| `Assets/Scripts/Player` | PlayerController、PlayerStamina、PlayerStats 定義、DaoDunDogAnimator |
+| `Assets/Scripts/Camera` | CameraController（Cinemachine 第三人稱與鎖定 Boss） |
 | `Assets/Scripts/Boss` | BossController 狀態機與選招、BossMove 基底類別、BossMoveData／BossPhaseData 定義 |
 | `Assets/Scripts/Boss/Moves` | 每招一個 BossMove 子類別 |
 | `Assets/Scripts/Hazards` | 衝擊波、落雷、龍捲風、安全區等場上判定物件 |
 | `Assets/Scripts/Cutscene` | CutsceneDirector、Timeline 自訂 Track／Clip |
 | `Assets/Scripts/UI` | BattleUI、字卡、勝敗畫面（只訂閱事件） |
-| `Assets/Scripts/Debug` | Debug 快捷鍵（F1–F4）與平衡面板（F12） |
-| `Assets/Scripts/Editor` | 編輯器工具（ArenaBuilder、DaoDunDogBuilder），不會進 build |
+| `Assets/Scripts/Debug` | Debug 快捷鍵（F1–F4）、平衡面板（F12）、左上角的玩家狀態（PlayerDebugOverlay） |
+| `Assets/Scripts/Editor` | 編輯器工具（ArenaBuilder、DaoDunDogBuilder、CameraRigBuilder），不會進 build |
 | `Assets/ScriptableObjects` | 數值資產（`.asset`），依系統分子資料夾：`Arena/`、`Player/`、`Boss/Phases/`、`Boss/Moves/` |
 | `Assets/Prefabs` | 玩家、Boss、Hazard、UI 的 prefab |
 | `Assets/Scenes` | `BossArena.unity`（`SampleScene` 是範本殘留） |
@@ -80,9 +80,8 @@ ScriptableObject 的「類別」寫在 `Scripts/` 對應的系統資料夾，「
 
 ## 已知技術債
 
-- `PlayerController` 的數值寫死在元件欄位上（跑速 6），而且有企劃書沒有的 Sprint 和 Jump。T1 要改讀 PlayerStats SO：跑速 5，Space 改成翻滾。
-- `ThirdPersonCamera` 是手寫鏡頭，T1 要換成 Cinemachine 的 CameraController（含鎖定）。
-- 刀盾狗 prefab 是用基本形體拼的，沒有骨架；T1 的「膠囊狗」可以直接沿用它。
+- 刀盾狗 prefab 是用基本形體拼的，沒有骨架，動畫是 DaoDunDogAnimator 的程序化姿勢。
+- `FakeBoss`（BossArena 中心的灰色膠囊）是 T1 測試鎖定用的假 Boss，T3 換成真的 Boss 後刪掉，並在 CameraRig 的 CameraController 把鎖定目標換成新的 Boss。
 
 ## 工作流程
 
