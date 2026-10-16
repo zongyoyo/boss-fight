@@ -5,7 +5,7 @@ namespace BossFight.Player
 {
     /// <summary>
     /// 刀盾狗的耐力。上限與回復速度讀 PlayerStats；目前值存在元件自己身上。
-    /// 回復由 PlayerController 每幀呼叫 Regenerate（舉盾時回得比較慢）；UI 訂閱 OnStaminaChanged。
+    /// 回復由 PlayerController 每幀呼叫 Regenerate（舉盾時回得比較慢）；格擋扣耐力由 PlayerHealth 呼叫 Drain。UI 訂閱 OnStaminaChanged。
     /// </summary>
     [DisallowMultipleComponent]
     public class PlayerStamina : MonoBehaviour
@@ -35,6 +35,14 @@ namespace BossFight.Player
             if (Current <= 0f) return false;
             Set(Current - amount);
             return true;
+        }
+
+        /// <summary>不管剩多少都扣（格擋用），最低扣到 0；回傳實際扣掉的量。</summary>
+        public float Drain(float amount)
+        {
+            float before = Current;
+            Set(Current - amount);
+            return before - Current;
         }
 
         public void Regenerate(float deltaTime, bool blocking)

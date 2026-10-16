@@ -17,6 +17,8 @@ MonoBehaviour:
   turnSpeed: 720
   blockMoveSpeedMultiplier: 0.4
   gravity: -25
+  jumpHeight: 1
+  jumpStaminaCost: 0
   rollDistance: 3
   rollDuration: 0.5
   rollInvulnerableTime: 0.3
@@ -48,6 +50,66 @@ MonoBehaviour:
   maxStamina: 100
   staminaRegen: 30
   staminaRegenBlocking: 10
+  maxHealth: 100
+  hitInvulnerableTime: 0.5
+  lightCombo:
+  - damage: 10
+    imbalance: 3
+    duration: 0.5
+    hitStart: 0.15
+    hitEnd: 0.25
+    cancelTime: 0.3
+    lungeDistance: 0
+    lungeStart: 0
+    lungeEnd: 0
+    reach: 1.8
+    width: 1.6
+  - damage: 10
+    imbalance: 3
+    duration: 0.5
+    hitStart: 0.15
+    hitEnd: 0.25
+    cancelTime: 0.3
+    lungeDistance: 0
+    lungeStart: 0
+    lungeEnd: 0
+    reach: 1.8
+    width: 1.6
+  - damage: 16
+    imbalance: 3
+    duration: 0.7
+    hitStart: 0.21
+    hitEnd: 0.35
+    cancelTime: 0.45
+    lungeDistance: 0.8
+    lungeStart: 0.05
+    lungeEnd: 0.3
+    reach: 1.8
+    width: 1.6
+  heavyChargeTime: 0.8
+  heavyStaminaCost: 30
+  heavyAttack:
+    damage: 35
+    imbalance: 15
+    duration: 0.7
+    hitStart: 0.1
+    hitEnd: 0.22
+    cancelTime: 0.45
+    lungeDistance: 0
+    lungeStart: 0
+    lungeEnd: 0
+    reach: 2
+    width: 2
+  attackHitboxHeight: 1.6
+  blockAngle: 120
+  blockDamageReduction: 0.8
+  blockStaminaPerDamage: 1
+  guardBreakDuration: 1
+  parryWindow: 0.15
+  parryHitStop: 0.1
+  boneCount: 3
+  boneHealAmount: 40
+  boneDuration: 1
   lockOnRange: 20
   mouseSensitivity: 0.12
   stickSensitivity: 200

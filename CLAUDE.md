@@ -19,21 +19,21 @@
 
 | 路徑 | 用途 |
 | --- | --- |
-| `Assets/Scripts/Core` | 跨系統共用：BattleManager、事件、傷害系統（DamageInfo、Hitbox、Hurtbox、IDamageable）、AudioManager、競技場（ArenaData、ArenaGenerator）、LockOnTarget |
-| `Assets/Scripts/Player` | PlayerController、PlayerStamina、PlayerStats 定義、DaoDunDogAnimator |
+| `Assets/Scripts/Core` | 跨系統共用：BattleManager、事件、傷害系統（DamageInfo、Hitbox、Hurtbox、IDamageable）、畫面停頓（HitStop）、AudioManager、競技場（ArenaData、ArenaGenerator）、LockOnTarget |
+| `Assets/Scripts/Player` | PlayerController、PlayerAttack、PlayerHealth、PlayerStamina、PlayerStats 定義、DaoDunDogAnimator |
 | `Assets/Scripts/Camera` | CameraController（Cinemachine 第三人稱與鎖定 Boss） |
 | `Assets/Scripts/Boss` | BossController 狀態機與選招、BossMove 基底類別、BossMoveData／BossPhaseData 定義 |
 | `Assets/Scripts/Boss/Moves` | 每招一個 BossMove 子類別 |
 | `Assets/Scripts/Hazards` | 衝擊波、落雷、龍捲風、安全區等場上判定物件 |
 | `Assets/Scripts/Cutscene` | CutsceneDirector、Timeline 自訂 Track／Clip |
 | `Assets/Scripts/UI` | BattleUI、字卡、勝敗畫面（只訂閱事件） |
-| `Assets/Scripts/Debug` | Debug 快捷鍵（F1–F4）、平衡面板（F12）、左上角的玩家狀態（PlayerDebugOverlay） |
-| `Assets/Scripts/Editor` | 編輯器工具（ArenaBuilder、DaoDunDogBuilder、CameraRigBuilder），不會進 build |
-| `Assets/ScriptableObjects` | 數值資產（`.asset`），依系統分子資料夾：`Arena/`、`Player/`、`Boss/Phases/`、`Boss/Moves/` |
+| `Assets/Scripts/Debug` | Debug 快捷鍵（F1–F4）、平衡面板（F12）、左上角的玩家狀態（PlayerDebugOverlay）、測試木樁（TrainingDummy） |
+| `Assets/Scripts/Editor` | 編輯器工具（ArenaBuilder、DaoDunDogBuilder、CameraRigBuilder、TrainingDummyBuilder），不會進 build |
+| `Assets/ScriptableObjects` | 數值資產（`.asset`），依系統分子資料夾：`Arena/`、`Player/`、`Boss/Phases/`、`Boss/Moves/`、`Debug/`（測試木樁） |
 | `Assets/Prefabs` | 玩家、Boss、Hazard、UI 的 prefab |
 | `Assets/Scenes` | `BossArena.unity`（`SampleScene` 是範本殘留） |
 | `Assets/Audio` | BGM 與音效；OIIA 音樂放 `Assets/Audio/oiia_bgm` |
-| `Assets/Models` | 模型、網格、材質；`Models/Arena`、`Models/DaoDunDog` 由 Builder 自動產生，重建會覆寫網格 |
+| `Assets/Models` | 模型、網格、材質；`Models/Arena`、`Models/DaoDunDog`、`Models/TrainingDummy` 由 Builder 自動產生，重建會覆寫網格 |
 | `Assets/Settings` | URP 與 Volume 設定（範本自帶） |
 | `docs/` | 企劃書 |
 
@@ -74,7 +74,9 @@ ScriptableObject 的「類別」寫在 `Scripts/` 對應的系統資料夾，「
 
 - 輸入只用新版 Input System，從 `InputSystem.actions` 讀 `Player` map；新動作加進 `InputSystem_Actions.inputactions`。
 - Debug 程式整個檔案包在 `#if UNITY_EDITOR || DEVELOPMENT_BUILD`。
-- Layer：`ArenaWall`（8）用於外牆、入口門與門柱，Boss 撞牆判定用。新增 Layer 時記在這裡。
+- Layer：`ArenaWall`（8）用於外牆、入口門與門柱，Boss 撞牆判定用；`Hurtbox`（9）是受擊範圍的 trigger，Hitbox 只掃這一層。新增 Layer 時記在這裡。
+- 傷害一律走 Hitbox → Hurtbox → `IDamageable.TakeDamage`；無敵、格擋、盾反由被打方自己結算，結果（`DamageResult`）用 `Hitbox.OnHit` 回報攻擊方。
+- 玩家的 CharacterController `minMoveDistance` 要保持 0：站著不動時每幀的重力位移比預設的 0.001 m 還小，`isGrounded` 會一幀有一幀沒有，舉盾、攻擊、跳躍都會失靈。
 - 搬移或改名資產要在 Unity 裡做（或用 `AssetDatabase.MoveAsset`），保留 `.meta` 與 GUID，引用才不會斷。
 - 註解用繁體中文，風格跟現有檔案一致：public 欄位加 `[Tooltip]`，用 `[Header]` 分組，數值欄位加 `[Min]`／`[Range]`。
 
@@ -82,6 +84,7 @@ ScriptableObject 的「類別」寫在 `Scripts/` 對應的系統資料夾，「
 
 - 刀盾狗 prefab 是用基本形體拼的，沒有骨架，動畫是 DaoDunDogAnimator 的程序化姿勢。
 - `FakeBoss`（BossArena 中心的灰色膠囊）是 T1 測試鎖定用的假 Boss，T3 換成真的 Boss 後刪掉，並在 CameraRig 的 CameraController 把鎖定目標換成新的 Boss。
+- `TrainingDummy`（BossArena 南側 (0, 0, −4.5) 的木樁）是 T2 測試攻防用的，會輪流出白光／紅光攻擊，也在鎖定清單裡（離得近時中鍵會先鎖它）。程式在 `Scripts/Debug`，正式 build 會變成 Missing Script；不再需要時刪掉物件，並從 CameraController 的鎖定清單移除。
 
 ## 工作流程
 
@@ -100,8 +103,8 @@ ScriptableObject 的「類別」寫在 `Scripts/` 對應的系統資料夾，「
 | # | 任務 | 驗收方式 |
 | --- | --- | --- |
 | T0 | 專案骨架與 CLAUDE.md | Console 沒有錯誤；刀盾狗站在南側出生點（離中心 8 m）；從中心往 8 個方向打射線，都在約 12 m 處打到 `ArenaWall`；天空是暗灰藍的雷雲佔位 |
-| T1 | 玩家移動、鏡頭鎖定、翻滾、耐力 | 依鏡頭方向以 5 m/s 移動；中鍵鎖定 20 m 內的假 Boss，鎖定時繞行，再按一次解除；Space 翻滾 3 m、前 0.3 秒無敵、耐力 −25；耐力每秒回 30、舉盾時 10；數值都在 PlayerStats |
-| T2 | 玩家攻防與傷害系統 | 對木樁打出 10 / 10 / 16 三段，第三段前踏；長按 0.8 秒重擊 35、耐力 −30；舉盾擋正面 120°、減傷 80%，耐力歸零破防 1 秒；命中前 0.15 秒內舉盾判定盾反（免傷、停頓 0.1 秒）；R 回 40 HP，每場 3 次 |
+| T1 | 玩家移動、鏡頭鎖定、翻滾、耐力 | 依鏡頭方向以 5 m/s 移動；中鍵鎖定 20 m 內的假 Boss，鎖定時繞行，再按一次解除；Left Alt 翻滾 3 m、前 0.3 秒無敵、耐力 −25；耐力每秒回 30、舉盾時 10；數值都在 PlayerStats |
+| T2 | 玩家攻防與傷害系統 | 對木樁打出 10 / 10 / 16 三段，第三段前踏；長按 0.8 秒重擊 35、耐力 −30；舉盾擋正面 120°、減傷 80%，耐力歸零破防 1 秒；命中前 0.15 秒內舉盾判定盾反（免傷、停頓 0.1 秒）；R 回 40 HP，每場 3 次；Space 跳躍約 1 m |
 | T3 | Boss 狀態機、招式資料、選招 AI | 假招式跑完 Idle → ChooseMove → Telegraph → Active → Recovery 循環；選招依距離 → 冷卻 → 加權隨機，且不連出同一招；固定開場序列生效；F1–F4 都可用 |
 | T4 | 第一階段 5 招與危害物件 | 用 F3 逐一觸發 5 招；可擋招閃白光、不可擋招閃紅光，格擋與盾反判定正確；迴旋衝撞撞牆後硬直 2 秒；開場固定序列為 迴旋衝撞 → 貓掌連拍 → 魔法陣落雷 |
 | T5 | 失衡值、頭暈、處決 | 盾反 4 次讓 Boss 頭暈；頭暈中傷害 ×1.5；F 處決造成 150；處決或頭暈結束後失衡值歸零；3 秒沒有增加後每秒 −8 |

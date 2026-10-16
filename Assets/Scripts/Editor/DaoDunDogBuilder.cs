@@ -1,4 +1,7 @@
 using System.Collections.Generic;
+using BossFight.Cameras;
+using BossFight.Core;
+using BossFight.DebugTools;
 using BossFight.Player;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -9,10 +12,11 @@ namespace BossFight.EditorTools
     /// <summary>
     /// 用基本形體拼出刀盾狗（照公仔造型）：蛋形身體、頭身一體，上面橘、肚子和下巴奶油色；
     /// 長狗吻 + 黑鼻子 + 壞笑、半瞇杏仁眼、貼在頭側的小圓耳、短手、青蛙腳。
-    /// 右手短刀，左手金邊黑底的鳶形盾（中間金色太陽紋）。
-    /// 存成 Assets/Prefabs/DaoDunDog.prefab（掛好 PlayerController、PlayerStamina 與 PlayerStats），放到場景的 PlayerSpawn，
-    /// 再用 CameraRigBuilder 建立 Cinemachine 鏡頭。
+    /// 右手短刀，左手金邊黑底的鳶形盾（中間金色太陽紋），嘴裡藏著啃骨頭時才出現的骨頭。
+    /// 存成 Assets/Prefabs/DaoDunDog.prefab（掛好 PlayerController、PlayerStamina、PlayerHealth、PlayerAttack、HitStop 與 PlayerStats，
+    /// 以及 Hurtbox 與刀的 Hitbox），放到場景的 PlayerSpawn，再用 CameraRigBuilder 建立 Cinemachine 鏡頭，並接回 PlayerDebugOverlay。
     /// 選單 Tools > Player > Build DaoDun Dog；重建時沿用場景中舊角色的位置。
+    /// 只想補上攻防用的元件、不重建角色與鏡頭：Tools > Player > Add Combat Parts（可重複執行）。
     /// 尺寸以 +Z 為前方、腳底 y = 0，總高約 1.4 m。
     /// </summary>
     public static class DaoDunDogBuilder
@@ -23,10 +27,13 @@ namespace BossFight.EditorTools
         const string PrefabDir = "Assets/Prefabs";
         const string PrefabPath = PrefabDir + "/DaoDunDog.prefab";
         const string StatsPath = "Assets/ScriptableObjects/Player/PlayerStats.asset";
+        internal const string HurtboxLayer = "Hurtbox";
+
+        static readonly Color BoneColor = new Color(0.96f, 0.93f, 0.84f);
 
         class Mats
         {
-            public Material fur, cream, dark, legs, earInner, steel, gold, shieldFace;
+            public Material fur, cream, dark, legs, earInner, steel, gold, shieldFace, bone;
         }
 
         class Meshes
@@ -76,6 +83,7 @@ namespace BossFight.EditorTools
                 steel = GetMat("DaoDunDog_Steel", new Color(0.78f, 0.8f, 0.84f), 1f, 0.7f),
                 gold = GetMat("DaoDunDog_Gold", new Color(1f, 0.78f, 0.28f), 1f, 0.75f),
                 shieldFace = GetMat("DaoDunDog_ShieldFace", new Color(0.06f, 0.06f, 0.07f), 0f, 0.7f),
+                bone = GetMat("DaoDunDog_Bone", BoneColor, 0f, 0.4f),
             };
             var meshes = BuildMeshes();
 
@@ -108,6 +116,7 @@ namespace BossFight.EditorTools
             root.transform.SetPositionAndRotation(pos, rot);
 
             CameraRigBuilder.Build(root.GetComponent<PlayerController>());
+            WireDebugOverlay();
 
             Undo.CollapseUndoOperations(undoGroup);
             AssetDatabase.SaveAssets();
@@ -115,6 +124,100 @@ namespace BossFight.EditorTools
 
             Debug.Log($"[Player] 刀盾狗已建立：{PrefabPath}，位置 {pos}");
             return root;
+        }
+
+        [MenuItem("Tools/Player/Add Combat Parts")]
+        public static void AddCombatPartsToPrefab()
+        {
+            if (LayerMask.NameToLayer(HurtboxLayer) < 0)
+            {
+                Debug.LogError($"[Player] 找不到 Layer「{HurtboxLayer}」，請先在 Project Settings > Tags and Layers 加上。");
+                return;
+            }
+
+            var root = PrefabUtility.LoadPrefabContents(PrefabPath);
+            try
+            {
+                EnsureCombatParts(root, GetMat("DaoDunDog_Bone", BoneColor, 0f, 0.4f));
+                PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(root);
+            }
+            WireDebugOverlay();
+            AssetDatabase.SaveAssets();
+            Debug.Log($"[Player] 已補上攻防元件：{PrefabPath}");
+        }
+
+        /// <summary>
+        /// 攻防用的元件與子物件：PlayerHealth、PlayerAttack、HitStop、受擊用的 Hurtbox、刀的 Hitbox、嘴裡的骨頭。
+        /// 已經有的就沿用（骨頭會重建），可以重複執行。
+        /// </summary>
+        static void EnsureCombatParts(GameObject root, Material boneMat)
+        {
+            ConfigureGrounding(root.GetComponent<CharacterController>());
+            var stats = AssetDatabase.LoadAssetAtPath<PlayerStats>(StatsPath);
+            var health = GetOrAdd<PlayerHealth>(root);
+            var attack = GetOrAdd<PlayerAttack>(root);
+            GetOrAdd<HitStop>(root);
+            SetReference(health, "stats", stats);
+            SetReference(attack, "stats", stats);
+
+            int layer = LayerMask.NameToLayer(HurtboxLayer);
+
+            // 受擊範圍：和 CharacterController 差不多大的 trigger 膠囊
+            var hurt = FindOrCreateChild(root.transform, "Hurtbox");
+            hurt.gameObject.layer = layer;
+            var capsule = GetOrAdd<CapsuleCollider>(hurt.gameObject);
+            capsule.isTrigger = true;
+            capsule.center = new Vector3(0f, 0.7f, 0f);
+            capsule.height = 1.4f;
+            capsule.radius = 0.45f;
+            SetReference(GetOrAdd<Hurtbox>(hurt.gameObject), "owner", health);
+
+            // 刀的攻擊判定：放在根物件底下跟著面向轉，形狀由 PlayerAttack 依 AttackSpec 設定
+            var hitboxGo = FindOrCreateChild(root.transform, "SwordHitbox");
+            var hitbox = GetOrAdd<Hitbox>(hitboxGo.gameObject);
+            var hso = new SerializedObject(hitbox);
+            hso.FindProperty("targetMask").intValue = 1 << layer;
+            hso.FindProperty("attacker").objectReferenceValue = root.transform;
+            hso.ApplyModifiedPropertiesWithoutUndo();
+            SetReference(attack, "swordHitbox", hitbox);
+
+            // 骨頭：橫叼在嘴裡，平常隱藏
+            var anim = root.GetComponent<DaoDunDogAnimator>();
+            var oldBone = anim.head.Find("Bone");
+            if (oldBone != null) Object.DestroyImmediate(oldBone.gameObject);
+            anim.bone = BuildBone(anim.head, boneMat);
+            anim.attack = attack;
+            anim.health = health;
+            EditorUtility.SetDirty(anim);
+        }
+
+        /// 站著不動時每幀只往下推一幀的重力量，高幀率下會小於預設的 minMoveDistance（0.001 m），
+        /// Move 直接不動、isGrounded 變成一幀有一幀沒有；設為 0 才會每幀貼地。舉盾、攻擊、跳躍都要站在地上才能用。
+        static void ConfigureGrounding(CharacterController cc)
+        {
+            if (cc != null) cc.minMoveDistance = 0f;
+        }
+
+        /// 場景裡的 PlayerDebugOverlay 接上玩家與鏡頭；重建角色或鏡頭後舊的引用會斷。
+        static void WireDebugOverlay()
+        {
+            var overlay = Object.FindAnyObjectByType<PlayerDebugOverlay>();
+            var player = Object.FindAnyObjectByType<PlayerController>();
+            if (overlay == null || player == null) return;
+
+            var so = new SerializedObject(overlay);
+            so.FindProperty("player").objectReferenceValue = player;
+            so.FindProperty("stamina").objectReferenceValue = player.GetComponent<PlayerStamina>();
+            so.FindProperty("health").objectReferenceValue = player.GetComponent<PlayerHealth>();
+            so.FindProperty("attack").objectReferenceValue = player.GetComponent<PlayerAttack>();
+            var cam = Object.FindAnyObjectByType<CameraController>();
+            if (cam != null) so.FindProperty("cameraController").objectReferenceValue = cam;
+            so.ApplyModifiedProperties();
+            EditorSceneManager.MarkSceneDirty(overlay.gameObject.scene);
         }
 
         // ---------- 模型 ----------
@@ -130,7 +233,8 @@ namespace BossFight.EditorTools
             cc.radius = 0.5f;
             cc.stepOffset = 0.3f;
             cc.skinWidth = 0.04f;
-            var pc = root.AddComponent<PlayerController>(); // RequireComponent 會一起加上 PlayerStamina
+            ConfigureGrounding(cc);
+            var pc = root.AddComponent<PlayerController>(); // RequireComponent 會一起加上 PlayerStamina、PlayerHealth、PlayerAttack
             var stats = AssetDatabase.LoadAssetAtPath<PlayerStats>(StatsPath);
             if (stats == null) Debug.LogWarning($"[Player] 找不到 {StatsPath}，PlayerController 與 PlayerStamina 的 stats 要手動指定。");
             SetReference(pc, "stats", stats);
@@ -172,6 +276,8 @@ namespace BossFight.EditorTools
             anim.shieldGrip = shieldGrip;
             anim.legR = legR;
             anim.legL = legL;
+
+            EnsureCombatParts(root, m.bone);
             return root;
         }
 
@@ -283,6 +389,21 @@ namespace BossFight.EditorTools
             return grip;
         }
 
+        // 骨頭：中間一根圓柱、兩端各兩顆圓球，橫穿過狗吻。故意做得比身體還寬（約 1.25 m），肩後視角也看得到兩端
+        static Transform BuildBone(Transform head, Material mat)
+        {
+            var bone = Node(head, "Bone", new Vector3(0f, -0.06f, 0.62f));
+            Prim(PrimitiveType.Cylinder, bone, "Shaft", Vector3.zero, new Vector3(0.12f, 0.52f, 0.12f), mat, Quaternion.Euler(0f, 0f, 90f));
+            for (int i = 0; i < 4; i++)
+            {
+                float x = (i < 2 ? 1f : -1f) * 0.54f;
+                float z = (i % 2 == 0 ? 1f : -1f) * 0.065f;
+                Prim(PrimitiveType.Sphere, bone, "Knob_" + i, new Vector3(x, 0f, z), Vector3.one * 0.2f, mat);
+            }
+            bone.gameObject.SetActive(false);
+            return bone;
+        }
+
         // 青蛙腳：短短的大腿藏在身體下，扁平腳掌 + 四根往外張的長腳趾，趾尖圓圓的
         static Transform BuildLeg(Transform model, string name, float side, Mats m)
         {
@@ -305,14 +426,26 @@ namespace BossFight.EditorTools
         // ---------- 工具 ----------
 
         /// 指定私有 [SerializeField] 欄位。
-        static void SetReference(Object target, string field, Object value)
+        internal static void SetReference(Object target, string field, Object value)
         {
             var so = new SerializedObject(target);
             so.FindProperty(field).objectReferenceValue = value;
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 
-        static Transform Node(Transform parent, string name, Vector3 localPos)
+        internal static T GetOrAdd<T>(GameObject go) where T : Component
+        {
+            var c = go.GetComponent<T>();
+            return c != null ? c : go.AddComponent<T>();
+        }
+
+        internal static Transform FindOrCreateChild(Transform parent, string name)
+        {
+            var t = parent.Find(name);
+            return t != null ? t : Node(parent, name, Vector3.zero);
+        }
+
+        internal static Transform Node(Transform parent, string name, Vector3 localPos)
         {
             var go = new GameObject(name);
             go.transform.SetParent(parent, false);
@@ -320,8 +453,8 @@ namespace BossFight.EditorTools
             return go.transform;
         }
 
-        static GameObject Prim(PrimitiveType type, Transform parent, string name, Vector3 localPos, Vector3 scale,
-                               Material mat, Quaternion? localRot = null)
+        internal static GameObject Prim(PrimitiveType type, Transform parent, string name, Vector3 localPos, Vector3 scale,
+                                        Material mat, Quaternion? localRot = null)
         {
             var go = GameObject.CreatePrimitive(type);
             go.name = name;
@@ -384,7 +517,7 @@ namespace BossFight.EditorTools
             return new Vector3(d.x / (r.x * r.x), d.y / (r.y * r.y), d.z / (r.z * r.z)).normalized;
         }
 
-        static void EnsureFolder(string path)
+        internal static void EnsureFolder(string path)
         {
             if (AssetDatabase.IsValidFolder(path)) return;
             int slash = path.LastIndexOf('/');

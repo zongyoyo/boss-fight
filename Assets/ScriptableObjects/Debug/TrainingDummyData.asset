@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a8366adbcbc2026458137ce1f1b4d554, type: 3}
+  m_Name: TrainingDummyData
+  m_EditorClassIdentifier: Assembly-CSharp::BossFight.DebugTools.TrainingDummyData
+  attacks:
+  - label: "\u767D\u5149\uFF1A\u53EF\u64CB\u3001\u53EF\u76FE\u53CD"
+    damage: 15
+    canBlock: 1
+    canParry: 1
+    imbalance: 0
+    telegraphTime: 1
+    activeTime: 0.1
+  - label: "\u7D05\u5149\uFF1A\u4E0D\u53EF\u64CB\uFF0C\u7FFB\u6EFE\u9583\u958B"
+    damage: 20
+    canBlock: 0
+    canParry: 0
+    imbalance: 0
+    telegraphTime: 1
+    activeTime: 0.1
+  startDelay: 2
+  attackInterval: 2.5
+  attackRadius: 2.5
+  attackCenterHeight: 0.8
+  comboResetTime: 1.5
+  popupLifetime: 1.2
