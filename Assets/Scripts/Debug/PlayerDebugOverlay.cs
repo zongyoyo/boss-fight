@@ -190,6 +190,8 @@ namespace BossFight.DebugTools
             }
             if (health != null && health.IsHitInvulnerable)
                 s += $"　<color=#ffd24d>受擊無敵 {health.HitInvulnerableRemaining:0.00} s</color>";
+            if (health != null && health.ForcedInvulnerable)
+                s += "　<color=#7fd4ff>F2 無敵</color>";
             return s;
         }
 

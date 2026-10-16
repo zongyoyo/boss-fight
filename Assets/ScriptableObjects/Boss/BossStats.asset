@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d9c278bc04729494c98f6f0f92545590, type: 3}
+  m_Name: BossStats
+  m_EditorClassIdentifier: Assembly-CSharp::BossFight.Boss.BossStats
+  maxHealth: 2000
+  turnSpeed: 360
+  phases:
+  - {fileID: 11400000, guid: d26891e1335dd384db40f814edfa89d3, type: 2}
+  - {fileID: 11400000, guid: 8fc50644c552e674eacc2ce26913d5d2, type: 2}
+  - {fileID: 11400000, guid: 8b26f62e58615d0438939acf6c2866f7, type: 2}

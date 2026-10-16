@@ -29,7 +29,7 @@ namespace BossFight.Player
     /// <summary>
     /// 刀盾狗的血量、受傷結算與骨頭次數。數值讀 PlayerStats；目前血量、無敵時間、剩餘骨頭存在元件自己身上。
     /// 身上的 Hurtbox 把攻擊轉到 TakeDamage，依序判斷：
-    /// 無敵（翻滾前段、受擊後）→ 盾反（舉盾、正面、可盾反、舉盾不到 parryWindow）→ 格擋（舉盾、正面、可擋）→ 直接命中。
+    /// 無敵（強制無敵、翻滾前段、受擊後）→ 盾反（舉盾、正面、可盾反、舉盾不到 parryWindow）→ 格擋（舉盾、正面、可擋）→ 直接命中。
     /// 格擋只吃 (1 − blockDamageReduction) 的傷害、耐力扣原傷害 × blockStaminaPerDamage，扣到 0 就破防；
     /// 盾反完全免傷、畫面停頓 parryHitStop 秒並送出 OnParry；只有直接命中會給 hitInvulnerableTime 的無敵。
     /// 事件順序：OnHealthChanged → OnDamageTaken → OnParry／OnGuardBreak → OnDied。
@@ -58,6 +58,8 @@ namespace BossFight.Player
         /// <summary>被直接打中後的無敵時間內。</summary>
         public bool IsHitInvulnerable => Time.time < hitInvulnerableUntil;
         public float HitInvulnerableRemaining => Mathf.Max(0f, hitInvulnerableUntil - Time.time);
+        /// <summary>強制無敵（Debug F2，之後的演出也可以用）：所有攻擊都當成閃過。</summary>
+        public bool ForcedInvulnerable { get; set; }
 
         PlayerController controller;
         PlayerStamina stamina;
@@ -90,7 +92,7 @@ namespace BossFight.Player
 
             DamageResult result;
             float healthLoss = 0f, staminaLoss = 0f;
-            if (controller.IsInvulnerable || IsHitInvulnerable)
+            if (ForcedInvulnerable || controller.IsInvulnerable || IsHitInvulnerable)
             {
                 result = DamageResult.Evaded;
             }

@@ -1,0 +1,493 @@
+using System;
+using System.Collections.Generic;
+using BossFight.Core;
+using UnityEngine;
+
+namespace BossFight.Boss
+{
+    /// <summary>
+    /// Boss AI 的狀態。Idle → ChooseMove → Telegraph → Active → Recovery → Idle 是每一招的循環；
+    /// Stunned、Transition、Defeated 會打斷循環。
+    /// </summary>
+    public enum BossState
+    {
+        /// <summary>出招間隔：轉向玩家，等階段的出招間隔。</summary>
+        Idle,
+        /// <summary>選招；沒有能出的招時在這裡走位或等冷卻。</summary>
+        ChooseMove,
+        /// <summary>預兆。</summary>
+        Telegraph,
+        /// <summary>出招。</summary>
+        Active,
+        /// <summary>破綻。</summary>
+        Recovery,
+        /// <summary>頭暈（失衡值滿，T5）。</summary>
+        Stunned,
+        /// <summary>轉階段：無敵、不出招。</summary>
+        Transition,
+        /// <summary>血量歸零。</summary>
+        Defeated,
+    }
+
+    /// <summary>這一招是怎麼選出來的。</summary>
+    public enum MoveChoiceSource
+    {
+        /// <summary>Debug 指定（F3）。</summary>
+        Forced,
+        /// <summary>階段的固定開場序列。</summary>
+        Opening,
+        /// <summary>依距離、冷卻篩選後加權隨機。</summary>
+        Random,
+    }
+
+    /// <summary>選招的結果，OnMoveChosen 送出。</summary>
+    public readonly struct BossMoveChoice
+    {
+        public readonly BossMove move;
+        public readonly MoveChoiceSource source;
+        /// <summary>加權隨機時的候選數；其他來源為 0。</summary>
+        public readonly int candidateCount;
+        /// <summary>選招時和玩家的水平距離 (m)。</summary>
+        public readonly float distance;
+
+        public BossMoveChoice(BossMove move, MoveChoiceSource source, int candidateCount, float distance)
+        {
+            this.move = move;
+            this.source = source;
+            this.candidateCount = candidateCount;
+            this.distance = distance;
+        }
+    }
+
+    /// <summary>
+    /// OIIA 貓的 AI 狀態機與選招，持有目前階段的 BossPhaseData。數值讀 BossStats／BossPhaseData／BossMoveData；
+    /// 冷卻、開場序列進度這些執行期狀態存在元件自己身上。
+    /// 選招順序：F3 指定（什麼都不看）→ 階段的固定開場序列（不看冷卻、權重、不連出，但要走進距離範圍）→
+    /// 目前招式池裡「距離內、冷卻好、不是上一招、權重 &gt; 0」的招式加權隨機。
+    /// 沒有能出的招時，往「冷卻好、不是上一招」裡距離範圍最近的一招走位（靠近或後退）；全部都在冷卻就原地轉向玩家等。
+    /// 冷卻從招式結束（或被打斷）開始算，乘上當下階段的冷卻倍率。
+    /// 血量降到下一個階段的門檻時換階段：有 transitionTime 的進入 Transition（無敵、打斷招式），結束後才套用；沒有的直接套用。
+    /// 招式的執行交給 BossMove；這裡只送事件，UI 與演出訂閱 OnStateChanged、OnMoveChosen、OnPhaseChanged、OnMoveHit。
+    /// </summary>
+    [RequireComponent(typeof(BossHealth))]
+    [DisallowMultipleComponent]
+    public class BossController : MonoBehaviour
+    {
+        [SerializeField] BossStats stats;
+        [Tooltip("場地半徑：走位不會走出場地")]
+        [SerializeField] ArenaData arena;
+        [Tooltip("場地中心；留空用世界原點")]
+        [SerializeField] Transform arenaCenter;
+        [Tooltip("玩家：選招的距離與轉向都以它為準")]
+        [SerializeField] Transform target;
+        [Tooltip("本體的碰撞膠囊，用它的半徑讓 Boss 不會走進牆裡")]
+        [SerializeField] CapsuleCollider body;
+        [Tooltip("Boss 會用的招式（Moves 底下的 BossMove）；用哪些由 BossMoveData.phase 與階段的招式池決定")]
+        [SerializeField] List<BossMove> moves = new List<BossMove>();
+        [Tooltip("進 Play 模式就開打。之後由 BattleManager 在開場演出結束時呼叫 StartBattle，這裡就要關掉")]
+        [SerializeField] bool startOnPlay = true;
+
+        /// <summary>狀態改變；參數是新的狀態。</summary>
+        public event Action<BossState> OnStateChanged;
+        /// <summary>選好一招，接著進入預兆。</summary>
+        public event Action<BossMoveChoice> OnMoveChosen;
+        /// <summary>套用新的階段；Start 時也會送一次第一階段。</summary>
+        public event Action<BossPhaseData> OnPhaseChanged;
+        /// <summary>招式的攻擊判定打到目標並結算完（T5 用 result == Parried 加失衡值）。</summary>
+        public event Action<BossMove, HitReport> OnMoveHit;
+
+        public BossState State { get; private set; }
+        /// <summary>進入目前狀態後經過的秒數。</summary>
+        public float StateTime { get; private set; }
+        public BossPhaseData Phase { get; private set; }
+        public int PhaseIndex { get; private set; }
+        /// <summary>下一個階段；已經是最後一個時為 null。</summary>
+        public BossPhaseData NextPhase => PhaseIndex + 1 < stats.phases.Length ? stats.phases[PhaseIndex + 1] : null;
+        public bool HasStarted { get; private set; }
+        /// <summary>預兆到破綻之間的招式；其他狀態為 null。</summary>
+        public BossMove CurrentMove { get; private set; }
+        /// <summary>上一次選到的招（不連出同一招用）。</summary>
+        public BossMove LastMove { get; private set; }
+        /// <summary>下一次選招直接出的招（Debug F3）；null = 不指定。</summary>
+        public BossMove ForcedNextMove { get; private set; }
+        /// <summary>沒有能出的招時，正在走進哪一招的距離範圍；null = 原地等。</summary>
+        public BossMove RepositionGoal { get; private set; }
+        /// <summary>目前階段的開場序列已經出了幾招。</summary>
+        public int OpeningIndex { get; private set; }
+        /// <summary>這次 Idle 要等的秒數。</summary>
+        public float IdleDuration { get; private set; }
+        /// <summary>這次頭暈或轉階段的總秒數。</summary>
+        public float TimedStateDuration { get; private set; }
+        public IReadOnlyList<BossMove> Moves => moves;
+        public Transform Target => target;
+
+        /// <summary>和玩家的水平距離 (m)。</summary>
+        public float DistanceToTarget => target != null ? Flat(target.position - transform.position).magnitude : float.PositiveInfinity;
+
+        BossHealth health;
+        readonly Dictionary<BossMove, float> readyTime = new Dictionary<BossMove, float>();
+        readonly List<BossMove> candidates = new List<BossMove>();
+        int pendingPhase = -1;
+
+        void Awake()
+        {
+            health = GetComponent<BossHealth>();
+            if (stats == null || stats.phases == null || stats.phases.Length == 0 || stats.phases[0] == null)
+            {
+                Debug.LogError("[Boss] BossStats 沒有設定階段，Boss 不會行動。", this);
+                enabled = false;
+                return;
+            }
+
+            for (int i = moves.Count - 1; i >= 0; i--)
+            {
+                if (moves[i] != null && moves[i].Data != null) continue;
+                Debug.LogError($"[Boss] 招式清單第 {i} 項是空的或沒有 BossMoveData，已略過。", this);
+                moves.RemoveAt(i);
+            }
+            foreach (var move in moves) move.Bind(this);
+
+            PhaseIndex = 0;
+            Phase = stats.phases[0];
+        }
+
+        void OnEnable()
+        {
+            health.OnBossHealthChanged += HandleHealthChanged;
+            health.OnDefeated += HandleDefeated;
+        }
+
+        void OnDisable()
+        {
+            health.OnBossHealthChanged -= HandleHealthChanged;
+            health.OnDefeated -= HandleDefeated;
+        }
+
+        void Start()
+        {
+            OnPhaseChanged?.Invoke(Phase);
+            if (startOnPlay) StartBattle();
+        }
+
+        /// <summary>開打：直接進入選招（開場演出結束時接第一招，不另等出招間隔）。</summary>
+        public void StartBattle()
+        {
+            if (HasStarted || State == BossState.Defeated) return;
+            HasStarted = true;
+            SetState(BossState.ChooseMove);
+        }
+
+        void Update()
+        {
+            float dt = Time.deltaTime;
+            if (!HasStarted || dt <= 0f) return;
+            StateTime += dt;
+
+            switch (State)
+            {
+                case BossState.Idle:
+                    FaceTarget(dt);
+                    if (StateTime >= IdleDuration) SetState(BossState.ChooseMove);
+                    break;
+                case BossState.ChooseMove:
+                    TickChooseMove(dt);
+                    break;
+                case BossState.Telegraph:
+                    CurrentMove.TickTelegraph(dt);
+                    if (StateTime >= CurrentMove.TelegraphTime)
+                    {
+                        SetState(BossState.Active);
+                        CurrentMove.BeginActive();
+                    }
+                    break;
+                case BossState.Active:
+                    if (CurrentMove.TickActive(dt))
+                    {
+                        SetState(BossState.Recovery);
+                        CurrentMove.BeginRecovery();
+                    }
+                    break;
+                case BossState.Recovery:
+                    CurrentMove.TickRecovery(dt);
+                    if (StateTime >= CurrentMove.RecoveryTime) FinishMove();
+                    break;
+                case BossState.Stunned:
+                    if (StateTime >= TimedStateDuration) EnterIdle();
+                    break;
+                case BossState.Transition:
+                    if (StateTime >= TimedStateDuration) CompleteTransition();
+                    break;
+            }
+        }
+
+        // ---------- 選招 ----------
+
+        void TickChooseMove(float dt)
+        {
+            float distance = DistanceToTarget;
+            if (TryChoose(distance, out var choice))
+            {
+                StartMove(choice);
+                return;
+            }
+            FaceTarget(dt);
+            if (RepositionGoal != null) WalkTowardRange(RepositionGoal.Data, distance, dt);
+        }
+
+        bool TryChoose(float distance, out BossMoveChoice choice)
+        {
+            choice = default;
+            RepositionGoal = null;
+
+            if (ForcedNextMove != null)
+            {
+                choice = new BossMoveChoice(ForcedNextMove, MoveChoiceSource.Forced, 0, distance);
+                ForcedNextMove = null;
+                return true;
+            }
+
+            var opening = Phase.openingSequence;
+            while (opening != null && OpeningIndex < opening.Length)
+            {
+                var move = FindMove(opening[OpeningIndex]);
+                if (move == null)
+                {
+                    // 序列裡的招式沒掛在 Boss 身上：跳過，不讓整個循環卡住
+                    Debug.LogError($"[Boss] {Phase.displayName} 開場序列第 {OpeningIndex + 1} 招不在 Boss 的招式清單裡，已略過。", this);
+                    OpeningIndex++;
+                    continue;
+                }
+                if (!move.Data.InRange(distance))
+                {
+                    RepositionGoal = move;
+                    return false;
+                }
+                OpeningIndex++;
+                choice = new BossMoveChoice(move, MoveChoiceSource.Opening, 0, distance);
+                return true;
+            }
+
+            // 招式池 → 距離 → 冷卻 → 不連出；距離不合的留下最近的一招當走位目標
+            candidates.Clear();
+            float totalWeight = 0f;
+            float nearestGap = float.PositiveInfinity;
+            foreach (var move in moves)
+            {
+                var data = move.Data;
+                if (data.phase != Phase.movePool || data.weight <= 0f || move == LastMove || !IsReady(move)) continue;
+                float gap = data.DistanceToRange(distance);
+                if (gap <= 0f)
+                {
+                    candidates.Add(move);
+                    totalWeight += data.weight;
+                }
+                else if (gap < nearestGap)
+                {
+                    nearestGap = gap;
+                    RepositionGoal = move;
+                }
+            }
+            if (candidates.Count == 0) return false;
+
+            RepositionGoal = null;
+            choice = new BossMoveChoice(PickWeighted(totalWeight), MoveChoiceSource.Random, candidates.Count, distance);
+            return true;
+        }
+
+        BossMove PickWeighted(float totalWeight)
+        {
+            float r = UnityEngine.Random.value * totalWeight;
+            foreach (var move in candidates)
+            {
+                r -= move.Data.weight;
+                if (r < 0f) return move;
+            }
+            return candidates[candidates.Count - 1]; // Random.value 可能剛好是 1
+        }
+
+        BossMove FindMove(BossMoveData data)
+        {
+            if (data == null) return null;
+            foreach (var move in moves)
+            {
+                if (move.Data == data) return move;
+            }
+            return null;
+        }
+
+        // ---------- 出招 ----------
+
+        void StartMove(in BossMoveChoice choice)
+        {
+            CurrentMove = choice.move;
+            LastMove = choice.move;
+            OnMoveChosen?.Invoke(choice);
+            SetState(BossState.Telegraph);
+            CurrentMove.BeginTelegraph();
+        }
+
+        void FinishMove()
+        {
+            var move = CurrentMove;
+            CurrentMove = null;
+            move.End();
+            StartCooldown(move);
+            EnterIdle();
+        }
+
+        // 頭暈、轉階段、倒下時收掉目前的招式；被打斷的招也進冷卻
+        void InterruptMove()
+        {
+            RepositionGoal = null;
+            if (CurrentMove == null) return;
+            var move = CurrentMove;
+            CurrentMove = null;
+            move.Interrupt();
+            StartCooldown(move);
+        }
+
+        void StartCooldown(BossMove move)
+        {
+            readyTime[move] = Time.time + move.Data.cooldown * Phase.cooldownMultiplier;
+        }
+
+        public bool IsReady(BossMove move) => CooldownRemaining(move) <= 0f;
+
+        /// <summary>這招還要冷卻幾秒；0 = 可以出。</summary>
+        public float CooldownRemaining(BossMove move) =>
+            readyTime.TryGetValue(move, out float t) ? Mathf.Max(0f, t - Time.time) : 0f;
+
+        /// <summary>指定下一次選招直接出這招（Debug F3）；null 取消。不看距離、冷卻、不連出與開場序列。</summary>
+        public void ForceNextMove(BossMove move)
+        {
+            ForcedNextMove = move != null && moves.Contains(move) ? move : null;
+        }
+
+        internal void NotifyMoveHit(BossMove move, in HitReport report) => OnMoveHit?.Invoke(move, report);
+
+        // ---------- 頭暈、轉階段、倒下 ----------
+
+        /// <summary>進入頭暈（失衡值滿）：打斷目前的招式，階段的頭暈時間後回到 Idle。轉階段、倒下時無效。</summary>
+        public void Stun() => Stun(Phase.stunDuration);
+
+        /// <summary>進入頭暈 duration 秒（大迴旋落地等固定時間的頭暈）。</summary>
+        public void Stun(float duration)
+        {
+            if (!HasStarted || State == BossState.Transition || State == BossState.Defeated) return;
+            InterruptMove();
+            TimedStateDuration = duration;
+            SetState(BossState.Stunned);
+        }
+
+        void HandleHealthChanged(float current, float max)
+        {
+            if (State == BossState.Transition || State == BossState.Defeated || current <= 0f) return;
+            var next = NextPhase;
+            if (next != null && current <= next.healthThreshold) BeginTransition(PhaseIndex + 1);
+        }
+
+        void BeginTransition(int phaseIndex)
+        {
+            var next = stats.phases[phaseIndex];
+            if (next.transitionTime <= 0f)
+            {
+                // 沒有轉階段時間（狂暴）：直接換數值，目前的招照常打完；一次跨過好幾個門檻就繼續往下換
+                ApplyPhase(phaseIndex);
+                HandleHealthChanged(health.Current, health.Max);
+                return;
+            }
+
+            InterruptMove();
+            pendingPhase = phaseIndex;
+            health.Invulnerable = true;
+            TimedStateDuration = next.transitionTime;
+            SetState(BossState.Transition);
+        }
+
+        /// <summary>結束轉階段：套用新階段、解除無敵、回到 Idle。現在由 transitionTime 計時呼叫，T7 改由轉階段演出呼叫。</summary>
+        public void CompleteTransition()
+        {
+            if (State != BossState.Transition) return;
+            ApplyPhase(pendingPhase);
+            pendingPhase = -1;
+            health.Invulnerable = false;
+            EnterIdle();
+            HandleHealthChanged(health.Current, health.Max);
+        }
+
+        void ApplyPhase(int index)
+        {
+            PhaseIndex = index;
+            Phase = stats.phases[index];
+            OpeningIndex = 0;
+            OnPhaseChanged?.Invoke(Phase);
+        }
+
+        void HandleDefeated()
+        {
+            InterruptMove();
+            ForcedNextMove = null;
+            health.Invulnerable = false;
+            SetState(BossState.Defeated);
+        }
+
+        // ---------- 狀態、移動 ----------
+
+        void EnterIdle()
+        {
+            IdleDuration = Phase.RandomInterval();
+            SetState(BossState.Idle);
+        }
+
+        void SetState(BossState next)
+        {
+            State = next;
+            StateTime = 0f;
+            OnStateChanged?.Invoke(next);
+        }
+
+        /// <summary>以 BossStats.turnSpeed 轉向玩家（只轉水平）。</summary>
+        public void FaceTarget(float dt)
+        {
+            if (target == null) return;
+            Vector3 to = Flat(target.position - transform.position);
+            if (to.sqrMagnitude < 1e-4f) return;
+            transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(to), stats.turnSpeed * dt);
+        }
+
+        // 靠近或後退，剛好走到範圍邊緣為止；不會走出場地
+        void WalkTowardRange(BossMoveData data, float distance, float dt)
+        {
+            float gap = data.DistanceToRange(distance);
+            if (gap <= 0f || target == null) return;
+
+            Vector3 to = Flat(target.position - transform.position);
+            Vector3 dir = to.sqrMagnitude > 1e-4f ? to.normalized : Flat(transform.forward).normalized;
+            if (distance < data.minDistance) dir = -dir;
+            transform.position = ClampToArena(transform.position + dir * Mathf.Min(Phase.moveSpeed * dt, gap));
+        }
+
+        Vector3 ClampToArena(Vector3 pos)
+        {
+            if (arena == null) return pos;
+            Vector3 center = arenaCenter != null ? arenaCenter.position : Vector3.zero;
+            float limit = Mathf.Max(0f, arena.radius - BodyRadius);
+            Vector3 offset = Flat(pos - center);
+            if (offset.sqrMagnitude <= limit * limit) return pos;
+            offset = offset.normalized * limit;
+            return new Vector3(center.x + offset.x, pos.y, center.z + offset.z);
+        }
+
+        float BodyRadius
+        {
+            get
+            {
+                if (body == null) return 0f;
+                Vector3 s = body.transform.lossyScale;
+                return body.radius * Mathf.Max(Mathf.Abs(s.x), Mathf.Abs(s.z));
+            }
+        }
+
+        static Vector3 Flat(Vector3 v) => new Vector3(v.x, 0f, v.z);
+    }
+}

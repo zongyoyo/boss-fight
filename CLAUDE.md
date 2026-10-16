@@ -22,18 +22,18 @@
 | `Assets/Scripts/Core` | 跨系統共用：BattleManager、事件、傷害系統（DamageInfo、Hitbox、Hurtbox、IDamageable）、畫面停頓（HitStop）、AudioManager、競技場（ArenaData、ArenaGenerator）、LockOnTarget |
 | `Assets/Scripts/Player` | PlayerController、PlayerAttack、PlayerHealth、PlayerStamina、PlayerStats 定義、DaoDunDogAnimator |
 | `Assets/Scripts/Camera` | CameraController（Cinemachine 第三人稱與鎖定 Boss） |
-| `Assets/Scripts/Boss` | BossController 狀態機與選招、BossMove 基底類別、BossMoveData／BossPhaseData 定義 |
-| `Assets/Scripts/Boss/Moves` | 每招一個 BossMove 子類別 |
+| `Assets/Scripts/Boss` | BossController 狀態機與選招、BossHealth、BossMove 基底類別、BossStats／BossMoveData／BossPhaseData 定義、預兆閃光（BossTelegraphFlash） |
+| `Assets/Scripts/Boss/Moves` | 每招一個 BossMove 子類別；招式特有的數值寫成 BossMoveData 的子類別放在同一個資料夾 |
 | `Assets/Scripts/Hazards` | 衝擊波、落雷、龍捲風、安全區等場上判定物件 |
 | `Assets/Scripts/Cutscene` | CutsceneDirector、Timeline 自訂 Track／Clip |
 | `Assets/Scripts/UI` | BattleUI、字卡、勝敗畫面（只訂閱事件） |
-| `Assets/Scripts/Debug` | Debug 快捷鍵（F1–F4）、平衡面板（F12）、左上角的玩家狀態（PlayerDebugOverlay）、測試木樁（TrainingDummy） |
-| `Assets/Scripts/Editor` | 編輯器工具（ArenaBuilder、DaoDunDogBuilder、CameraRigBuilder、TrainingDummyBuilder），不會進 build |
-| `Assets/ScriptableObjects` | 數值資產（`.asset`），依系統分子資料夾：`Arena/`、`Player/`、`Boss/Phases/`、`Boss/Moves/`、`Debug/`（測試木樁） |
+| `Assets/Scripts/Debug` | Debug 快捷鍵 F1–F4 與右上角的 Boss 面板（BossDebugTools）、平衡面板（F12）、左上角的玩家狀態（PlayerDebugOverlay）、測試木樁（TrainingDummy） |
+| `Assets/Scripts/Editor` | 編輯器工具（ArenaBuilder、DaoDunDogBuilder、CameraRigBuilder、TrainingDummyBuilder、BossBuilder），不會進 build |
+| `Assets/ScriptableObjects` | 數值資產（`.asset`），依系統分子資料夾：`Arena/`、`Player/`、`Boss/`（BossStats）、`Boss/Phases/`、`Boss/Moves/`（`Moves/Test/` 是 T3 假招式）、`Debug/`（測試木樁） |
 | `Assets/Prefabs` | 玩家、Boss、Hazard、UI 的 prefab |
 | `Assets/Scenes` | `BossArena.unity`（`SampleScene` 是範本殘留） |
 | `Assets/Audio` | BGM 與音效；OIIA 音樂放 `Assets/Audio/oiia_bgm` |
-| `Assets/Models` | 模型、網格、材質；`Models/Arena`、`Models/DaoDunDog`、`Models/TrainingDummy` 由 Builder 自動產生，重建會覆寫網格 |
+| `Assets/Models` | 模型、網格、材質；`Models/Arena`、`Models/DaoDunDog`、`Models/TrainingDummy`、`Models/OiiaCat` 由 Builder 自動產生，重建會覆寫網格 |
 | `Assets/Settings` | URP 與 Volume 設定（範本自帶） |
 | `docs/` | 企劃書 |
 
@@ -83,8 +83,12 @@ ScriptableObject 的「類別」寫在 `Scripts/` 對應的系統資料夾，「
 ## 已知技術債
 
 - 刀盾狗 prefab 是用基本形體拼的，沒有骨架，動畫是 DaoDunDogAnimator 的程序化姿勢。
-- `FakeBoss`（BossArena 中心的灰色膠囊）是 T1 測試鎖定用的假 Boss，T3 換成真的 Boss 後刪掉，並在 CameraRig 的 CameraController 把鎖定目標換成新的 Boss。
-- `TrainingDummy`（BossArena 南側 (0, 0, −4.5) 的木樁）是 T2 測試攻防用的，會輪流出白光／紅光攻擊，也在鎖定清單裡（離得近時中鍵會先鎖它）。程式在 `Scripts/Debug`，正式 build 會變成 Missing Script；不再需要時刪掉物件，並從 CameraController 的鎖定清單移除。
+- OIIA 貓（BossArena 中心的 `OiiaCat`，prefab `Assets/Prefabs/OiiaCat.prefab`）是 BossBuilder（Tools > Boss > Build Boss Placeholder）用膠囊拼的佔位物件，還沒有模型與動畫。
+- Boss 的招式清單目前只有 5 個 T3 假招式（`TestFlashMove`，資料在 `ScriptableObjects/Boss/Moves/Test/`），第一階段的開場序列也還是「假招式·遠 → 近 → 中」。T4／T7 做正式招式時，把假招式移出 BossController 的招式清單，並改 `Phase1.asset` 的開場序列。
+- BossController 的 `startOnPlay` 是開著的（進 Play 就開打）。T6 有開場演出與 BattleManager 後要關掉，改在演出結束時呼叫 `StartBattle`。
+- 轉階段目前是 `transitionTime` 計時自動結束（第二階段 5 秒），T7 改由轉階段演出呼叫 `BossController.CompleteTransition`。
+- `BossPhaseData.contactDamage`（接觸傷害）只有數值，規則（可否格擋、判定間隔、哪些狀態有效）待企劃書確定後再實作。
+- 測試木樁 `TrainingDummy` 已經在 T3 從場景移除（程式與 `TrainingDummyData.asset` 還在 `Scripts/Debug`、`ScriptableObjects/Debug`）。要練格擋或盾反時用 Tools > Debug > Build Training Dummy 重建，它會自己加進鎖定清單；正式 build 前要刪掉物件，否則會變成 Missing Script。
 
 ## 工作流程
 
