@@ -1026,7 +1026,7 @@ MonoBehaviour:
   health: {fileID: 97214449695436130}
   attack: {fileID: 97214449695436129}
   cameraController: {fileID: 977434113}
-  distanceReference: {fileID: 6515315690703645780}
+  distanceReference: {fileID: 4128092449614923835}
   visible: 1
 --- !u!4 &709609762
 Transform:
@@ -1055,8 +1055,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1dbc4385ecac07242b76231f805dd27c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.DebugTools.BossDebugTools
-  boss: {fileID: 6515315690703645778}
-  bossHealth: {fileID: 6515315690703645779}
+  boss: {fileID: 4128092449614923833}
+  bossHealth: {fileID: 4128092449614923834}
   playerHealth: {fileID: 97214449695436130}
   panelVisible: 0
   logMoveChoices: 1
@@ -1213,7 +1213,7 @@ MonoBehaviour:
   lockOnOrbit: {fileID: 1245699766}
   lockOnGroup: {fileID: 203578687}
   lockTargets:
-  - {fileID: 6515315690703645777}
+  - {fileID: 4128092449614923832}
   lockOnYawSmoothTime: 0.12
   lockCursor: 1
 --- !u!4 &977434114
@@ -2693,7 +2693,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8d5f09ee57bbd5249ae0960f6ae6db4c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Player.PlayerHealth
---- !u!1001 &6515315690703645776
+--- !u!1001 &4128092449614923831
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
@@ -2758,10 +2758,10 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 17c8f5c951a27ec48873f12bb687c86f, type: 3}
---- !u!114 &6515315690703645777 stripped
+--- !u!114 &4128092449614923832 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 8172960149363223950, guid: 17c8f5c951a27ec48873f12bb687c86f, type: 3}
-  m_PrefabInstance: {fileID: 6515315690703645776}
+  m_PrefabInstance: {fileID: 4128092449614923831}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 0}
   m_Enabled: 1
@@ -2769,10 +2769,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 25ccd8b1a735afd4198706b35375c173, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Core.LockOnTarget
---- !u!114 &6515315690703645778 stripped
+--- !u!114 &4128092449614923833 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 6270784483766062083, guid: 17c8f5c951a27ec48873f12bb687c86f, type: 3}
-  m_PrefabInstance: {fileID: 6515315690703645776}
+  m_PrefabInstance: {fileID: 4128092449614923831}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 0}
   m_Enabled: 1
@@ -2780,10 +2780,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dc42badfbd446fc4cbe751b3ff24b54c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Boss.BossController
---- !u!114 &6515315690703645779 stripped
+--- !u!114 &4128092449614923834 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 5884815041687945617, guid: 17c8f5c951a27ec48873f12bb687c86f, type: 3}
-  m_PrefabInstance: {fileID: 6515315690703645776}
+  m_PrefabInstance: {fileID: 4128092449614923831}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 0}
   m_Enabled: 1
@@ -2791,10 +2791,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 00974eccdfcaeaa4594a451a50110996, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Boss.BossHealth
---- !u!4 &6515315690703645780 stripped
+--- !u!4 &4128092449614923835 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 3323286870755106738, guid: 17c8f5c951a27ec48873f12bb687c86f, type: 3}
-  m_PrefabInstance: {fileID: 6515315690703645776}
+  m_PrefabInstance: {fileID: 4128092449614923831}
   m_PrefabAsset: {fileID: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
@@ -2806,4 +2806,4 @@ SceneRoots:
   - {fileID: 97214449695436127}
   - {fileID: 977434114}
   - {fileID: 709609762}
-  - {fileID: 6515315690703645776}
+  - {fileID: 4128092449614923831}

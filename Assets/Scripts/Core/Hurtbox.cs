@@ -14,9 +14,14 @@ namespace BossFight.Core
         [SerializeField] MonoBehaviour owner;
 
         public IDamageable Owner { get; private set; }
+        /// <summary>受擊範圍的中心（世界座標），命中特效放在這裡。</summary>
+        public Vector3 Center => col != null ? col.bounds.center : transform.position;
+
+        Collider col;
 
         void Awake()
         {
+            col = GetComponent<Collider>();
             Owner = owner as IDamageable;
             if (Owner == null) Debug.LogError($"[Damage] {name} 的 Hurtbox 沒有指定實作 IDamageable 的 owner。", this);
         }

@@ -25,6 +25,6 @@ MonoBehaviour:
   contactDamage: 5
   musicSpeed: 1
   openingSequence:
-  - {fileID: 11400000, guid: 283474cd36d40ea479e8df27282b0c47, type: 2}
-  - {fileID: 11400000, guid: d3ce0a72000b4b24988d72f126d1cc6c, type: 2}
-  - {fileID: 11400000, guid: da5864689c8272c4186fc7de4dea7821, type: 2}
+  - {fileID: 11400000, guid: 4bc987d09cbd33c428497dbeb83836bd, type: 2}
+  - {fileID: 11400000, guid: 46b3274b7c8f1e74eb86a6d6919bab34, type: 2}
+  - {fileID: 11400000, guid: e68bfb33d4d5baf41b46c46741349c7e, type: 2}

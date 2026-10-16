@@ -30,7 +30,7 @@ namespace BossFight.Player
     /// 刀盾狗的血量、受傷結算與骨頭次數。數值讀 PlayerStats；目前血量、無敵時間、剩餘骨頭存在元件自己身上。
     /// 身上的 Hurtbox 把攻擊轉到 TakeDamage，依序判斷：
     /// 無敵（強制無敵、翻滾前段、受擊後）→ 盾反（舉盾、正面、可盾反、舉盾不到 parryWindow）→ 格擋（舉盾、正面、可擋）→ 直接命中。
-    /// 格擋只吃 (1 − blockDamageReduction) 的傷害、耐力扣原傷害 × blockStaminaPerDamage，扣到 0 就破防；
+    /// 格擋只吃 (1 − blockDamageReduction) 的傷害、耐力扣原傷害 × blockStaminaPerDamage × 攻擊的 blockStaminaMultiplier，扣到 0 就破防；
     /// 盾反完全免傷、畫面停頓 parryHitStop 秒並送出 OnParry；只有直接命中會給 hitInvulnerableTime 的無敵。
     /// 事件順序：OnHealthChanged → OnDamageTaken → OnParry／OnGuardBreak → OnDied。
     /// </summary>
@@ -102,7 +102,7 @@ namespace BossFight.Player
             }
             else if (guarded && info.canBlock)
             {
-                staminaLoss = stamina.Drain(info.damage * stats.blockStaminaPerDamage);
+                staminaLoss = stamina.Drain(info.damage * stats.blockStaminaPerDamage * info.blockStaminaMultiplier);
                 healthLoss = info.damage * (1f - stats.blockDamageReduction);
                 result = stamina.Current <= 0f ? DamageResult.GuardBroken : DamageResult.Blocked;
             }

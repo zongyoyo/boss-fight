@@ -120,6 +120,10 @@ namespace BossFight.Boss
         public float TimedStateDuration { get; private set; }
         public IReadOnlyList<BossMove> Moves => moves;
         public Transform Target => target;
+        /// <summary>競技場數值（半徑、外牆 Layer）；招式的撞牆、落點也讀這一份。</summary>
+        public ArenaData Arena => arena;
+        /// <summary>場地中心的世界座標。</summary>
+        public Vector3 ArenaCenter => arenaCenter != null ? arenaCenter.position : Vector3.zero;
 
         /// <summary>和玩家的水平距離 (m)。</summary>
         public float DistanceToTarget => target != null ? Flat(target.position - transform.position).magnitude : float.PositiveInfinity;
@@ -455,7 +459,8 @@ namespace BossFight.Boss
             transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(to), stats.turnSpeed * dt);
         }
 
-        // 靠近或後退，剛好走到範圍邊緣為止；不會走出場地
+        // 靠近或後退，剛好走到範圍邊緣為止；不會走出場地。
+        // 後退時背後是牆（例如迴旋衝撞撞牆後，玩家站在 Boss 和場地中心之間），改沿著牆往離玩家較遠的一側繞，不然會卡在牆邊永遠拉不開距離
         void WalkTowardRange(BossMoveData data, float distance, float dt)
         {
             float gap = data.DistanceToRange(distance);
@@ -464,21 +469,49 @@ namespace BossFight.Boss
             Vector3 to = Flat(target.position - transform.position);
             Vector3 dir = to.sqrMagnitude > 1e-4f ? to.normalized : Flat(transform.forward).normalized;
             if (distance < data.minDistance) dir = -dir;
-            transform.position = ClampToArena(transform.position + dir * Mathf.Min(Phase.moveSpeed * dt, gap));
+            float step = Mathf.Min(Phase.moveSpeed * dt, gap);
+            Vector3 next = transform.position + dir * step;
+
+            if (distance < data.minDistance && arena != null)
+            {
+                Vector3 radial = Flat(transform.position - ArenaCenter);
+                float limit = Mathf.Max(0f, arena.radius - BodyRadius);
+                if (Flat(next - ArenaCenter).magnitude > limit && radial.sqrMagnitude > 1e-4f)
+                {
+                    Vector3 tangent = Vector3.Cross(Vector3.up, radial.normalized);
+                    if (Vector3.Dot(tangent, dir) < 0f) tangent = -tangent;
+                    next = transform.position + tangent * (Phase.moveSpeed * dt);
+                }
+            }
+            transform.position = ClampToArena(next);
         }
 
-        Vector3 ClampToArena(Vector3 pos)
+        /// <summary>把位置拉回場地內（扣掉身體半徑），高度不變。</summary>
+        public Vector3 ClampToArena(Vector3 pos) => ClampToArena(pos, BodyRadius);
+
+        /// <summary>把位置拉回離場地邊緣至少 margin 的範圍內，高度不變。</summary>
+        public Vector3 ClampToArena(Vector3 pos, float margin)
         {
             if (arena == null) return pos;
-            Vector3 center = arenaCenter != null ? arenaCenter.position : Vector3.zero;
-            float limit = Mathf.Max(0f, arena.radius - BodyRadius);
+            Vector3 center = ArenaCenter;
+            float limit = Mathf.Max(0f, arena.radius - margin);
             Vector3 offset = Flat(pos - center);
             if (offset.sqrMagnitude <= limit * limit) return pos;
             offset = offset.normalized * limit;
             return new Vector3(center.x + offset.x, pos.y, center.z + offset.z);
         }
 
-        float BodyRadius
+        /// <summary>
+        /// 開關本體的實心碰撞。衝撞時關掉，才會穿過玩家，不會把玩家（CharacterController 被擠出）一路推到牆邊；
+        /// 招式結束時要開回來。Hurtbox 是另一個 trigger，不受影響。
+        /// </summary>
+        public void SetBodyCollision(bool solid)
+        {
+            if (body != null) body.enabled = solid;
+        }
+
+        /// <summary>本體碰撞膠囊的水平半徑 (m)。</summary>
+        public float BodyRadius
         {
             get
             {
