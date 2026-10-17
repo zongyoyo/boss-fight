@@ -8,7 +8,8 @@ namespace BossFight.DebugTools
 {
     /// <summary>
     /// 左上角的玩家狀態，方便驗收 T1、T2：血量、骨頭、耐力與回復速度、水平速度、目前動作（含舉盾秒數、蓄力進度、受擊無敵）、
-    /// 上一次翻滾的距離、時間與無敵時間、上一次受擊的結果（命中時已經舉盾幾秒）、上一次出手打到誰、鎖定目標與和 Boss 的水平距離。
+    /// 上一次翻滾的距離、時間與無敵時間、上一次受擊的結果（命中時已經舉盾幾秒）、上一次出手打到誰、鎖定目標與和 Boss 的水平距離，
+    /// 範圍內有可以處決的目標時提示「按 F 處決」。
     /// 血量、耐力、骨頭、受擊、出手、鎖定、翻滾訂閱事件；速度、動作與無敵每幀讀 PlayerController／PlayerHealth。
     /// 量到的時間以影格為單位，會比設定值多出不到一幀。
     /// </summary>
@@ -136,7 +137,7 @@ namespace BossFight.DebugTools
 
         void HandleAttackHit(HitReport r)
         {
-            string move = attack.IsHeavy ? "重擊" : $"第 {attack.ComboIndex + 1} 段";
+            string move = attack.IsExecution ? "處決" : attack.IsHeavy ? "重擊" : $"第 {attack.ComboIndex + 1} 段";
             string target = r.hurtbox != null ? r.hurtbox.transform.root.name : "?";
             lastAttackText = $"{move} → {target}  {r.info.damage:0}（失衡 +{r.info.imbalance:0}）";
         }
@@ -177,6 +178,9 @@ namespace BossFight.DebugTools
                 case PlayerAction.Heal:
                     s = $"啃骨頭 {player.HealProgress * 100f:0}%";
                     break;
+                case PlayerAction.Execute:
+                    s = player.IsInvulnerable ? "<color=#ffd24d>處決（無敵）</color>" : "處決";
+                    break;
                 case PlayerAction.GuardBreak:
                     s = $"<color=#ff9f40>破防 {player.GuardBreakRemaining:0.00} s</color>";
                     break;
@@ -192,6 +196,8 @@ namespace BossFight.DebugTools
                 s += $"　<color=#ffd24d>受擊無敵 {health.HitInvulnerableRemaining:0.00} s</color>";
             if (health != null && health.ForcedInvulnerable)
                 s += "　<color=#7fd4ff>F2 無敵</color>";
+            if (!player.IsDead && !player.IsExecuting && player.FindExecutionTarget() != null)
+                s += "　<color=#ffe14d>按 F 處決</color>";
             return s;
         }
 

@@ -52,7 +52,7 @@ namespace BossFight.Player
 
         [Header("跳躍")]
         [Tooltip("跳躍高度 (m)；只能在地面起跳，空中可以移動，但不能攻擊、舉盾、翻滾")]
-        [Min(0f)] public float jumpHeight = 1f;
+        [Min(0f)] public float jumpHeight = 1.2f;
         [Tooltip("跳躍消耗的耐力；0 = 不耗耐力")]
         [Min(0f)] public float jumpStaminaCost = 0f;
 
@@ -132,6 +132,20 @@ namespace BossFight.Player
         [Min(0f)] public float parryWindow = 0.15f;
         [Tooltip("盾反成功的畫面停頓（秒，真實時間）")]
         [Min(0f)] public float parryHitStop = 0.1f;
+        [Tooltip("盾反成功時給攻擊方的失衡值（跟著 PlayerHealth.OnParry 送出）")]
+        [Min(0f)] public float parryImbalance = 25f;
+
+        [Header("處決（Boss 頭暈時按 F）")]
+        [Tooltip("可以處決的水平距離 (m)，從角色中心量到目標中心")]
+        [Min(0f)] public float executeRange = 3f;
+        [Tooltip("處決這一刀：轉向目標、往前踏步後劈下，打到時造成固定傷害（不吃頭暈倍率）。整段不能取消，cancelTime 不使用")]
+        public AttackSpec executeAttack = new AttackSpec
+        {
+            damage = 150f, imbalance = 0f, duration = 1f, hitStart = 0.4f, hitEnd = 0.5f, cancelTime = 1f,
+            lungeDistance = 1f, lungeStart = 0.05f, lungeEnd = 0.3f, reach = 2.2f, width = 2f,
+        };
+        [Tooltip("處決動作整段無敵（場上殘留的落雷、衝擊波打不到）")]
+        public bool executeInvulnerable = true;
 
         [Header("啃骨頭")]
         [Tooltip("每場可以用的次數")]

@@ -6,7 +6,8 @@ namespace BossFight.Player
 {
     /// <summary>
     /// 執行一刀：照 AttackSpec 在判定時間開關刀的 Hitbox，照踏步時間往前移動。
-    /// 自己沒有 Update，由 PlayerController 呼叫 Begin → 每幀 Tick → 結束或被取消時 Stop。
+    /// 自己沒有 Update，由 PlayerController 呼叫 Begin（處決用 BeginExecution）→ 每幀 Tick → 結束或被取消時 Stop。
+    /// 處決這一刀的 DamageInfo 標 isExecution（固定傷害，打到就結束目標的頭暈）。
     /// 命中結果用 OnAttackHit 轉出去（Debug 顯示，之後的音效與打擊感）。
     /// </summary>
     [DisallowMultipleComponent]
@@ -17,13 +18,15 @@ namespace BossFight.Player
         [Tooltip("刀的攻擊判定，放在角色根物件底下；形狀在每次出手時依 AttackSpec 設定")]
         [SerializeField] Hitbox swordHitbox;
 
-        /// <summary>出手：(連擊第幾段，從 0 起；是否為重擊)。</summary>
+        /// <summary>出手：(連擊第幾段，從 0 起；是否為重擊)。處決也會送（0, false），看 IsExecution 分辨。</summary>
         public event Action<int, bool> OnAttackStarted;
         public event Action<HitReport> OnAttackHit;
 
         public bool IsAttacking { get; private set; }
         public bool IsHeavy { get; private set; }
-        /// <summary>連擊第幾段（從 0 起）；重擊為 0。</summary>
+        /// <summary>這一刀是處決。</summary>
+        public bool IsExecution { get; private set; }
+        /// <summary>連擊第幾段（從 0 起）；重擊、處決為 0。</summary>
         public int ComboIndex { get; private set; }
         public AttackSpec Current => spec;
         public float Elapsed { get; private set; }
@@ -47,11 +50,17 @@ namespace BossFight.Player
             Stop();
         }
 
-        public void Begin(in AttackSpec attack, int comboIndex, bool heavy)
+        public void Begin(in AttackSpec attack, int comboIndex, bool heavy) => Begin(attack, comboIndex, heavy, false);
+
+        /// <summary>處決這一刀：DamageInfo 標 isExecution。</summary>
+        public void BeginExecution(in AttackSpec attack) => Begin(attack, 0, false, true);
+
+        void Begin(in AttackSpec attack, int comboIndex, bool heavy, bool execution)
         {
             spec = attack;
             ComboIndex = comboIndex;
             IsHeavy = heavy;
+            IsExecution = execution;
             Elapsed = 0f;
             windowOpened = false;
             lunged = 0f;
@@ -75,7 +84,7 @@ namespace BossFight.Player
             if (!windowOpened && Elapsed >= spec.hitStart)
             {
                 windowOpened = true;
-                swordHitbox.Activate(new DamageInfo(spec.damage, false, false, spec.imbalance));
+                swordHitbox.Activate(new DamageInfo(spec.damage, false, false, spec.imbalance, isExecution: IsExecution));
             }
             else if (swordHitbox.IsActive && prev >= spec.hitEnd)
             {

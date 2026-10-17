@@ -10,7 +10,7 @@ namespace BossFight.Boss
     /// 狀態與時間由 BossController 管：預兆 TelegraphTime 秒 → 出招（TickActive 回傳 true 才結束）→ 破綻 RecoveryTime 秒 → End。
     /// 被頭暈、轉階段、倒下打斷時改呼叫 Interrupt，子類別要在 End／Interrupt 收掉 Hitbox；
     /// 用 SpawnHazard 放到場上的 Hazard 在 End 時照常跑完，Interrupt 時一起收掉。
-    /// 攻擊判定打到東西時呼叫 ReportHit，BossController 會用 OnMoveHit 轉發（T5 的盾反加失衡值）；SpawnHazard 放的 Hazard 已經自動接好。
+    /// 攻擊判定打到東西時呼叫 ReportHit，BossController 會用 OnMoveHit 轉發（命中火花、Debug 面板）；SpawnHazard 放的 Hazard 已經自動接好。
     /// </summary>
     public abstract class BossMove : MonoBehaviour
     {
@@ -69,6 +69,15 @@ namespace BossFight.Boss
 
         /// <summary>攻擊判定打到目標並結算完，交給 BossController 轉發。</summary>
         protected void ReportHit(HitReport report) => Boss.NotifyMoveHit(this, report);
+
+        /// <summary>
+        /// 讓 Boss 自己累積失衡值（例如龍捲風結束時 +40，數值放在招式的 BossMoveData）。
+        /// 加滿會馬上進入頭暈、打斷目前這招（呼叫這招的 Interrupt），呼叫之後要先確認自己還是不是 Boss 的 CurrentMove。
+        /// </summary>
+        protected void AddImbalance(float amount)
+        {
+            if (Boss.Stagger != null) Boss.Stagger.AddImbalance(amount);
+        }
 
         /// <summary>生成一個 Hazard：攻擊方設為 Boss，命中轉成 ReportHit，被打斷時會一起收掉。</summary>
         protected T SpawnHazard<T>(T prefab, Vector3 position, Quaternion rotation) where T : Hazard

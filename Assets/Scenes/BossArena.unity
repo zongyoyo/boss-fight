@@ -1026,7 +1026,7 @@ MonoBehaviour:
   health: {fileID: 97214449695436130}
   attack: {fileID: 97214449695436129}
   cameraController: {fileID: 977434113}
-  distanceReference: {fileID: 4128092449614923835}
+  distanceReference: {fileID: 2897318289456411592}
   visible: 1
 --- !u!4 &709609762
 Transform:
@@ -1055,11 +1055,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1dbc4385ecac07242b76231f805dd27c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.DebugTools.BossDebugTools
-  boss: {fileID: 4128092449614923833}
-  bossHealth: {fileID: 4128092449614923834}
+  boss: {fileID: 2897318289456411590}
+  bossHealth: {fileID: 2897318289456411591}
+  stagger: {fileID: 2897318289456411587}
   playerHealth: {fileID: 97214449695436130}
   panelVisible: 0
   logMoveChoices: 1
+  logStagger: 1
   historySize: 8
   toastTime: 2
   panelWidth: 470
@@ -1213,7 +1215,7 @@ MonoBehaviour:
   lockOnOrbit: {fileID: 1245699766}
   lockOnGroup: {fileID: 203578687}
   lockTargets:
-  - {fileID: 4128092449614923832}
+  - {fileID: 2897318289456411589}
   lockOnYawSmoothTime: 0.12
   lockCursor: 1
 --- !u!4 &977434114
@@ -2651,6 +2653,14 @@ PrefabInstance:
       propertyPath: cameraController
       value: 
       objectReference: {fileID: 977434113}
+    - target: {fileID: 1902438348746653522, guid: ba4551dbd87fc6645aa6a8c52c387733, type: 3}
+      propertyPath: executionTargets.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1902438348746653522, guid: ba4551dbd87fc6645aa6a8c52c387733, type: 3}
+      propertyPath: 'executionTargets.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2897318289456411588}
     - target: {fileID: 8166751425164872580, guid: ba4551dbd87fc6645aa6a8c52c387733, type: 3}
       propertyPath: m_Name
       value: DaoDunDog
@@ -2693,7 +2703,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8d5f09ee57bbd5249ae0960f6ae6db4c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Player.PlayerHealth
---- !u!1001 &4128092449614923831
+--- !u!1001 &2897318289456411586
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
@@ -2753,15 +2763,45 @@ PrefabInstance:
       propertyPath: arenaCenter
       value: 
       objectReference: {fileID: 1693668273}
+    - target: {fileID: 9025145577014846774, guid: 17c8f5c951a27ec48873f12bb687c86f, type: 3}
+      propertyPath: viewCamera
+      value: 
+      objectReference: {fileID: 1411419184}
+    - target: {fileID: 9060212885600375809, guid: 17c8f5c951a27ec48873f12bb687c86f, type: 3}
+      propertyPath: player
+      value: 
+      objectReference: {fileID: 97214449695436130}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 17c8f5c951a27ec48873f12bb687c86f, type: 3}
---- !u!114 &4128092449614923832 stripped
+--- !u!114 &2897318289456411587 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 9060212885600375809, guid: 17c8f5c951a27ec48873f12bb687c86f, type: 3}
+  m_PrefabInstance: {fileID: 2897318289456411586}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a956a60164060cd46b0e59fd7375459f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BossFight.Boss.BossStagger
+--- !u!114 &2897318289456411588 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2676434795271280035, guid: 17c8f5c951a27ec48873f12bb687c86f, type: 3}
+  m_PrefabInstance: {fileID: 2897318289456411586}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4011b4d47c04fe7459f47d86206c63f8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BossFight.Core.ExecutionTarget
+--- !u!114 &2897318289456411589 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 8172960149363223950, guid: 17c8f5c951a27ec48873f12bb687c86f, type: 3}
-  m_PrefabInstance: {fileID: 4128092449614923831}
+  m_PrefabInstance: {fileID: 2897318289456411586}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 0}
   m_Enabled: 1
@@ -2769,10 +2809,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 25ccd8b1a735afd4198706b35375c173, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Core.LockOnTarget
---- !u!114 &4128092449614923833 stripped
+--- !u!114 &2897318289456411590 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 6270784483766062083, guid: 17c8f5c951a27ec48873f12bb687c86f, type: 3}
-  m_PrefabInstance: {fileID: 4128092449614923831}
+  m_PrefabInstance: {fileID: 2897318289456411586}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 0}
   m_Enabled: 1
@@ -2780,10 +2820,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dc42badfbd446fc4cbe751b3ff24b54c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Boss.BossController
---- !u!114 &4128092449614923834 stripped
+--- !u!114 &2897318289456411591 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 5884815041687945617, guid: 17c8f5c951a27ec48873f12bb687c86f, type: 3}
-  m_PrefabInstance: {fileID: 4128092449614923831}
+  m_PrefabInstance: {fileID: 2897318289456411586}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 0}
   m_Enabled: 1
@@ -2791,10 +2831,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 00974eccdfcaeaa4594a451a50110996, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Boss.BossHealth
---- !u!4 &4128092449614923835 stripped
+--- !u!4 &2897318289456411592 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 3323286870755106738, guid: 17c8f5c951a27ec48873f12bb687c86f, type: 3}
-  m_PrefabInstance: {fileID: 4128092449614923831}
+  m_PrefabInstance: {fileID: 2897318289456411586}
   m_PrefabAsset: {fileID: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
@@ -2806,4 +2846,4 @@ SceneRoots:
   - {fileID: 97214449695436127}
   - {fileID: 977434114}
   - {fileID: 709609762}
-  - {fileID: 4128092449614923831}
+  - {fileID: 2897318289456411586}

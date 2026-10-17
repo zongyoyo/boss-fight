@@ -12,7 +12,8 @@ namespace BossFight.EditorTools
     /// 1. 確認 PC_Renderer 有 Decal Renderer Feature（地面提示用 URP Decal Projector）。
     /// 2. 材質（只在不存在時建立）：TelegraphDecal（Shaders/TelegraphDecal.shadergraph）、Fx_Additive（Particles/Unlit 加算、雙面）。
     /// 3. 特效網格（每次重建覆寫）：環牆、地面衝擊環、爪痕、閃電柱。
-    /// 4. Prefab（每次重建覆寫）：GroundTelegraph、ShockwaveRing、LightningStrike、Fx_ClawSlash、Fx_ImpactRing、Fx_Bolt、Fx_HitSpark。
+    /// 4. Prefab（每次重建覆寫）：GroundTelegraph、ShockwaveRing、LightningStrike、Fx_ClawSlash、Fx_ImpactRing、Fx_Bolt、Fx_HitSpark、
+    ///    Fx_DamageNumber（Boss 受擊跳的數字，TextMesh + 內建字型）。
     /// 選單 Tools > Boss > Build Hazards；BossBuilder 建 Boss 時也會先呼叫這裡。尺寸、顏色、時間都是純視覺參數。
     /// </summary>
     public static class HazardBuilder
@@ -34,6 +35,7 @@ namespace BossFight.EditorTools
             public TimedFx impactRing;
             public TimedFx bolt;
             public TimedFx hitSpark;
+            public DamageNumber damageNumber;
         }
 
         [MenuItem("Tools/Boss/Build Hazards")]
@@ -75,6 +77,7 @@ namespace BossFight.EditorTools
                                   10f);
             result.shockwave = BuildShockwave(result.telegraph, ringWall, fxMat, hurtLayer);
             result.lightning = BuildLightning(result.telegraph, result.bolt, result.impactRing, hurtLayer);
+            result.damageNumber = BuildDamageNumber();
 
             AssetDatabase.SaveAssets();
             Debug.Log($"[Hazard] 地面提示、Hazard 與特效已建立：{PrefabDir}");
@@ -259,6 +262,43 @@ namespace BossFight.EditorTools
             so.FindProperty("impactPrefab").objectReferenceValue = impact;
             so.ApplyModifiedPropertiesWithoutUndo();
             return SavePrefab(go, "LightningStrike").GetComponent<LightningStrike>();
+        }
+
+        /// 傷害數字：粗體白字，加一層往右下、往後偏一點的黑色陰影；字型用 Unity 內建的 LegacyRuntime.ttf。
+        static DamageNumber BuildDamageNumber()
+        {
+            var font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            var go = new GameObject("Fx_DamageNumber");
+            var shadow = AddText(go.transform, "Shadow", font, new Color(0f, 0f, 0f, 0.85f), new Vector3(0.025f, -0.025f, 0.01f));
+            var text = AddText(go.transform, "Text", font, Color.white, Vector3.zero);
+
+            var number = go.AddComponent<DamageNumber>();
+            var so = new SerializedObject(number);
+            so.FindProperty("text").objectReferenceValue = text;
+            so.FindProperty("shadow").objectReferenceValue = shadow;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            return SavePrefab(go, "Fx_DamageNumber").GetComponent<DamageNumber>();
+        }
+
+        static TextMesh AddText(Transform parent, string name, Font font, Color color, Vector3 localPos)
+        {
+            var go = new GameObject(name);
+            go.transform.SetParent(parent, false);
+            go.transform.localPosition = localPos;
+            var text = go.AddComponent<TextMesh>();
+            text.font = font;
+            text.fontSize = 64;
+            text.characterSize = 0.06f;
+            text.fontStyle = FontStyle.Bold;
+            text.anchor = TextAnchor.MiddleCenter;
+            text.alignment = TextAlignment.Center;
+            text.color = color;
+            text.text = "0";
+            var renderer = go.GetComponent<MeshRenderer>();
+            renderer.sharedMaterial = font.material;
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
+            return text;
         }
 
         /// 掃 Hurtbox Layer 的 Hitbox；攻擊方在生成時由招式指定（Hazard.SetAttacker）。

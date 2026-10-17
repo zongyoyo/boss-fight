@@ -14,19 +14,23 @@ namespace BossFight.DebugTools
     /// F1：Boss 血量設為「下一個階段的門檻 + 1」（第一階段時是 1001，再打一下就轉階段）。
     /// F2：切換玩家無敵。
     /// F3：依序切換下一招指定（不指定 → 各招 → 不指定），下一次選招直接出，不看距離、冷卻、不連出與開場序列。
-    /// F4：開關 Boss 面板：狀態、階段、血量、距離、各招的招式池／距離／冷卻、開場序列進度、最近幾次選招與上次命中。
-    /// 選招、換階段與按鍵都會在 Console 寫一行。狀態每幀讀 BossController／BossHealth，選招與命中訂閱事件。
+    /// F4：開關 Boss 面板：狀態、階段、血量、失衡值（衰減倒數、頭暈的受傷倍率、可否處決）、上次受傷的實際扣血、距離、
+    /// 各招的招式池／距離／冷卻、開場序列進度、最近幾次選招與上次命中。
+    /// 選招、換階段、失衡值增加、頭暈、處決與按鍵都會在 Console 寫一行。狀態每幀讀 BossController／BossHealth／BossStagger，選招、命中、受傷、頭暈訂閱事件。
     /// </summary>
     [DisallowMultipleComponent]
     public class BossDebugTools : MonoBehaviour
     {
         [SerializeField] BossController boss;
         [SerializeField] BossHealth bossHealth;
+        [SerializeField] BossStagger stagger;
         [SerializeField] PlayerHealth playerHealth;
         [Tooltip("一開始就顯示 Boss 面板（F4 切換）")]
         [SerializeField] bool panelVisible;
         [Tooltip("每次選招都在 Console 寫一行")]
         [SerializeField] bool logMoveChoices = true;
+        [Tooltip("失衡值增加、頭暈、處決都在 Console 寫一行")]
+        [SerializeField] bool logStagger = true;
         [Tooltip("面板保留最近幾次選招")]
         [Range(1, 20)] [SerializeField] int historySize = 8;
         [Tooltip("按鍵提示停留時間（秒，真實時間）")]
@@ -36,7 +40,8 @@ namespace BossFight.DebugTools
 
         readonly List<string> history = new List<string>();
         int choiceCount;
-        string lastHitText = "—";
+        string lastHitText = "—", lastDamageText = "—";
+        float lastStagger;
         string toast;
         float toastUntil;
         GUIStyle style, toastStyle;
@@ -44,18 +49,38 @@ namespace BossFight.DebugTools
 
         void OnEnable()
         {
-            if (boss == null) return;
-            boss.OnMoveChosen += HandleMoveChosen;
-            boss.OnMoveHit += HandleMoveHit;
-            boss.OnPhaseChanged += HandlePhaseChanged;
+            if (boss != null)
+            {
+                boss.OnMoveChosen += HandleMoveChosen;
+                boss.OnMoveHit += HandleMoveHit;
+                boss.OnPhaseChanged += HandlePhaseChanged;
+            }
+            if (bossHealth != null) bossHealth.OnDamaged += HandleBossDamaged;
+            if (stagger != null)
+            {
+                stagger.OnStaggerChanged += HandleStaggerChanged;
+                stagger.OnStunned += HandleStunned;
+                stagger.OnStunEnded += HandleStunEnded;
+                stagger.OnExecuted += HandleExecuted;
+            }
         }
 
         void OnDisable()
         {
-            if (boss == null) return;
-            boss.OnMoveChosen -= HandleMoveChosen;
-            boss.OnMoveHit -= HandleMoveHit;
-            boss.OnPhaseChanged -= HandlePhaseChanged;
+            if (boss != null)
+            {
+                boss.OnMoveChosen -= HandleMoveChosen;
+                boss.OnMoveHit -= HandleMoveHit;
+                boss.OnPhaseChanged -= HandlePhaseChanged;
+            }
+            if (bossHealth != null) bossHealth.OnDamaged -= HandleBossDamaged;
+            if (stagger != null)
+            {
+                stagger.OnStaggerChanged -= HandleStaggerChanged;
+                stagger.OnStunned -= HandleStunned;
+                stagger.OnStunEnded -= HandleStunEnded;
+                stagger.OnExecuted -= HandleExecuted;
+            }
         }
 
         void Update()
@@ -166,8 +191,47 @@ namespace BossFight.DebugTools
 
         void HandlePhaseChanged(BossPhaseData phase)
         {
-            Debug.Log($"[Boss] 進入{phase.displayName}（招式池 {phase.movePool}）");
+            Debug.Log($"[Boss] 進入{phase.displayName}（招式池 {phase.movePool}，失衡上限 {phase.imbalanceMax:0}）");
         }
+
+        void HandleBossDamaged(BossDamageReport r)
+        {
+            if (r.result == DamageResult.Evaded)
+            {
+                lastDamageText = $"{r.info.damage:0} → <color=#7fd4ff>無敵</color>";
+                return;
+            }
+            string kind = r.info.isExecution ? "<color=#ffe14d>處決</color> " : "";
+            string mul = r.multiplier != 1f ? $"（{r.info.damage:0.#} ×{r.multiplier:0.##}）" : "";
+            lastDamageText = $"{kind}−{r.healthLost:0.#} HP{mul}　失衡 +{r.info.imbalance:0.#}";
+        }
+
+        // 只記增加（衰減每幀都會送，不寫 Console）
+        void HandleStaggerChanged(float current, float max)
+        {
+            if (logStagger && current > lastStagger + 1e-3f)
+                Debug.Log($"[Boss] 失衡 +{current - lastStagger:0.#} → {current:0.#} / {max:0}");
+            lastStagger = current;
+        }
+
+        void HandleStunned(float duration)
+        {
+            if (logStagger) Debug.Log($"[Boss] 頭暈 {duration:0.0} s（受傷 ×{StunMultiplier:0.##}，可以按 F 處決）");
+        }
+
+        void HandleStunEnded(StunEndReason reason)
+        {
+            if (!logStagger) return;
+            string why = reason == StunEndReason.Executed ? "處決" : reason == StunEndReason.Timeout ? "時間到" : "被打斷";
+            Debug.Log($"[Boss] 頭暈結束（{why}），失衡值歸零");
+        }
+
+        void HandleExecuted(float healthLost)
+        {
+            if (logStagger) Debug.Log($"[Boss] 處決 −{healthLost:0.#} HP");
+        }
+
+        float StunMultiplier => bossHealth != null && stagger != null && stagger.IsStunned ? bossHealth.DamageMultiplier : 1f;
 
         // ---------- 面板 ----------
 
@@ -225,6 +289,20 @@ namespace BossFight.DebugTools
             return s;
         }
 
+        string StaggerLine()
+        {
+            if (stagger == null) return "失衡  —（沒有接 BossStagger）";
+            string s = $"失衡  {stagger.Current:0.0} / {stagger.Max:0}";
+            if (stagger.IsStunned)
+            {
+                s += $"　<color=#ffe14d>頭暈中　受傷 ×{bossHealth.DamageMultiplier:0.##}</color>";
+                s += boss.HoldStun ? "　處決中（等砍到才結束）" : "　可以按 F 處決";
+            }
+            else if (stagger.IsDecaying) s += "　衰減中";
+            else if (stagger.Current > 0f) s += $"　{stagger.DecayDelayRemaining:0.0} s 後開始衰減";
+            return s;
+        }
+
         string BuildPanelText()
         {
             sb.Clear();
@@ -235,6 +313,8 @@ namespace BossFight.DebugTools
             sb.AppendLine($"階段  {phase.displayName}（招式池 {phase.movePool}）　間隔 {phase.moveIntervalMin:0.0#}–{phase.moveIntervalMax:0.0#} s　冷卻 ×{phase.cooldownMultiplier:0.##}");
             string invul = bossHealth.Invulnerable ? "　<color=#7fd4ff>無敵</color>" : "";
             sb.AppendLine($"HP  {bossHealth.Current:0} / {bossHealth.Max:0}{invul}");
+            sb.AppendLine(StaggerLine());
+            sb.AppendLine($"上次受傷  {lastDamageText}");
             sb.AppendLine($"距離  {distance:0.00} m　上一招 {(boss.LastMove != null ? boss.LastMove.DisplayName : "—")}");
 
             var opening = phase.openingSequence;

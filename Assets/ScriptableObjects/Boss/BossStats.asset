@@ -14,6 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Boss.BossStats
   maxHealth: 2000
   turnSpeed: 360
+  imbalanceDecayDelay: 3
+  imbalanceDecayRate: 8
+  stunDamageMultiplier: 1.5
   phases:
   - {fileID: 11400000, guid: d26891e1335dd384db40f814edfa89d3, type: 2}
   - {fileID: 11400000, guid: 8fc50644c552e674eacc2ce26913d5d2, type: 2}

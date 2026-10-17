@@ -30,10 +30,10 @@ namespace BossFight.Boss
         [Tooltip("招式冷卻倍率")]
         [Min(0f)] public float cooldownMultiplier = 1f;
 
-        [Header("失衡與頭暈（T5）")]
-        [Tooltip("失衡值上限，滿了進入頭暈")]
+        [Header("失衡與頭暈")]
+        [Tooltip("失衡值上限，滿了打斷目前的招式、進入頭暈（衰減與受傷倍率在 BossStats）")]
         [Min(1f)] public float imbalanceMax = 100f;
-        [Tooltip("頭暈時間（秒）")]
+        [Tooltip("失衡值滿了的頭暈時間（秒）")]
         [Min(0f)] public float stunDuration = 3f;
 
         [Header("其他")]

@@ -5,7 +5,7 @@ namespace BossFight.Core
     /// <summary>
     /// 一次攻擊的內容：攻擊方從 ScriptableObject 讀出數值填好，交給被打方的 IDamageable 結算。
     /// 格擋與盾反要看攻擊從哪個方向來，所以帶著來源位置；經過 Hitbox 時由 Hitbox 填入攻擊方的位置。
-    /// 失衡值只是跟著攻擊送過去，累積與頭暈由 Boss 端處理（T5）。
+    /// 失衡值只是跟著攻擊送過去，累積與頭暈由 Boss 端處理（BossStagger）。
     /// </summary>
     public readonly struct DamageInfo
     {
@@ -23,9 +23,12 @@ namespace BossFight.Core
         public readonly GameObject source;
         /// <summary>被格擋時耐力扣除量的額外倍率（例如迴旋衝撞「可擋但耗耐力大」）；一般攻擊為 1。</summary>
         public readonly float blockStaminaMultiplier;
+        /// <summary>處決（頭暈時按 F）：固定傷害，不吃頭暈的受傷倍率，打到就結束頭暈。</summary>
+        public readonly bool isExecution;
 
         public DamageInfo(float damage, bool canBlock, bool canParry, float imbalance,
-                          Vector3 sourcePosition = default, GameObject source = null, float blockStaminaMultiplier = 1f)
+                          Vector3 sourcePosition = default, GameObject source = null, float blockStaminaMultiplier = 1f,
+                          bool isExecution = false)
         {
             this.damage = damage;
             this.canBlock = canBlock;
@@ -34,15 +37,16 @@ namespace BossFight.Core
             this.sourcePosition = sourcePosition;
             this.source = source;
             this.blockStaminaMultiplier = blockStaminaMultiplier;
+            this.isExecution = isExecution;
         }
 
         /// <summary>換掉來源位置與物件，其他不變。</summary>
         public DamageInfo WithSource(Vector3 position, GameObject sourceObject) =>
-            new DamageInfo(damage, canBlock, canParry, imbalance, position, sourceObject, blockStaminaMultiplier);
+            new DamageInfo(damage, canBlock, canParry, imbalance, position, sourceObject, blockStaminaMultiplier, isExecution);
 
         /// <summary>換掉格擋時的耐力倍率，其他不變。</summary>
         public DamageInfo WithBlockStaminaMultiplier(float multiplier) =>
-            new DamageInfo(damage, canBlock, canParry, imbalance, sourcePosition, source, multiplier);
+            new DamageInfo(damage, canBlock, canParry, imbalance, sourcePosition, source, multiplier, isExecution);
     }
 
     /// <summary>被打方結算一次攻擊的結果，會回報給攻擊方（例如 Boss 被盾反時加失衡）。</summary>

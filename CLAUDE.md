@@ -19,12 +19,12 @@
 
 | 路徑 | 用途 |
 | --- | --- |
-| `Assets/Scripts/Core` | 跨系統共用：BattleManager、事件、傷害系統（DamageInfo、Hitbox、Hurtbox、IDamageable）、畫面停頓（HitStop）、AudioManager、競技場（ArenaData、ArenaGenerator）、LockOnTarget |
+| `Assets/Scripts/Core` | 跨系統共用：BattleManager、事件、傷害系統（DamageInfo、Hitbox、Hurtbox、IDamageable）、畫面停頓（HitStop）、AudioManager、競技場（ArenaData、ArenaGenerator）、LockOnTarget、可處決目標（ExecutionTarget） |
 | `Assets/Scripts/Player` | PlayerController、PlayerAttack、PlayerHealth、PlayerStamina、PlayerStats 定義、DaoDunDogAnimator |
 | `Assets/Scripts/Camera` | CameraController（Cinemachine 第三人稱與鎖定 Boss） |
-| `Assets/Scripts/Boss` | BossController 狀態機與選招、BossHealth、BossMove 基底類別、BossStats／BossMoveData／BossPhaseData 定義、預兆閃光（BossTelegraphFlash）、佔位模型的程序化姿勢（OiiaCatPoser）、命中火花（BossHitFeedback） |
+| `Assets/Scripts/Boss` | BossController 狀態機與選招、BossHealth、失衡值／頭暈／處決（BossStagger）、BossMove 基底類別、BossStats／BossMoveData／BossPhaseData 定義、預兆閃光（BossTelegraphFlash）、佔位模型的程序化姿勢（OiiaCatPoser）、命中火花（BossHitFeedback，Boss 打到玩家）、受擊反饋（BossDamageFeedback，玩家打到 Boss：火花、閃白、後仰、傷害數字）、頭暈星星（BossStunVisual） |
 | `Assets/Scripts/Boss/Moves` | 每招一個 BossMove 子類別；招式特有的數值寫成 BossMoveData 的子類別放在同一個資料夾 |
-| `Assets/Scripts/Hazards` | 場上判定物件（Hazard 基底、衝擊波 ShockwaveRing、落雷 LightningStrike，之後的龍捲風、安全區）、地面範圍提示（GroundTelegraph，URP Decal）、一次性特效（TimedFx） |
+| `Assets/Scripts/Hazards` | 場上判定物件（Hazard 基底、衝擊波 ShockwaveRing、落雷 LightningStrike，之後的龍捲風、安全區）、地面範圍提示（GroundTelegraph，URP Decal）、一次性特效（TimedFx、傷害數字 DamageNumber） |
 | `Assets/Scripts/Cutscene` | CutsceneDirector、Timeline 自訂 Track／Clip |
 | `Assets/Scripts/UI` | BattleUI、字卡、勝敗畫面（只訂閱事件） |
 | `Assets/Scripts/Debug` | Debug 快捷鍵 F1–F4 與右上角的 Boss 面板（BossDebugTools）、平衡面板（F12）、左上角的玩家狀態（PlayerDebugOverlay）、測試木樁（TrainingDummy） |
@@ -76,7 +76,8 @@ ScriptableObject 的「類別」寫在 `Scripts/` 對應的系統資料夾，「
 - 輸入只用新版 Input System，從 `InputSystem.actions` 讀 `Player` map；新動作加進 `InputSystem_Actions.inputactions`。
 - Debug 程式整個檔案包在 `#if UNITY_EDITOR || DEVELOPMENT_BUILD`。
 - Layer：`ArenaWall`（8）用於外牆、入口門與門柱，Boss 撞牆判定用；`Hurtbox`（9）是受擊範圍的 trigger，Hitbox 只掃這一層。新增 Layer 時記在這裡。
-- 傷害一律走 Hitbox → Hurtbox → `IDamageable.TakeDamage`；無敵、格擋、盾反由被打方自己結算，結果（`DamageResult`）用 `Hitbox.OnHit` 回報攻擊方。
+- 傷害一律走 Hitbox → Hurtbox → `IDamageable.TakeDamage`；無敵、格擋、盾反由被打方自己結算，結果（`DamageResult`）用 `Hitbox.OnHit` 回報攻擊方。處決（F）也走這條路，`DamageInfo.isExecution` 為 true（固定傷害，不吃頭暈倍率）。
+- 失衡值：玩家攻擊的值放在 `PlayerStats` 的 AttackSpec.imbalance，跟著 `DamageInfo` 送出；盾反的值是 `PlayerStats.parryImbalance`，跟著 `PlayerHealth.OnParry` 送出。Boss 端的 `BossStagger` 累積，衰減與頭暈倍率在 `BossStats`，上限與頭暈時間在 `BossPhaseData`。招式要自己加失衡值時用 `BossMove.AddImbalance`。
 - 玩家的 CharacterController `minMoveDistance` 要保持 0：站著不動時每幀的重力位移比預設的 0.001 m 還小，`isGrounded` 會一幀有一幀沒有，舉盾、攻擊、跳躍都會失靈。
 - 搬移或改名資產要在 Unity 裡做（或用 `AssetDatabase.MoveAsset`），保留 `.meta` 與 GUID，引用才不會斷。
 - 註解用繁體中文，風格跟現有檔案一致：public 欄位加 `[Tooltip]`，用 `[Header]` 分組，數值欄位加 `[Min]`／`[Range]`。
@@ -90,6 +91,8 @@ ScriptableObject 的「類別」寫在 `Scripts/` 對應的系統資料夾，「
 - 地面範圍提示的 Decal angle fade 沒有作用：紅圈碰到外牆時牆腳會染一條（投影深度已降到 0.3 m 減輕）。之後要乾淨的話改用 Rendering Layers 只投在地板上。
 - BossController 的 `startOnPlay` 是開著的（進 Play 就開打）。T6 有開場演出與 BattleManager 後要關掉，改在演出結束時呼叫 `StartBattle`。
 - 轉階段目前是 `transitionTime` 計時自動結束（第二階段 5 秒），T7 改由轉階段演出呼叫 `BossController.CompleteTransition`。
+- `BossStagger` 在 Inspector 引用玩家的 `PlayerHealth` 來訂閱 `OnParry`，是 Boss 唯一引用 Player 命名空間的地方；之後接回主遊戲（多職業）時可以改由 BattleManager 轉發。
+- 失衡值在招式之間也會衰減：只靠盾反時，兩次貓掌連拍之間是 破綻 1.2 + 出招間隔 0.8–1.5 + 預兆 0.5 = 2.5–3.2 秒，間隔抽到超過約 1.3 秒，第 4 次盾反會停在 99（中間砍一刀 +3 就補回）。T10 平衡時再看要不要調整衰減延遲。
 - `BossPhaseData.contactDamage`（接觸傷害）只有數值，規則（可否格擋、判定間隔、哪些狀態有效）待企劃書確定後再實作。
 - 測試木樁 `TrainingDummy` 已經在 T3 從場景移除（程式與 `TrainingDummyData.asset` 還在 `Scripts/Debug`、`ScriptableObjects/Debug`）。要練格擋或盾反時用 Tools > Debug > Build Training Dummy 重建，它會自己加進鎖定清單；正式 build 前要刪掉物件，否則會變成 Missing Script。
 
@@ -111,7 +114,7 @@ ScriptableObject 的「類別」寫在 `Scripts/` 對應的系統資料夾，「
 | --- | --- | --- |
 | T0 | 專案骨架與 CLAUDE.md | Console 沒有錯誤；刀盾狗站在南側出生點（離中心 8 m）；從中心往 8 個方向打射線，都在約 12 m 處打到 `ArenaWall`；天空是暗灰藍的雷雲佔位 |
 | T1 | 玩家移動、鏡頭鎖定、翻滾、耐力 | 依鏡頭方向以 5 m/s 移動；中鍵鎖定 20 m 內的假 Boss，鎖定時繞行，再按一次解除；Left Alt 翻滾 3 m、前 0.3 秒無敵、耐力 −25；耐力每秒回 30、舉盾時 10；數值都在 PlayerStats |
-| T2 | 玩家攻防與傷害系統 | 對木樁打出 10 / 10 / 16 三段，第三段前踏；長按 0.8 秒重擊 35、耐力 −30；舉盾擋正面 120°、減傷 80%，耐力歸零破防 1 秒；命中前 0.15 秒內舉盾判定盾反（免傷、停頓 0.1 秒）；R 回 40 HP，每場 3 次；Space 跳躍約 1 m |
+| T2 | 玩家攻防與傷害系統 | 對木樁打出 10 / 10 / 16 三段，第三段前踏；長按 0.8 秒重擊 35、耐力 −30；舉盾擋正面 120°、減傷 80%，耐力歸零破防 1 秒；命中前 0.15 秒內舉盾判定盾反（免傷、停頓 0.1 秒）；R 回 40 HP，每場 3 次；Space 跳躍約 1.2 m |
 | T3 | Boss 狀態機、招式資料、選招 AI | 假招式跑完 Idle → ChooseMove → Telegraph → Active → Recovery 循環；選招依距離 → 冷卻 → 加權隨機，且不連出同一招；固定開場序列生效；F1–F4 都可用 |
 | T4 | 第一階段 5 招與危害物件 | 用 F3 逐一觸發 5 招；可擋招閃白光、不可擋招閃紅光，格擋與盾反判定正確；迴旋衝撞撞牆後硬直 2 秒；開場固定序列為 迴旋衝撞 → 貓掌連拍 → 魔法陣落雷 |
 | T5 | 失衡值、頭暈、處決 | 盾反 4 次讓 Boss 頭暈；頭暈中傷害 ×1.5；F 處決造成 150；處決或頭暈結束後失衡值歸零；3 秒沒有增加後每秒 −8 |

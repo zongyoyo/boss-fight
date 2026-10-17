@@ -14,7 +14,7 @@ namespace BossFight.Boss
     }
 
     /// <summary>
-    /// OIIA 貓佔位模型的程序化姿勢（還沒有骨架與動畫）：舉爪、拍下、伏低扭屁股、抬頭、繞 Y 軸旋轉、撞暈後搖晃。
+    /// OIIA 貓佔位模型的程序化姿勢（還沒有骨架與動畫）：舉爪、拍下、伏低扭屁股、抬頭、繞 Y 軸旋轉、撞暈後搖晃、受擊仰一下。
     /// 招式呼叫 SetXxx 指定目標姿勢，這裡在 LateUpdate 平滑過去；旋轉只轉 Model，不影響 Boss 根物件的面向。
     /// 關節由 Editor/BossBuilder 指派；這裡的數字全是視覺參數。
     /// </summary>
@@ -60,10 +60,20 @@ namespace BossFight.Boss
         public float wobbleAngle = 12f;
         [Min(0f)] public float wobbleRate = 1.6f;
 
+        [Header("受擊（Flinch）")]
+        [Tooltip("被打時往後仰的角度（度），strength = 1 時")]
+        public float flinchAngle = 9f;
+        [Tooltip("被打時壓扁的比例（高度減少），strength = 1 時")]
+        [Range(0f, 0.5f)] public float flinchSquash = 0.08f;
+        [Tooltip("彈回原狀的時間（秒）")]
+        [Min(0.01f)] public float flinchTime = 0.22f;
+
         PawPose leftPose, rightPose;
         float crouchTarget, crouch, lookUpTarget, lookUp, wiggleWeight, wobbleWeight;
         bool wiggle, wobble;
         float spinTarget, spinSpeed, spinAngle, time;
+        Vector3 flinchAxis;
+        float flinchStrength, flinchTimer;
 
         /// <summary>目前轉速（度/秒）。</summary>
         public float SpinSpeed => spinSpeed;
@@ -89,6 +99,17 @@ namespace BossFight.Boss
 
         /// <summary>立刻設定轉速（不經過加速）。</summary>
         public void SetSpinImmediate(float degreesPerSecond) => spinTarget = spinSpeed = degreesPerSecond;
+
+        /// <summary>被打一下：往 away（世界座標的水平方向，遠離攻擊者）仰一下、壓扁一下，flinchTime 秒內彈回。疊在其他姿勢上。</summary>
+        public void Flinch(Vector3 away, float strength = 1f)
+        {
+            away.y = 0f;
+            if (away.sqrMagnitude < 1e-4f) away = -transform.forward;
+            // 繞「上 × 遠離方向」轉，頭往遠離攻擊者的方向倒；換成 Boss 根物件的區域座標（Model 是它的子物件）
+            flinchAxis = transform.InverseTransformDirection(Vector3.Cross(Vector3.up, away.normalized));
+            flinchStrength = strength;
+            flinchTimer = flinchTime;
+        }
 
         /// <summary>回到坐姿：爪子放下、不伏低、不抬頭、停止旋轉與搖晃。</summary>
         public void ResetPose()
@@ -131,8 +152,16 @@ namespace BossFight.Boss
             float pitch = crouch * crouchPitch + lookUp * lookUpPitch;
             float roll = Mathf.Sin(time * wiggleRate * Mathf.PI * 2f) * wiggleAngle * wiggleWeight
                          + Mathf.Sin(time * wobbleRate * Mathf.PI * 2f) * wobbleAngle * wobbleWeight;
-            model.localRotation = Quaternion.Euler(pitch, spinAngle, roll);
-            model.localScale = new Vector3(1f, Mathf.Lerp(1f, crouchScale, crouch), 1f);
+
+            // 受擊：一開始最大，之後快速彈回（帶一點回彈）
+            flinchTimer = Mathf.Max(0f, flinchTimer - dt);
+            float u = 1f - flinchTimer / flinchTime;
+            float f = flinchTimer > 0f ? Mathf.Cos(u * Mathf.PI * 1.5f) * (1f - u) * flinchStrength : 0f;
+            Quaternion flinch = Quaternion.AngleAxis(flinchAngle * f, flinchAxis);
+
+            model.localRotation = flinch * Quaternion.Euler(pitch, spinAngle, roll);
+            float squash = flinchSquash * Mathf.Max(0f, f);
+            model.localScale = new Vector3(1f + squash * 0.5f, Mathf.Lerp(1f, crouchScale, crouch) * (1f - squash), 1f + squash * 0.5f);
 
             MovePaw(pawR, rightPose, 1f, dt);
             MovePaw(pawL, leftPose, -1f, dt);

@@ -17,7 +17,7 @@ MonoBehaviour:
   turnSpeed: 720
   blockMoveSpeedMultiplier: 0.4
   gravity: -25
-  jumpHeight: 1
+  jumpHeight: 1.2
   jumpStaminaCost: 0
   rollDistance: 3
   rollDuration: 0.5
@@ -107,6 +107,21 @@ MonoBehaviour:
   guardBreakDuration: 1
   parryWindow: 0.15
   parryHitStop: 0.1
+  parryImbalance: 25
+  executeRange: 3
+  executeAttack:
+    damage: 150
+    imbalance: 0
+    duration: 1
+    hitStart: 0.4
+    hitEnd: 0.5
+    cancelTime: 1
+    lungeDistance: 1
+    lungeStart: 0.05
+    lungeEnd: 0.3
+    reach: 2.2
+    width: 2
+  executeInvulnerable: 1
   boneCount: 3
   boneHealAmount: 40
   boneDuration: 1

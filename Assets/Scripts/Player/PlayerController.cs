@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using BossFight.Cameras;
 using BossFight.Core;
 using UnityEngine;
@@ -17,14 +18,18 @@ namespace BossFight.Player
         Charge,
         /// <summary>啃骨頭回血。</summary>
         Heal,
+        /// <summary>處決頭暈的目標（F），細節在 PlayerAttack（IsExecution）。</summary>
+        Execute,
         GuardBreak,
         Dead,
     }
 
     /// <summary>
-    /// 刀盾狗的移動、跳躍、翻滾、舉盾、攻擊與啃骨頭。數值全部讀 PlayerStats；輸入讀 Project-wide Actions（Assets/InputSystem_Actions）的 Player map：
-    /// Move 移動（相對鏡頭）、Jump 跳躍、Roll 翻滾、Block 舉盾、Attack 攻擊（點擊輕攻擊、長按重擊）、Heal 啃骨頭。
+    /// 刀盾狗的移動、跳躍、翻滾、舉盾、攻擊、啃骨頭與處決。數值全部讀 PlayerStats；輸入讀 Project-wide Actions（Assets/InputSystem_Actions）的 Player map：
+    /// Move 移動（相對鏡頭）、Jump 跳躍、Roll 翻滾、Block 舉盾、Attack 攻擊（點擊輕攻擊、長按重擊）、Heal 啃骨頭、Execute 處決。
     /// 鎖定目標來自 CameraController.OnLockTargetChanged：鎖定時角色面向目標，前後是靠近／遠離，左右是繞著目標走。
+    /// 處決：Inspector 列出的 ExecutionTarget 裡，executeRange 內最近、可以處決的一個（Boss 頭暈中）；站在地上、沒有動作、蓄力中都可以按，
+    /// 揮刀中按會先記下來，到可取消的時間才接。轉向目標劈出 executeAttack，整段不能取消，executeInvulnerable 時無敵。
     /// 揮刀交給 PlayerAttack；受傷結算在 PlayerHealth，這裡訂閱它的事件處理蓄力中斷、破防與倒地。
     /// 動畫由 DaoDunDogAnimator 讀這裡的狀態來擺姿勢。
     /// </summary>
@@ -38,6 +43,8 @@ namespace BossFight.Player
         [SerializeField] Transform cameraTransform;
         [Tooltip("鎖定目標的來源")]
         [SerializeField] CameraController cameraController;
+        [Tooltip("可以處決的目標（Boss）；按處決時選 executeRange 內最近、現在可以處決的一個")]
+        [SerializeField] List<ExecutionTarget> executionTargets = new List<ExecutionTarget>();
 
         /// <summary>翻滾開始；參數是翻滾方向（水平單位向量）。</summary>
         public event Action<Vector3> OnRollStarted;
@@ -52,9 +59,12 @@ namespace BossFight.Player
         /// <summary>這次舉盾已經舉了多久（秒）；沒舉盾為 0。盾反判定用。</summary>
         public float BlockHeldTime => IsBlocking ? Time.time - blockStartTime : 0f;
         public bool IsRolling => Action == PlayerAction.Roll;
+        public bool IsExecuting => Action == PlayerAction.Execute;
         public bool IsDead => Action == PlayerAction.Dead;
-        /// <summary>翻滾開始後的 rollInvulnerableTime 秒內無敵（受擊後的無敵在 PlayerHealth）。</summary>
-        public bool IsInvulnerable => IsRolling && rollTime < stats.rollInvulnerableTime;
+        /// <summary>翻滾開始後的 rollInvulnerableTime 秒內、處決中（executeInvulnerable）無敵；受擊後的無敵在 PlayerHealth。</summary>
+        public bool IsInvulnerable => (IsRolling && rollTime < stats.rollInvulnerableTime) || (IsExecuting && stats.executeInvulnerable);
+        /// <summary>正在處決的目標；沒有處決時為 null。</summary>
+        public ExecutionTarget ExecutingTarget { get; private set; }
         /// <summary>目前這次翻滾的進度 0..1。</summary>
         public float RollProgress => IsRolling ? Mathf.Clamp01(rollTime / stats.rollDuration) : 0f;
         /// <summary>目前（或上一次）翻滾的方向，水平單位向量。</summary>
@@ -73,13 +83,13 @@ namespace BossFight.Player
         PlayerStamina stamina;
         PlayerHealth health;
         PlayerAttack attack;
-        InputAction moveAction, jumpAction, rollAction, blockAction, attackAction, healAction;
+        InputAction moveAction, jumpAction, rollAction, blockAction, attackAction, healAction, executeAction;
         Vector3 planarVelocity;
         float verticalVelocity;
         float rollTime, rollTravelled;
         float blockStartTime;
         float actionTime, healed;
-        bool jumpRequested, bufferedAttack, bufferedRoll;
+        bool jumpRequested, bufferedAttack, bufferedRoll, bufferedExecute;
 
         void Awake()
         {
@@ -101,6 +111,7 @@ namespace BossFight.Player
             blockAction = actions.FindAction("Player/Block", true);
             attackAction = actions.FindAction("Player/Attack", true);
             healAction = actions.FindAction("Player/Heal", true);
+            executeAction = actions.FindAction("Player/Execute", true);
         }
 
         void OnEnable()
@@ -116,6 +127,7 @@ namespace BossFight.Player
             if (cameraController != null) cameraController.OnLockTargetChanged -= HandleLockTargetChanged;
             health.OnDamageTaken -= HandleDamageTaken;
             health.OnDied -= HandleDied;
+            ReleaseExecutionTarget();
         }
 
         void Update()
@@ -145,6 +157,7 @@ namespace BossFight.Player
                     delta = RollStep(dt);
                     break;
                 case PlayerAction.Attack:
+                case PlayerAction.Execute:
                     planarVelocity = Vector3.zero;
                     delta = attack.Tick(dt);
                     break;
@@ -180,16 +193,18 @@ namespace BossFight.Player
             UpdateActionTimers(dt);
         }
 
-        // 每個動作能接受的輸入。揮刀中的左鍵、翻滾會先記下來，到 cancelTime 才執行
+        // 每個動作能接受的輸入。揮刀中的左鍵、翻滾、處決會先記下來，到 cancelTime 才執行
         void HandleActionInput(Vector3 wishDir)
         {
             bool attackPressed = attackAction.WasPressedThisFrame();
             bool rollPressed = rollAction.WasPressedThisFrame();
+            bool executePressed = executeAction.WasPressedThisFrame();
 
             switch (Action)
             {
                 case PlayerAction.None:
                     if (!IsGrounded) break; // 空中只能移動
+                    if (executePressed && TryStartExecution()) break;
                     if (rollPressed) TryStartRoll(wishDir);
                     else if (jumpAction.WasPressedThisFrame()) TryJump();
                     else if (healAction.WasPressedThisFrame()) TryStartHeal();
@@ -197,7 +212,8 @@ namespace BossFight.Player
                     break;
 
                 case PlayerAction.Charge:
-                    // 翻滾、舉盾取消蓄力；滿 heavyChargeTime 前放開左鍵就是輕攻擊第 1 段
+                    // 處決、翻滾、舉盾取消蓄力；滿 heavyChargeTime 前放開左鍵就是輕攻擊第 1 段
+                    if (executePressed && TryStartExecution()) break;
                     if (rollPressed)
                     {
                         SetAction(PlayerAction.None);
@@ -210,7 +226,9 @@ namespace BossFight.Player
                 case PlayerAction.Attack:
                     if (attackPressed) bufferedAttack = true;
                     if (rollPressed) bufferedRoll = true;
+                    if (executePressed) bufferedExecute = true;
                     if (!attack.CanCancel) break;
+                    if (bufferedExecute && TryStartExecution()) break;
                     if (bufferedRoll && stamina.Current > 0f)
                     {
                         attack.Stop();
@@ -236,12 +254,18 @@ namespace BossFight.Player
                     break;
                 case PlayerAction.Attack:
                     if (!attack.IsFinished) break;
+                    if (bufferedExecute && TryStartExecution()) break;
                     if (bufferedAttack && HasNextCombo) StartLightAttack(attack.ComboIndex + 1, Flat(transform.forward));
                     else
                     {
                         attack.Stop();
                         SetAction(PlayerAction.None);
                     }
+                    break;
+                case PlayerAction.Execute:
+                    if (!attack.IsFinished) break;
+                    attack.Stop();
+                    SetAction(PlayerAction.None); // 放開目標在 SetAction
                     break;
                 case PlayerAction.Charge:
                     actionTime += dt;
@@ -265,6 +289,7 @@ namespace BossFight.Player
             Action = next;
             if (next != PlayerAction.None) IsBlocking = false;
             if (prev == PlayerAction.Roll) OnRollEnded?.Invoke();
+            if (prev == PlayerAction.Execute) ReleaseExecutionTarget();
             OnActionChanged?.Invoke(next);
         }
 
@@ -331,7 +356,7 @@ namespace BossFight.Player
                 return;
             }
             FaceForAttack(wishDir);
-            bufferedAttack = bufferedRoll = false;
+            bufferedAttack = bufferedRoll = bufferedExecute = false;
             attack.Begin(stats.lightCombo[index], index, false);
             SetAction(PlayerAction.Attack);
         }
@@ -344,9 +369,49 @@ namespace BossFight.Player
                 SetAction(PlayerAction.None);
                 return;
             }
-            bufferedAttack = bufferedRoll = false;
+            bufferedAttack = bufferedRoll = bufferedExecute = false;
             attack.Begin(stats.heavyAttack, 0, true);
             SetAction(PlayerAction.Attack);
+        }
+
+        /// <summary>executeRange 內最近、現在可以處決的目標；沒有時為 null。</summary>
+        public ExecutionTarget FindExecutionTarget()
+        {
+            ExecutionTarget best = null;
+            float bestSqr = stats.executeRange * stats.executeRange;
+            foreach (var target in executionTargets)
+            {
+                if (target == null || !target.IsExecutable || target.IsBeingExecuted) continue;
+                float sqr = Flat(target.transform.position - transform.position).sqrMagnitude;
+                if (sqr > bestSqr) continue;
+                best = target;
+                bestSqr = sqr;
+            }
+            return best;
+        }
+
+        // 轉向目標劈出處決；目標在處決動作結束前保持可被處決（Boss 的頭暈時間到也先不結束）
+        bool TryStartExecution()
+        {
+            var target = FindExecutionTarget();
+            if (target == null || !target.TryBeginExecution()) return false;
+
+            Vector3 face = Flat(target.transform.position - transform.position);
+            if (face.sqrMagnitude > 1e-4f) transform.rotation = Quaternion.LookRotation(face);
+            bufferedAttack = bufferedRoll = bufferedExecute = false;
+            planarVelocity = Vector3.zero;
+            attack.BeginExecution(stats.executeAttack);
+            SetAction(PlayerAction.Execute);
+            ExecutingTarget = target;
+            return true;
+        }
+
+        // 處決動作結束（打完、倒地、元件停用）時通知目標
+        void ReleaseExecutionTarget()
+        {
+            var target = ExecutingTarget;
+            ExecutingTarget = null;
+            if (target != null) target.EndExecution();
         }
 
         // 出手瞬間轉向：鎖定時對準目標，否則轉向輸入方向（沒輸入就維持面向）
@@ -387,16 +452,17 @@ namespace BossFight.Player
             return newDir * Mathf.Max(0f, r + radial) - offset;
         }
 
-        // 鎖定：面向目標；翻滾：已在起滾時轉好；舉盾：面向鏡頭前方（可以側移）；移動、蓄力：面向輸入方向。
+        // 處決：面向處決的目標；鎖定：面向目標；翻滾：已在起滾時轉好；舉盾：面向鏡頭前方（可以側移）；移動、蓄力：面向輸入方向。
         // 揮刀時只有鎖定才會跟著目標轉；啃骨頭、破防、倒地都不轉
         void UpdateFacing(Vector3 wishDir, float dt)
         {
             bool canTurn = Action == PlayerAction.None || Action == PlayerAction.Roll || Action == PlayerAction.Charge
-                           || (Action == PlayerAction.Attack && LockTarget != null);
+                           || (Action == PlayerAction.Attack && LockTarget != null) || IsExecuting;
             if (!canTurn) return;
 
             Vector3 face;
-            if (LockTarget != null) face = Flat(LockTarget.transform.position - transform.position);
+            if (IsExecuting) face = ExecutingTarget != null ? Flat(ExecutingTarget.transform.position - transform.position) : Vector3.zero;
+            else if (LockTarget != null) face = Flat(LockTarget.transform.position - transform.position);
             else if (IsRolling) face = RollDirection;
             else if (IsBlocking && cameraTransform != null) face = Flat(cameraTransform.forward);
             else face = wishDir;

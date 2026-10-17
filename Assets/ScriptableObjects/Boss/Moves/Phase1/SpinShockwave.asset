@@ -28,5 +28,5 @@ MonoBehaviour:
   maxRadius: 0
   expandSpeed: 8
   bandWidth: 0.8
-  hitHeight: 1.2
+  hitHeight: 0.8
   telegraphRadius: 2.8

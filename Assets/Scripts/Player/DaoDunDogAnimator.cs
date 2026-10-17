@@ -5,7 +5,7 @@ namespace BossFight.Player
 {
     /// <summary>
     /// 刀盾狗的程序化動畫（不用 Animator Controller）：走路擺腿、身體搖擺、舉盾、翻滾、空中收腿、搖尾巴（有尾巴時），
-    /// 以及三段連擊、蓄力與重擊、啃骨頭、破防、受擊、盾反、倒地，受擊後的無敵時間會閃爍。
+    /// 以及三段連擊、蓄力與重擊、處決、啃骨頭、破防、受擊、盾反、倒地，受擊後的無敵時間會閃爍。
     /// 只改各關節 pivot 的 localRotation / localPosition（骨頭另外改大小），pivot 由 Editor/DaoDunDogBuilder 建立並指派。
     /// 狀態讀 PlayerController 與 PlayerAttack；受擊與盾反訂閱 PlayerHealth 的事件。這裡的數字全是視覺參數。
     /// </summary>
@@ -96,6 +96,15 @@ namespace BossFight.Player
             new SwingKey(new Vector3(-55f, -10f, 10f), new Vector3(100f, 0f, 0f), 0f),
             new SwingKey(new Vector3(10f, -20f, -10f), new Vector3(110f, 0f, 0f), -25f),
         };
+        [Tooltip("處決：踏步時把刀高高舉過頭（刀尖朝後），砍到時往前下劈進貓的身體，最後一路劈到底")]
+        public SwingKey[] execution =
+        {
+            new SwingKey(new Vector3(-175f, 0f, 10f), new Vector3(70f, 0f, 0f), 15f),
+            new SwingKey(new Vector3(-80f, 0f, 0f), new Vector3(60f, 0f, 0f), 0f),
+            new SwingKey(new Vector3(15f, -10f, 0f), new Vector3(80f, 0f, 0f), -15f),
+        };
+        [Tooltip("處決時身體往前傾（度），配合往下劈")]
+        public float executionLean = 12f;
 
         [Header("蓄力")]
         [Tooltip("蓄力進度到這裡才開始舉刀，點擊（輕攻擊）不會閃一下蓄力姿勢；之後等速舉高，蓄滿的那一刻剛好舉到最高、馬上劈下")]
@@ -228,7 +237,7 @@ namespace BossFight.Player
             if (report.result == DamageResult.Hit) hurtTimer = hurtRecoverTime;
         }
 
-        void HandleParry(DamageInfo info)
+        void HandleParry(DamageInfo info, float imbalance)
         {
             parryTimer = parryPoseTime;
         }
@@ -346,6 +355,15 @@ namespace BossFight.Player
             if (attack != null && attack.IsAttacking)
             {
                 AttackPose(attack.Elapsed, attack.Current, KeysFor(attack), out arm, out wrist, out twist);
+                if (attack.IsExecution)
+                {
+                    // 舉刀時微微後仰，砍到後往前傾，收刀時回正
+                    var spec = attack.Current;
+                    float t = attack.Elapsed;
+                    float lift = Mathf.Clamp01(t / Mathf.Max(1e-4f, spec.hitStart));
+                    float settle = Mathf.Clamp01((t - spec.hitEnd) / Mathf.Max(1e-4f, spec.duration - spec.hitEnd));
+                    lean = t < spec.hitStart ? -executionLean * 0.5f * lift : executionLean * (1f - Mathf.SmoothStep(0f, 1f, settle));
+                }
             }
             else if (c != null && c.Action == PlayerAction.Charge && heavy != null && heavy.Length > 0)
             {
@@ -364,6 +382,7 @@ namespace BossFight.Player
 
         SwingKey[] KeysFor(PlayerAttack a)
         {
+            if (a.IsExecution) return execution;
             if (a.IsHeavy) return heavy;
             switch (a.ComboIndex)
             {

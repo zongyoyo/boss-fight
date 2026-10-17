@@ -12,14 +12,17 @@ using UnityEngine;
 namespace BossFight.EditorTools
 {
     /// <summary>
-    /// 建立 OIIA 貓的佔位 Boss（T3、T4）：高 2.5 m 的膠囊身體，加上耳朵、眼睛、鼻子標出面向，以及左右爪；
-    /// 掛好 BossHealth、BossController、BossTelegraphFlash、OiiaCatPoser、BossHitFeedback、LockOnTarget、實心碰撞（kinematic Rigidbody）與 Hurtbox，
+    /// 建立 OIIA 貓的佔位 Boss（T3–T5）：高 2.5 m 的膠囊身體，加上耳朵、眼睛、鼻子標出面向，以及左右爪；
+    /// 掛好 BossHealth、BossController、BossTelegraphFlash、OiiaCatPoser、BossHitFeedback、BossDamageFeedback（被打到的火花、閃白、數字）、
+    /// LockOnTarget、實心碰撞（kinematic Rigidbody）與 Hurtbox，
+    /// 失衡值與處決（BossStagger、ExecutionTarget）、頭暈時頭上轉的星星（BossStunVisual，T5），
     /// 以及 Moves 底下的招式：第一階段 5 招（T4），和第二階段的 2 個假招式（TestFlashMove，T7 換成正式招式）。
     /// 地面提示、Hazard 與特效的 prefab 由 HazardBuilder 建立後接到招式上。
     /// 數值資產（BossStats、第一階段／第二階段／狂暴、招式）只在不存在時建立並填入企劃書的數值，之後在 Inspector 改的值不會被覆蓋；
     /// 唯一例外是第一階段的開場序列還是 T3 的假招式時，換成 迴旋衝撞 → 貓掌連拍 → 魔法陣落雷。
     /// 存成 Assets/Prefabs/OiiaCat.prefab，放在場地中心、面向南方的玩家出生點；刪掉 T1 的 FakeBoss，
-    /// 並把鏡頭的鎖定清單、PlayerDebugOverlay 的距離對象、DebugTools 上的 BossDebugTools 接到新的 Boss。
+    /// 並把鏡頭的鎖定清單、玩家的處決清單、BossStagger 訂閱的玩家 PlayerHealth、PlayerDebugOverlay 的距離對象、
+    /// DebugTools 上的 BossDebugTools 接到新的 Boss。
     /// 選單 Tools > Boss > Build Boss Placeholder；重建時沿用舊 Boss 的位置與朝向。尺寸、顏色都是純視覺參數。
     /// </summary>
     public static class BossBuilder
@@ -38,6 +41,10 @@ namespace BossFight.EditorTools
         const float HurtboxPadding = 0.1f;
         const float PawSize = 0.42f;
         const float DefaultYaw = 180f; // 面向南方的玩家出生點
+        const int StarCount = 5;
+        const float StarHeight = 2.95f; // 頭頂（膠囊頂端 2.5 m、耳尖約 2.6 m）再高一點
+        const float StarRadius = 0.55f;
+        const float StarSize = 0.2f;
 
         /// 第一階段 5 招的數值資產。
         struct Phase1Moves
@@ -142,7 +149,7 @@ namespace BossFight.EditorTools
                 d.maxRadius = 0f;
                 d.expandSpeed = 8f;
                 d.bandWidth = 0.8f;
-                d.hitHeight = 1.2f;
+                d.hitHeight = 0.8f; // 比跳躍高度 1.2 低，抓準時機可以跳過
                 d.telegraphRadius = 2.8f;
             });
             m.thunder = GetOrCreate<ThunderCircleData>($"{Phase1MoveDir}/ThunderCircle.asset", d =>
@@ -396,6 +403,44 @@ namespace BossFight.EditorTools
             DaoDunDogBuilder.SetReference(feedback, "boss", controller);
             DaoDunDogBuilder.SetReference(feedback, "sparkPrefab", hazards.hitSpark);
 
+            // Boss 被打到的反饋：火花、閃白、往後仰、傷害數字；數字面向的鏡頭在 WireScene 接
+            var damageFeedback = root.AddComponent<BossDamageFeedback>();
+            var dso = new SerializedObject(damageFeedback);
+            dso.FindProperty("health").objectReferenceValue = health;
+            dso.FindProperty("flash").objectReferenceValue = flashComp;
+            dso.FindProperty("poser").objectReferenceValue = poser;
+            dso.FindProperty("sparkPrefab").objectReferenceValue = hazards.hitSpark;
+            dso.FindProperty("numberPrefab").objectReferenceValue = hazards.damageNumber;
+            dso.ApplyModifiedPropertiesWithoutUndo();
+
+            // 失衡值、頭暈與處決（T5）；玩家的 PlayerHealth 是場景物件，在 WireScene 接
+            root.AddComponent<ExecutionTarget>();
+            var stagger = root.AddComponent<BossStagger>();
+            DaoDunDogBuilder.SetReference(stagger, "stats", stats);
+            var stunVisual = root.AddComponent<BossStunVisual>();
+            var vso = new SerializedObject(stunVisual);
+            vso.FindProperty("stagger").objectReferenceValue = stagger;
+            vso.FindProperty("poser").objectReferenceValue = poser;
+            vso.FindProperty("starsRoot").objectReferenceValue = BuildStunStars(model);
+            vso.ApplyModifiedPropertiesWithoutUndo();
+
+            return root;
+        }
+
+        /// 頭暈時頭上轉的星星（佔位）：一圈發光的小方塊，放在 Model 底下跟著身體一起晃；平常隱藏。
+        static Transform BuildStunStars(Transform model)
+        {
+            var mat = GetMat("OiiaCat_Star", new Color(1f, 0.85f, 0.2f), 0.5f, new Color(2.5f, 2f, 0.4f));
+            var root = DaoDunDogBuilder.Node(model, "StunStars", new Vector3(0f, StarHeight, 0f));
+            for (int i = 0; i < StarCount; i++)
+            {
+                float a = i * Mathf.PI * 2f / StarCount;
+                var star = DaoDunDogBuilder.Prim(PrimitiveType.Cube, root, $"Star{i + 1}",
+                                                 new Vector3(Mathf.Cos(a) * StarRadius, 0f, Mathf.Sin(a) * StarRadius),
+                                                 Vector3.one * StarSize, mat, Quaternion.Euler(45f, 0f, 45f));
+                star.GetComponent<MeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            }
+            root.gameObject.SetActive(false);
             return root;
         }
 
@@ -423,29 +468,41 @@ namespace BossFight.EditorTools
             return move;
         }
 
-        // 場景裡的引用：玩家、場地中心、鏡頭鎖定清單、Debug 工具
+        // 場景裡的引用：玩家、場地中心、鏡頭鎖定清單、玩家的處決清單與盾反事件、Debug 工具
         static void WireScene(GameObject root)
         {
             var controller = root.GetComponent<BossController>();
             var player = Object.FindAnyObjectByType<PlayerController>();
+            var playerHealth = player != null ? player.GetComponent<PlayerHealth>() : null;
             var arenaGen = Object.FindAnyObjectByType<ArenaGenerator>();
             var cso = new SerializedObject(controller);
             cso.FindProperty("target").objectReferenceValue = player != null ? player.transform : null;
             cso.FindProperty("arenaCenter").objectReferenceValue = arenaGen != null ? arenaGen.transform : null;
             cso.ApplyModifiedProperties();
-            if (player == null) Debug.LogWarning("[Boss] 場景裡沒有 PlayerController，BossController 的 target 要手動指定。");
+            if (player == null) Debug.LogWarning("[Boss] 場景裡沒有 PlayerController，BossController 的 target、BossStagger 的 player 要手動指定。");
+
+            var mainCamera = Camera.main;
+            var fso = new SerializedObject(root.GetComponent<BossDamageFeedback>());
+            fso.FindProperty("viewCamera").objectReferenceValue = mainCamera != null ? mainCamera.transform : null;
+            fso.ApplyModifiedProperties();
+            if (mainCamera == null) Debug.LogWarning("[Boss] 場景裡沒有 Main Camera，BossDamageFeedback 的 viewCamera 要手動指定（傷害數字會不面向鏡頭）。");
+
+            var stagger = root.GetComponent<BossStagger>();
+            var sso = new SerializedObject(stagger);
+            sso.FindProperty("player").objectReferenceValue = playerHealth;
+            sso.ApplyModifiedProperties();
+            if (player != null)
+            {
+                var pso = new SerializedObject(player);
+                AddToList(pso.FindProperty("executionTargets"), root.GetComponent<ExecutionTarget>());
+                pso.ApplyModifiedProperties();
+            }
 
             var cam = Object.FindAnyObjectByType<CameraController>();
             if (cam != null)
             {
                 var so = new SerializedObject(cam);
-                var targets = so.FindProperty("lockTargets");
-                for (int i = targets.arraySize - 1; i >= 0; i--)
-                {
-                    if (targets.GetArrayElementAtIndex(i).objectReferenceValue == null) targets.DeleteArrayElementAtIndex(i);
-                }
-                targets.arraySize++;
-                targets.GetArrayElementAtIndex(targets.arraySize - 1).objectReferenceValue = root.GetComponent<LockOnTarget>();
+                AddToList(so.FindProperty("lockTargets"), root.GetComponent<LockOnTarget>());
                 so.ApplyModifiedProperties();
             }
             else
@@ -477,12 +534,24 @@ namespace BossFight.EditorTools
             var tso = new SerializedObject(tools);
             tso.FindProperty("boss").objectReferenceValue = controller;
             tso.FindProperty("bossHealth").objectReferenceValue = root.GetComponent<BossHealth>();
-            tso.FindProperty("playerHealth").objectReferenceValue = player != null ? player.GetComponent<PlayerHealth>() : null;
+            tso.FindProperty("stagger").objectReferenceValue = stagger;
+            tso.FindProperty("playerHealth").objectReferenceValue = playerHealth;
             tso.ApplyModifiedProperties();
         }
 
-        /// 有 Emission 的 URP Lit 材質（預兆閃光用 MaterialPropertyBlock 改 _EmissionColor）；只在不存在時建立。
-        static Material GetMat(string name, Color color, float smoothness)
+        // 清掉清單裡已經失效的項目（被刪掉的舊 Boss），再加上新的
+        static void AddToList(SerializedProperty list, Object value)
+        {
+            for (int i = list.arraySize - 1; i >= 0; i--)
+            {
+                if (list.GetArrayElementAtIndex(i).objectReferenceValue == null) list.DeleteArrayElementAtIndex(i);
+            }
+            list.arraySize++;
+            list.GetArrayElementAtIndex(list.arraySize - 1).objectReferenceValue = value;
+        }
+
+        /// 有 Emission 的 URP Lit 材質（預兆閃光用 MaterialPropertyBlock 改 _EmissionColor；星星自己發光）；只在不存在時建立。
+        static Material GetMat(string name, Color color, float smoothness, Color? emission = null)
         {
             DaoDunDogBuilder.EnsureFolder(MatDir);
             string path = $"{MatDir}/{name}.mat";
@@ -493,7 +562,7 @@ namespace BossFight.EditorTools
             mat.SetColor("_BaseColor", color);
             mat.SetFloat("_Smoothness", smoothness);
             mat.EnableKeyword("_EMISSION");
-            mat.SetColor("_EmissionColor", Color.black);
+            mat.SetColor("_EmissionColor", emission ?? Color.black);
             mat.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
             AssetDatabase.CreateAsset(mat, path);
             return mat;

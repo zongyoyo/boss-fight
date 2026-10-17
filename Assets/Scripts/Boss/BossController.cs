@@ -21,7 +21,7 @@ namespace BossFight.Boss
         Active,
         /// <summary>破綻。</summary>
         Recovery,
-        /// <summary>頭暈（失衡值滿，T5）。</summary>
+        /// <summary>頭暈（失衡值滿，或招式指定的固定頭暈）：不出招、受傷加倍、可以被處決。</summary>
         Stunned,
         /// <summary>轉階段：無敵、不出招。</summary>
         Transition,
@@ -67,6 +67,8 @@ namespace BossFight.Boss
     /// 沒有能出的招時，往「冷卻好、不是上一招」裡距離範圍最近的一招走位（靠近或後退）；全部都在冷卻就原地轉向玩家等。
     /// 冷卻從招式結束（或被打斷）開始算，乘上當下階段的冷卻倍率。
     /// 血量降到下一個階段的門檻時換階段：有 transitionTime 的進入 Transition（無敵、打斷招式），結束後才套用；沒有的直接套用。
+    /// 頭暈（Stun）打斷目前的招式，時間到回到 Idle；失衡值的累積、受傷倍率與處決在同一個物件上的 BossStagger，
+    /// 它在處決進行中設 HoldStun（時間到也先不結束），處決打到時呼叫 EndStun。
     /// 招式的執行交給 BossMove；這裡只送事件，UI 與演出訂閱 OnStateChanged、OnMoveChosen、OnPhaseChanged、OnMoveHit。
     /// </summary>
     [RequireComponent(typeof(BossHealth))]
@@ -93,7 +95,7 @@ namespace BossFight.Boss
         public event Action<BossMoveChoice> OnMoveChosen;
         /// <summary>套用新的階段；Start 時也會送一次第一階段。</summary>
         public event Action<BossPhaseData> OnPhaseChanged;
-        /// <summary>招式的攻擊判定打到目標並結算完（T5 用 result == Parried 加失衡值）。</summary>
+        /// <summary>招式的攻擊判定打到目標並結算完（命中火花、Debug 面板）。盾反的失衡值走 PlayerHealth.OnParry，不在這裡加。</summary>
         public event Action<BossMove, HitReport> OnMoveHit;
 
         public BossState State { get; private set; }
@@ -118,6 +120,10 @@ namespace BossFight.Boss
         public float IdleDuration { get; private set; }
         /// <summary>這次頭暈或轉階段的總秒數。</summary>
         public float TimedStateDuration { get; private set; }
+        /// <summary>頭暈時間到也先不結束（被處決中，等那一刀打到）；離開頭暈時自動清掉。由 BossStagger 設定。</summary>
+        public bool HoldStun { get; set; }
+        /// <summary>同一個物件上的失衡值（可為 null）；招式用 BossMove.AddImbalance 加失衡值。</summary>
+        public BossStagger Stagger { get; private set; }
         public IReadOnlyList<BossMove> Moves => moves;
         public Transform Target => target;
         /// <summary>競技場數值（半徑、外牆 Layer）；招式的撞牆、落點也讀這一份。</summary>
@@ -136,6 +142,7 @@ namespace BossFight.Boss
         void Awake()
         {
             health = GetComponent<BossHealth>();
+            Stagger = GetComponent<BossStagger>();
             if (stats == null || stats.phases == null || stats.phases.Length == 0 || stats.phases[0] == null)
             {
                 Debug.LogError("[Boss] BossStats 沒有設定階段，Boss 不會行動。", this);
@@ -216,7 +223,7 @@ namespace BossFight.Boss
                     if (StateTime >= CurrentMove.RecoveryTime) FinishMove();
                     break;
                 case BossState.Stunned:
-                    if (StateTime >= TimedStateDuration) EnterIdle();
+                    if (StateTime >= TimedStateDuration && !HoldStun) EnterIdle();
                     break;
                 case BossState.Transition:
                     if (StateTime >= TimedStateDuration) CompleteTransition();
@@ -383,6 +390,12 @@ namespace BossFight.Boss
             SetState(BossState.Stunned);
         }
 
+        /// <summary>提早結束頭暈（被處決）：回到 Idle，照階段的出招間隔再選招。不在頭暈中時無效。</summary>
+        public void EndStun()
+        {
+            if (State == BossState.Stunned) EnterIdle();
+        }
+
         void HandleHealthChanged(float current, float max)
         {
             if (State == BossState.Transition || State == BossState.Defeated || current <= 0f) return;
@@ -445,6 +458,7 @@ namespace BossFight.Boss
 
         void SetState(BossState next)
         {
+            if (next != BossState.Stunned) HoldStun = false;
             State = next;
             StateTime = 0f;
             OnStateChanged?.Invoke(next);
