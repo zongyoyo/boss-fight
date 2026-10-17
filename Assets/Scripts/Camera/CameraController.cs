@@ -14,6 +14,8 @@ namespace BossFight.Cameras
     /// 鎖定視角：Priority 比自由視角高時接手；每幀把水平軸轉到「玩家背後、朝向目標」，看向玩家與目標的 TargetGroup。
     /// Player/LockOn（滑鼠中鍵）在 lockOnRange 內選最近的目標，再按一次解除；結果用 OnLockTargetChanged 通知。
     /// Esc 釋放游標，點擊畫面重新鎖住。重建鏡頭：Tools > Camera > Build Camera Rig。
+    /// 演出期間 CutsceneDirector 呼叫 SetInputLocked 鎖住視角與鎖定，Timeline 的 Cinemachine Track 接管畫面；
+    /// 演出結束前用 ResetBehind 把自由視角擺到玩家背後、面向 Boss，Timeline 混回來時就是這個角度。
     /// </summary>
     [DisallowMultipleComponent]
     public class CameraController : MonoBehaviour
@@ -46,6 +48,8 @@ namespace BossFight.Cameras
         public event Action<LockOnTarget> OnLockTargetChanged;
 
         public LockOnTarget CurrentTarget { get; private set; }
+        /// <summary>演出中：不轉視角、不能鎖定。</summary>
+        public bool InputLocked { get; private set; }
 
         InputAction lookAction, lockOnAction;
         float lockYaw, lockYawVelocity;
@@ -86,10 +90,27 @@ namespace BossFight.Cameras
 
             // 目標被停用或銷毀（例如 Boss 倒下）就自動解除
             if (CurrentTarget != null && !CurrentTarget.IsLockable) SetTarget(null);
-            if (lockOnAction.WasPressedThisFrame()) SetTarget(CurrentTarget != null ? null : FindNearestTarget());
+            if (!InputLocked && lockOnAction.WasPressedThisFrame()) SetTarget(CurrentTarget != null ? null : FindNearestTarget());
 
             if (CurrentTarget != null) UpdateLockOnYaw();
-            else ApplyLook();
+            else if (!InputLocked) ApplyLook();
+        }
+
+        /// <summary>鎖住或解除視角與鎖定的輸入（演出用）。</summary>
+        public void SetInputLocked(bool locked)
+        {
+            InputLocked = locked;
+            skipPointerFrames = locked ? 0 : 3; // 解除那幾幀累積的滑鼠位移不算
+        }
+
+        /// <summary>解除鎖定，把自由視角轉到玩家背後、面向 lookAt（水平），俯仰回到預設。</summary>
+        public void ResetBehind(Vector3 lookAt)
+        {
+            if (CurrentTarget != null) SetTarget(null);
+            Vector3 to = lookAt - player.position;
+            if (to.x * to.x + to.z * to.z > 1e-4f)
+                freeLookOrbit.HorizontalAxis.Value = freeLookOrbit.HorizontalAxis.ClampValue(Mathf.Atan2(to.x, to.z) * Mathf.Rad2Deg);
+            freeLookOrbit.VerticalAxis.Value = freeLookOrbit.VerticalAxis.Center;
         }
 
         /// <summary>水平距離 lockOnRange 內最近的可鎖定目標；沒有則為 null。</summary>

@@ -6,6 +6,7 @@ using BossFight.Core;
 using BossFight.Player;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 
 namespace BossFight.DebugTools
 {
@@ -16,6 +17,7 @@ namespace BossFight.DebugTools
     /// F3：依序切換下一招指定（不指定 → 各招 → 不指定），下一次選招直接出，不看距離、冷卻、不連出與開場序列。
     /// F4：開關 Boss 面板：狀態、階段、血量、失衡值（衰減倒數、頭暈的受傷倍率、可否處決）、上次受傷的實際扣血、距離、
     /// 各招的招式池／距離／冷卻、開場序列進度、最近幾次選招與上次命中。
+    /// F5：重新挑戰（重新載入場景）。「看過開場」留在 BattleSession，第二次起開場可以長按 Space 跳過；T9 有正式的重試流程後仍可保留當捷徑。
     /// 選招、換階段、失衡值增加、頭暈、處決與按鍵都會在 Console 寫一行。狀態每幀讀 BossController／BossHealth／BossStagger，選招、命中、受傷、頭暈訂閱事件。
     /// </summary>
     [DisallowMultipleComponent]
@@ -91,6 +93,7 @@ namespace BossFight.DebugTools
             if (kb.f2Key.wasPressedThisFrame) TogglePlayerInvulnerable();
             if (kb.f3Key.wasPressedThisFrame) CycleForcedMove();
             if (kb.f4Key.wasPressedThisFrame) panelVisible = !panelVisible;
+            if (kb.f5Key.wasPressedThisFrame) Retry();
         }
 
         // ---------- 快捷鍵 ----------
@@ -129,6 +132,13 @@ namespace BossFight.DebugTools
             var move = index < moves.Count ? moves[index] : null;
             boss.ForceNextMove(move);
             Notify(move != null ? $"F3：下一招指定 {move.DisplayName}" : "F3：不指定下一招");
+        }
+
+        void Retry()
+        {
+            Debug.Log($"[BossDebug] F5：重新挑戰（第 {BattleSession.Attempt + 1} 次，開場{(BattleSession.IntroSeen ? "可以長按跳過" : "還沒看過，不能跳過")}）");
+            Time.timeScale = 1f; // 畫面停頓中按下時不要把 timeScale 0 帶到新場景
+            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
         }
 
         void Notify(string text)
@@ -375,7 +385,7 @@ namespace BossFight.DebugTools
             if (boss == null || bossHealth == null) return;
             if (!panelVisible)
             {
-                const string hint = "F1 Boss 血量→下一門檻+1　F2 玩家無敵　F3 指定下一招　F4 Boss 面板";
+                const string hint = "F1 Boss 血量→下一門檻+1　F2 玩家無敵　F3 指定下一招　F4 Boss 面板　F5 重新挑戰";
                 var size = style.CalcSize(new GUIContent(hint));
                 GUI.Label(new Rect(Screen.width - size.x - 12f, 10f, size.x + 4f, size.y), hint, style);
                 return;

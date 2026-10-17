@@ -1555,7 +1555,7 @@ MonoBehaviour:
   - {fileID: 4842519950205972135}
   - {fileID: 868276171075832933}
   - {fileID: 8602968733877391228}
-  startOnPlay: 1
+  startOnPlay: 0
 --- !u!114 &1786431513284646014
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -31,6 +31,7 @@ namespace BossFight.Player
     /// 處決：Inspector 列出的 ExecutionTarget 裡，executeRange 內最近、可以處決的一個（Boss 頭暈中）；站在地上、沒有動作、蓄力中都可以按，
     /// 揮刀中按會先記下來，到可取消的時間才接。轉向目標劈出 executeAttack，整段不能取消，executeInvulnerable 時無敵。
     /// 揮刀交給 PlayerAttack；受傷結算在 PlayerHealth，這裡訂閱它的事件處理蓄力中斷、破防與倒地。
+    /// 演出期間（開場、轉階段）由 CutsceneDirector 呼叫 SetInputLocked 鎖住輸入：不讀任何按鍵，只照 ScriptedMoveTo 給的位置走（重力照常）。
     /// 動畫由 DaoDunDogAnimator 讀這裡的狀態來擺姿勢。
     /// </summary>
     [RequireComponent(typeof(CharacterController), typeof(PlayerStamina))]
@@ -78,6 +79,8 @@ namespace BossFight.Player
         public float MoveSpeed => stats.moveSpeed;
         public float PlanarSpeed { get; private set; }
         public LockOnTarget LockTarget { get; private set; }
+        /// <summary>演出中：不讀輸入，只照 ScriptedMoveTo 走。</summary>
+        public bool InputLocked { get; private set; }
 
         CharacterController cc;
         PlayerStamina stamina;
@@ -90,6 +93,8 @@ namespace BossFight.Player
         float blockStartTime;
         float actionTime, healed;
         bool jumpRequested, bufferedAttack, bufferedRoll, bufferedExecute;
+        Vector3 scriptedTarget;
+        bool hasScriptedTarget;
 
         void Awake()
         {
@@ -130,16 +135,52 @@ namespace BossFight.Player
             ReleaseExecutionTarget();
         }
 
+        /// <summary>
+        /// 鎖住或解除輸入（演出用）。鎖住時清掉預約的輸入、中斷蓄力；正在做的動作（翻滾、揮刀）照常做完。
+        /// 解除時停止照腳本走。
+        /// </summary>
+        public void SetInputLocked(bool locked)
+        {
+            InputLocked = locked;
+            jumpRequested = bufferedAttack = bufferedRoll = bufferedExecute = false;
+            if (locked && Action == PlayerAction.Charge) SetAction(PlayerAction.None);
+            if (!locked) hasScriptedTarget = false;
+        }
+
+        /// <summary>輸入鎖住時，這一幀往 position（只看水平）走過去，面向前進方向；由 Timeline 每幀給。</summary>
+        public void ScriptedMoveTo(Vector3 position)
+        {
+            scriptedTarget = position;
+            hasScriptedTarget = true;
+        }
+
+        /// <summary>直接瞬移到 position、轉向 rotation（演出開始、跳過時用）。</summary>
+        public void Teleport(Vector3 position, Quaternion rotation)
+        {
+            cc.enabled = false;
+            transform.SetPositionAndRotation(position, rotation);
+            cc.enabled = true;
+            planarVelocity = Vector3.zero;
+            verticalVelocity = 0f;
+            scriptedTarget = position;
+        }
+
         void Update()
         {
             float dt = Time.deltaTime;
-            Vector2 input = IsDead ? Vector2.zero : Vector2.ClampMagnitude(moveAction.ReadValue<Vector2>(), 1f);
+            Vector2 input = IsDead || InputLocked ? Vector2.zero : Vector2.ClampMagnitude(moveAction.ReadValue<Vector2>(), 1f);
             GetMoveFrame(out Vector3 forward, out Vector3 right);
             Vector3 wishDir = forward * input.y + right * input.x;
+            Vector3 scriptedDelta = Vector3.zero;
+            if (InputLocked && hasScriptedTarget)
+            {
+                scriptedDelta = Flat(scriptedTarget - transform.position);
+                wishDir = scriptedDelta.sqrMagnitude > 1e-6f ? scriptedDelta.normalized : Vector3.zero;
+            }
 
-            if (!IsDead) HandleActionInput(wishDir);
+            if (!IsDead && !InputLocked) HandleActionInput(wishDir);
 
-            bool blocking = Action == PlayerAction.None && IsGrounded && blockAction.IsPressed();
+            bool blocking = !InputLocked && Action == PlayerAction.None && IsGrounded && blockAction.IsPressed();
             if (blocking && !IsBlocking) blockStartTime = Time.time;
             IsBlocking = blocking;
             stamina.Regenerate(dt, IsBlocking);
@@ -148,6 +189,13 @@ namespace BossFight.Player
             switch (Action)
             {
                 case PlayerAction.None:
+                    if (InputLocked)
+                    {
+                        // 演出：Timeline 已經算好這一幀該在哪，直接走過去
+                        delta = scriptedDelta;
+                        planarVelocity = dt > 0f ? scriptedDelta / dt : Vector3.zero;
+                        break;
+                    }
                     float speed = stats.moveSpeed * (IsBlocking ? stats.blockMoveSpeedMultiplier : 1f);
                     planarVelocity = Vector3.MoveTowards(planarVelocity, wishDir * speed, stats.acceleration * dt);
                     delta = planarVelocity * dt;

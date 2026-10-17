@@ -24,6 +24,7 @@ MonoBehaviour:
   - name: BossGate
     angle: 0
   playerSpawnDistance: 8
+  magicCircleRadius: 5
   standTiers: 12
   tierDepth: 1.2
   tierRise: 0.6

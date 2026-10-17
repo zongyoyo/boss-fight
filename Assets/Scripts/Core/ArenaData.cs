@@ -43,6 +43,10 @@ namespace BossFight.Core
         [Tooltip("玩家出生點離場地中心的距離 (m)，在 PlayerGate 的方向上；Boss 固定在中心")]
         [Min(0f)] public float playerSpawnDistance = 8f;
 
+        [Header("魔法陣")]
+        [Tooltip("場地中央魔法陣的半徑 (m)；Boss 坐在正中央。T7 轉階段時擴大到場地邊緣")]
+        [Min(0.5f)] public float magicCircleRadius = 5f;
+
         [Header("觀眾席")]
         [Range(0, 40)] public int standTiers = 12;
         [Min(0.3f)] public float tierDepth = 1.2f;

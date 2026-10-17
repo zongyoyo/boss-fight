@@ -86,8 +86,8 @@ namespace BossFight.Boss
         [SerializeField] CapsuleCollider body;
         [Tooltip("Boss 會用的招式（Moves 底下的 BossMove）；用哪些由 BossMoveData.phase 與階段的招式池決定")]
         [SerializeField] List<BossMove> moves = new List<BossMove>();
-        [Tooltip("進 Play 模式就開打。之後由 BattleManager 在開場演出結束時呼叫 StartBattle，這裡就要關掉")]
-        [SerializeField] bool startOnPlay = true;
+        [Tooltip("進 Play 模式就開打（場景裡沒有 BattleManager 時測試用）。平常關掉，由 BattleManager 在開場動畫結束時呼叫 StartBattle")]
+        [SerializeField] bool startOnPlay;
 
         /// <summary>狀態改變；參數是新的狀態。</summary>
         public event Action<BossState> OnStateChanged;

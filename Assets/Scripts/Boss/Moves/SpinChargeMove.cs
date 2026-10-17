@@ -23,13 +23,13 @@ namespace BossFight.Boss.Moves
         [SerializeField] [ColorUsage(true, true)] Color impactColor = new Color(3f, 2.4f, 1.6f, 1f);
         [Tooltip("衝擊環大小（倍率）")]
         [Min(0f)] [SerializeField] float impactSize = 2.5f;
-        [Tooltip("預兆結束時的轉速（度/秒），從 0 加速上去")]
+        [Tooltip("預兆結束時的轉速（度/秒），從預兆開始時的轉速（平常是 0；開場結束時貓已經在轉）加速上去")]
         [SerializeField] float spinSpeed = 1440f;
 
         SpinChargeData charge;
         GroundTelegraph path;
         Vector3 direction;
-        float timer;
+        float timer, startSpin;
         bool hitWall;
 
         void Awake()
@@ -53,6 +53,7 @@ namespace BossFight.Boss.Moves
         {
             timer = 0f;
             hitWall = false;
+            startSpin = poser.SpinSpeed; // 開場的貓直接從旋轉接這一招，不先停下來
             Vector3 dir = Flat(Boss.transform.forward).normalized;
             path.ShowRect(OnGround(Boss.transform.position), dir, PathLength(dir), charge.pathWidth, Data.canBlock);
         }
@@ -61,7 +62,7 @@ namespace BossFight.Boss.Moves
         {
             timer += dt;
             float t = TelegraphTime > 0f ? Mathf.Clamp01(timer / TelegraphTime) : 1f;
-            poser.SetSpinImmediate(spinSpeed * t);
+            poser.SetSpinImmediate(Mathf.Lerp(startSpin, spinSpeed, t));
 
             // 前 trackTime 秒跟著玩家轉，之後路徑鎖定不動
             if (timer < charge.trackTime)
