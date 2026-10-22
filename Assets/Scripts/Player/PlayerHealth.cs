@@ -31,7 +31,8 @@ namespace BossFight.Player
     /// 身上的 Hurtbox 把攻擊轉到 TakeDamage，依序判斷：
     /// 無敵（強制無敵、翻滾前段、受擊後）→ 盾反（舉盾、正面、可盾反、舉盾不到 parryWindow）→ 格擋（舉盾、正面、可擋）→ 直接命中。
     /// 格擋只吃 (1 − blockDamageReduction) 的傷害、耐力扣原傷害 × blockStaminaPerDamage × 攻擊的 blockStaminaMultiplier，扣到 0 就破防；
-    /// 盾反完全免傷、畫面停頓 parryHitStop 秒並送出 OnParry（帶著給攻擊方的失衡值 parryImbalance，Boss 的 BossStagger 訂閱）；
+    /// 盾反完全免傷、畫面停頓 parryHitStop 秒並送出 OnParry；給攻擊方的失衡值 parryImbalance 放在回傳的 DamageOutcome，
+    /// 經 Hitbox 的 HitReport 回到攻擊方（Boss 的 BossStagger 從 BossController.OnMoveHit 拿）；
     /// 只有直接命中會給 hitInvulnerableTime 的無敵。
     /// 事件順序：OnHealthChanged → OnDamageTaken → OnParry／OnGuardBreak → OnDied。
     /// </summary>
@@ -43,7 +44,7 @@ namespace BossFight.Player
         /// <summary>(目前血量, 上限)。</summary>
         public event Action<float, float> OnHealthChanged;
         public event Action<PlayerDamageReport> OnDamageTaken;
-        /// <summary>盾反成功；參數是 (被盾反的攻擊（來源在 info.source）, 給攻擊方的失衡值 PlayerStats.parryImbalance)。</summary>
+        /// <summary>盾反成功；參數是 (被盾反的攻擊（來源在 info.source）, 給攻擊方的失衡值 PlayerStats.parryImbalance)。給玩家自己的演出用，攻擊方從 HitReport 拿失衡值。</summary>
         public event Action<DamageInfo, float> OnParry;
         /// <summary>舉盾時耐力被打到 0。</summary>
         public event Action OnGuardBreak;
@@ -83,7 +84,7 @@ namespace BossFight.Player
             OnBonesChanged?.Invoke(BonesLeft, BonesMax);
         }
 
-        public DamageResult TakeDamage(in DamageInfo info)
+        public DamageOutcome TakeDamage(in DamageInfo info)
         {
             if (IsDead) return DamageResult.Ignored;
 
@@ -126,7 +127,7 @@ namespace BossFight.Player
                 OnGuardBreak?.Invoke();
             }
             if (IsDead) OnDied?.Invoke();
-            return result;
+            return new DamageOutcome(result, result == DamageResult.Parried ? stats.parryImbalance : 0f);
         }
 
         /// <summary>還有骨頭、沒倒下、沒滿血就扣一根並回傳 true；回血由 PlayerController 在動作期間呼叫 Heal。</summary>

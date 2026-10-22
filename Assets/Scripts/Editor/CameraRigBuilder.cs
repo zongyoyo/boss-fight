@@ -78,24 +78,23 @@ namespace BossFight.EditorTools
             var controller = rig.AddComponent<CameraController>();
             var so = new SerializedObject(controller);
             so.FindProperty("stats").objectReferenceValue = stats;
-            so.FindProperty("player").objectReferenceValue = player.transform;
+            so.FindProperty("player").objectReferenceValue = player;
             so.FindProperty("freeLookCamera").objectReferenceValue = free;
             so.FindProperty("freeLookOrbit").objectReferenceValue = freeOrbit;
             so.FindProperty("lockOnCamera").objectReferenceValue = lockOn;
             so.FindProperty("lockOnOrbit").objectReferenceValue = lockOnOrbit;
             so.FindProperty("lockOnGroup").objectReferenceValue = group;
+            so.ApplyModifiedPropertiesWithoutUndo();
+
+            // 玩家：移動方向以 Main Camera 為準；鎖定由玩家決定，鎖定清單放場景裡所有的 LockOnTarget
+            var pso = new SerializedObject(player);
+            pso.FindProperty("cameraTransform").objectReferenceValue = cam.transform;
             var targets = Object.FindObjectsByType<LockOnTarget>(FindObjectsInactive.Include, FindObjectsSortMode.None)
                                 .OrderBy(t => t.name).ToArray();
-            var list = so.FindProperty("lockTargets");
+            var list = pso.FindProperty("lockTargets");
             list.arraySize = targets.Length;
             for (int i = 0; i < targets.Length; i++)
                 list.GetArrayElementAtIndex(i).objectReferenceValue = targets[i];
-            so.ApplyModifiedPropertiesWithoutUndo();
-
-            // 玩家：移動方向以 Main Camera 為準，鎖定目標從 CameraController 來
-            var pso = new SerializedObject(player);
-            pso.FindProperty("cameraTransform").objectReferenceValue = cam.transform;
-            pso.FindProperty("cameraController").objectReferenceValue = controller;
             pso.ApplyModifiedProperties();
 
             // 先把 Main Camera 擺到自由視角的位置，編輯模式下的 Game 視圖也看得到角色

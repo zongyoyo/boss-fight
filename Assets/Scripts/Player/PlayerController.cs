@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using BossFight.Cameras;
 using BossFight.Core;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -26,8 +25,9 @@ namespace BossFight.Player
 
     /// <summary>
     /// 刀盾狗的移動、跳躍、翻滾、舉盾、攻擊、啃骨頭與處決。數值全部讀 PlayerStats；輸入讀 Project-wide Actions（Assets/InputSystem_Actions）的 Player map：
-    /// Move 移動（相對鏡頭）、Jump 跳躍、Roll 翻滾、Block 舉盾、Attack 攻擊（點擊輕攻擊、長按重擊）、Heal 啃骨頭、Execute 處決。
-    /// 鎖定目標來自 CameraController.OnLockTargetChanged：鎖定時角色面向目標，前後是靠近／遠離，左右是繞著目標走。
+    /// Move 移動（相對鏡頭）、Jump 跳躍、Roll 翻滾、Block 舉盾、Attack 攻擊（點擊輕攻擊、長按重擊）、Heal 啃骨頭、Execute 處決、LockOn 鎖定。
+    /// 鎖定由這裡決定（玩法的一部分）：LockOn 在 Inspector 列出的 LockOnTarget 裡選 lockOnRange 內最近的一個，再按一次解除，目標不能鎖定時自動解除；
+    /// 結果用 OnLockTargetChanged 送出，CameraController 訂閱它切換鎖定鏡頭。鎖定時角色面向目標，前後是靠近／遠離，左右是繞著目標走。
     /// 處決：Inspector 列出的 ExecutionTarget 裡，executeRange 內最近、可以處決的一個（Boss 頭暈中）；站在地上、沒有動作、蓄力中都可以按，
     /// 揮刀中按會先記下來，到可取消的時間才接。轉向目標劈出 executeAttack，整段不能取消，executeInvulnerable 時無敵。
     /// 揮刀交給 PlayerAttack；受傷結算在 PlayerHealth，這裡訂閱它的事件處理蓄力中斷、破防與倒地。
@@ -42,8 +42,8 @@ namespace BossFight.Player
         [SerializeField] PlayerStats stats;
         [Tooltip("移動方向以這個鏡頭為準（Main Camera）")]
         [SerializeField] Transform cameraTransform;
-        [Tooltip("鎖定目標的來源")]
-        [SerializeField] CameraController cameraController;
+        [Tooltip("可以被鎖定的目標（Boss）；按鎖定時選 lockOnRange 內最近的一個")]
+        [SerializeField] List<LockOnTarget> lockTargets = new List<LockOnTarget>();
         [Tooltip("可以處決的目標（Boss）；按處決時選 executeRange 內最近、現在可以處決的一個")]
         [SerializeField] List<ExecutionTarget> executionTargets = new List<ExecutionTarget>();
 
@@ -51,6 +51,8 @@ namespace BossFight.Player
         public event Action<Vector3> OnRollStarted;
         public event Action OnRollEnded;
         public event Action OnJumped;
+        /// <summary>鎖定目標改變；null 表示解除鎖定。</summary>
+        public event Action<LockOnTarget> OnLockTargetChanged;
         /// <summary>動作改變；參數是新的動作。連擊接下一段不算改變（看 PlayerAttack.OnAttackStarted）。</summary>
         public event Action<PlayerAction> OnActionChanged;
 
@@ -86,7 +88,7 @@ namespace BossFight.Player
         PlayerStamina stamina;
         PlayerHealth health;
         PlayerAttack attack;
-        InputAction moveAction, jumpAction, rollAction, blockAction, attackAction, healAction, executeAction;
+        InputAction moveAction, jumpAction, rollAction, blockAction, attackAction, healAction, executeAction, lockOnAction;
         Vector3 planarVelocity;
         float verticalVelocity;
         float rollTime, rollTravelled;
@@ -117,26 +119,28 @@ namespace BossFight.Player
             attackAction = actions.FindAction("Player/Attack", true);
             healAction = actions.FindAction("Player/Heal", true);
             executeAction = actions.FindAction("Player/Execute", true);
+            lockOnAction = actions.FindAction("Player/LockOn", true);
         }
 
         void OnEnable()
         {
             moveAction?.actionMap.Enable();
-            if (cameraController != null) cameraController.OnLockTargetChanged += HandleLockTargetChanged;
             health.OnDamageTaken += HandleDamageTaken;
             health.OnDied += HandleDied;
         }
 
         void OnDisable()
         {
-            if (cameraController != null) cameraController.OnLockTargetChanged -= HandleLockTargetChanged;
             health.OnDamageTaken -= HandleDamageTaken;
             health.OnDied -= HandleDied;
             ReleaseExecutionTarget();
         }
 
+        /// <summary>解除鎖定（演出結束前把視角擺回玩家背後時用）。</summary>
+        public void ClearLockTarget() => SetLockTarget(null);
+
         /// <summary>
-        /// 鎖住或解除輸入（演出用）。鎖住時清掉預約的輸入、中斷蓄力；正在做的動作（翻滾、揮刀）照常做完。
+        /// 鎖住或解除輸入（演出用）。鎖住時清掉預約的輸入、中斷蓄力；正在做的動作（翻滾、揮刀）照常做完。鎖住期間不能切換鎖定。
         /// 解除時停止照腳本走。
         /// </summary>
         public void SetInputLocked(bool locked)
@@ -167,6 +171,7 @@ namespace BossFight.Player
 
         void Update()
         {
+            UpdateLockOn();
             float dt = Time.deltaTime;
             Vector2 input = IsDead || InputLocked ? Vector2.zero : Vector2.ClampMagnitude(moveAction.ReadValue<Vector2>(), 1f);
             GetMoveFrame(out Vector3 forward, out Vector3 right);
@@ -532,9 +537,34 @@ namespace BossFight.Player
             SetAction(PlayerAction.Dead);
         }
 
-        void HandleLockTargetChanged(LockOnTarget target)
+        // 目標被停用或銷毀（例如 Boss 倒下）就自動解除；演出中不能切換
+        void UpdateLockOn()
         {
+            if (LockTarget != null && !LockTarget.IsLockable) SetLockTarget(null);
+            if (!InputLocked && lockOnAction.WasPressedThisFrame()) SetLockTarget(LockTarget != null ? null : FindNearestLockTarget());
+        }
+
+        /// <summary>水平距離 lockOnRange 內最近的可鎖定目標；沒有則為 null。</summary>
+        LockOnTarget FindNearestLockTarget()
+        {
+            LockOnTarget best = null;
+            float bestSqr = stats.lockOnRange * stats.lockOnRange;
+            foreach (var t in lockTargets)
+            {
+                if (t == null || !t.IsLockable) continue;
+                float sqr = Flat(t.transform.position - transform.position).sqrMagnitude;
+                if (sqr > bestSqr) continue;
+                best = t;
+                bestSqr = sqr;
+            }
+            return best;
+        }
+
+        void SetLockTarget(LockOnTarget target)
+        {
+            if (target == LockTarget) return;
             LockTarget = target;
+            OnLockTargetChanged?.Invoke(target);
         }
 
         static Vector3 Flat(Vector3 v) => new Vector3(v.x, 0f, v.z);

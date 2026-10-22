@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using BossFight.Core;
 using BossFight.Player;
 using Unity.Cinemachine;
@@ -12,18 +10,18 @@ namespace BossFight.Cameras
     /// Cinemachine 3 第三人稱鏡頭與鎖定 Boss。場景裡有兩台 CinemachineCamera，由 Main Camera 上的 CinemachineBrain 混合：
     /// 自由視角：Player/Look（滑鼠、右搖桿）直接推它 OrbitalFollow 的水平與垂直軸。
     /// 鎖定視角：Priority 比自由視角高時接手；每幀把水平軸轉到「玩家背後、朝向目標」，看向玩家與目標的 TargetGroup。
-    /// Player/LockOn（滑鼠中鍵）在 lockOnRange 內選最近的目標，再按一次解除；結果用 OnLockTargetChanged 通知。
+    /// 鎖定哪個目標由 PlayerController 決定（Player/LockOn），這裡只訂閱它的 OnLockTargetChanged 切換鏡頭。
     /// Esc 釋放游標，點擊畫面重新鎖住。重建鏡頭：Tools > Camera > Build Camera Rig。
-    /// 演出期間 CutsceneDirector 呼叫 SetInputLocked 鎖住視角與鎖定，Timeline 的 Cinemachine Track 接管畫面；
-    /// 演出結束前用 ResetBehind 把自由視角擺到玩家背後、面向 Boss，Timeline 混回來時就是這個角度。
+    /// 演出期間 CutsceneDirector 呼叫 SetInputLocked 鎖住視角，Timeline 的 Cinemachine Track 接管畫面；
+    /// 演出結束前先解除玩家的鎖定，再用 ResetBehind 把自由視角擺到玩家背後、面向 Boss，Timeline 混回來時就是這個角度。
     /// </summary>
     [DisallowMultipleComponent]
     public class CameraController : MonoBehaviour
     {
-        [Tooltip("鎖定範圍與視角靈敏度")]
+        [Tooltip("視角靈敏度")]
         [SerializeField] PlayerStats stats;
-        [Tooltip("鏡頭跟隨的玩家；鎖定範圍從這裡量")]
-        [SerializeField] Transform player;
+        [Tooltip("鏡頭跟隨的玩家；鎖定目標從它的 OnLockTargetChanged 來")]
+        [SerializeField] PlayerController player;
 
         [Header("Cinemachine")]
         [SerializeField] CinemachineCamera freeLookCamera;
@@ -33,10 +31,6 @@ namespace BossFight.Cameras
         [Tooltip("鎖定鏡頭看向的群組：裡面放玩家，鎖定時由程式加入目標")]
         [SerializeField] CinemachineTargetGroup lockOnGroup;
 
-        [Header("鎖定目標")]
-        [Tooltip("可以被鎖定的目標（Boss）")]
-        [SerializeField] List<LockOnTarget> lockTargets = new List<LockOnTarget>();
-
         [Header("手感（純視覺）")]
         [Tooltip("鎖定時鏡頭轉向目標方向的平滑時間（秒）")]
         [Min(0f)] [SerializeField] float lockOnYawSmoothTime = 0.12f;
@@ -44,15 +38,14 @@ namespace BossFight.Cameras
         [Header("游標")]
         [SerializeField] bool lockCursor = true;
 
-        /// <summary>鎖定目標改變；null 表示解除鎖定。</summary>
-        public event Action<LockOnTarget> OnLockTargetChanged;
-
+        /// <summary>鏡頭目前鎖定的目標（跟著 PlayerController.OnLockTargetChanged）。</summary>
         public LockOnTarget CurrentTarget { get; private set; }
-        /// <summary>演出中：不轉視角、不能鎖定。</summary>
+        /// <summary>演出中：不轉視角。</summary>
         public bool InputLocked { get; private set; }
 
-        InputAction lookAction, lockOnAction;
+        InputAction lookAction;
         float lockYaw, lockYawVelocity;
+        Transform leavingMember; // 已解除鎖定、但鎖定鏡頭還在混出，暫時留在群組裡的目標
         int skipPointerFrames;
 
         void Awake()
@@ -65,13 +58,13 @@ namespace BossFight.Cameras
                 return;
             }
             lookAction = actions.FindAction("Player/Look", true);
-            lockOnAction = actions.FindAction("Player/LockOn", true);
             SetLockOnCameraLive(false);
         }
 
         void OnEnable()
         {
             lookAction?.actionMap.Enable();
+            if (player != null) player.OnLockTargetChanged += SetTarget;
         }
 
         void Start()
@@ -81,63 +74,52 @@ namespace BossFight.Cameras
 
         void OnDisable()
         {
+            if (player != null) player.OnLockTargetChanged -= SetTarget;
             if (lockCursor) SetCursorLocked(false);
         }
 
         void Update()
         {
             UpdateCursor();
-
-            // 目標被停用或銷毀（例如 Boss 倒下）就自動解除
-            if (CurrentTarget != null && !CurrentTarget.IsLockable) SetTarget(null);
-            if (!InputLocked && lockOnAction.WasPressedThisFrame()) SetTarget(CurrentTarget != null ? null : FindNearestTarget());
-
+            // 解除鎖定後，鎖定鏡頭混出完才把目標移出群組（見 SetTarget）
+            if (leavingMember != null && !CinemachineCore.IsLive(lockOnCamera))
+            {
+                lockOnGroup.RemoveMember(leavingMember);
+                leavingMember = null;
+            }
             if (CurrentTarget != null) UpdateLockOnYaw();
             else if (!InputLocked) ApplyLook();
         }
 
-        /// <summary>鎖住或解除視角與鎖定的輸入（演出用）。</summary>
+        /// <summary>鎖住或解除視角的輸入（演出用；鎖定的輸入由 PlayerController.SetInputLocked 鎖）。</summary>
         public void SetInputLocked(bool locked)
         {
             InputLocked = locked;
             skipPointerFrames = locked ? 0 : 3; // 解除那幾幀累積的滑鼠位移不算
         }
 
-        /// <summary>解除鎖定，把自由視角轉到玩家背後、面向 lookAt（水平），俯仰回到預設。</summary>
+        /// <summary>把自由視角轉到玩家背後、面向 lookAt（水平），俯仰回到預設。鎖定中要先解除（PlayerController.ClearLockTarget）。</summary>
         public void ResetBehind(Vector3 lookAt)
         {
-            if (CurrentTarget != null) SetTarget(null);
-            Vector3 to = lookAt - player.position;
+            Vector3 to = lookAt - player.transform.position;
             if (to.x * to.x + to.z * to.z > 1e-4f)
                 freeLookOrbit.HorizontalAxis.Value = freeLookOrbit.HorizontalAxis.ClampValue(Mathf.Atan2(to.x, to.z) * Mathf.Rad2Deg);
             freeLookOrbit.VerticalAxis.Value = freeLookOrbit.VerticalAxis.Center;
-        }
-
-        /// <summary>水平距離 lockOnRange 內最近的可鎖定目標；沒有則為 null。</summary>
-        LockOnTarget FindNearestTarget()
-        {
-            LockOnTarget best = null;
-            float bestSqr = stats.lockOnRange * stats.lockOnRange;
-            foreach (var t in lockTargets)
-            {
-                if (t == null || !t.IsLockable) continue;
-                Vector3 d = t.transform.position - player.position;
-                float sqr = d.x * d.x + d.z * d.z;
-                if (sqr > bestSqr) continue;
-                best = t;
-                bestSqr = sqr;
-            }
-            return best;
         }
 
         void SetTarget(LockOnTarget target)
         {
             if (target == CurrentTarget) return;
 
-            if (CurrentTarget != null) lockOnGroup.RemoveMember(CurrentTarget.AimPoint);
+            // 解除時先不移出群組：鎖定鏡頭還要混出一段時間，馬上移出的話群組只剩玩家（腳底），鏡頭會在混合中猛然往下看。
+            // 等鎖定鏡頭完全不在畫面上（Update 裡）才移出
+            if (CurrentTarget != null) leavingMember = CurrentTarget.AimPoint;
             if (target != null)
             {
-                lockOnGroup.AddMember(target.AimPoint, 1f, target.FramingRadius);
+                bool stillMember = leavingMember != null && leavingMember == target.AimPoint;
+                if (leavingMember != null && !stillMember) lockOnGroup.RemoveMember(leavingMember);
+                leavingMember = null;
+                if (!stillMember) lockOnGroup.AddMember(target.AimPoint, 1f, target.FramingRadius);
                 if (CurrentTarget == null)
                 {
                     // 從自由視角目前的方向開始轉向目標，兩台鏡頭起點一致，混合時不會跳
@@ -155,7 +137,6 @@ namespace BossFight.Cameras
 
             CurrentTarget = target;
             SetLockOnCameraLive(target != null);
-            OnLockTargetChanged?.Invoke(target);
         }
 
         void SetLockOnCameraLive(bool live)
@@ -166,7 +147,7 @@ namespace BossFight.Cameras
         // 鏡頭轉到玩家背後、朝向目標
         void UpdateLockOnYaw()
         {
-            Vector3 to = CurrentTarget.transform.position - player.position;
+            Vector3 to = CurrentTarget.transform.position - player.transform.position;
             if (to.x * to.x + to.z * to.z < 1e-4f) return;
             float desired = Mathf.Atan2(to.x, to.z) * Mathf.Rad2Deg;
             lockYaw = Mathf.SmoothDampAngle(lockYaw, desired, ref lockYawVelocity, lockOnYawSmoothTime);

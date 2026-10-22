@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using BossFight.Battle;
 using BossFight.Boss;
 using BossFight.Cameras;
 using BossFight.Core;

@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using BossFight.Cameras;
 using BossFight.Core;
 using BossFight.DebugTools;
 using BossFight.Player;
@@ -202,7 +201,7 @@ namespace BossFight.EditorTools
             if (cc != null) cc.minMoveDistance = 0f;
         }
 
-        /// 場景裡的 PlayerDebugOverlay 接上玩家與鏡頭；重建角色或鏡頭後舊的引用會斷。
+        /// 場景裡的 PlayerDebugOverlay 接上玩家；重建角色後舊的引用會斷。
         static void WireDebugOverlay()
         {
             var overlay = Object.FindAnyObjectByType<PlayerDebugOverlay>();
@@ -214,8 +213,6 @@ namespace BossFight.EditorTools
             so.FindProperty("stamina").objectReferenceValue = player.GetComponent<PlayerStamina>();
             so.FindProperty("health").objectReferenceValue = player.GetComponent<PlayerHealth>();
             so.FindProperty("attack").objectReferenceValue = player.GetComponent<PlayerAttack>();
-            var cam = Object.FindAnyObjectByType<CameraController>();
-            if (cam != null) so.FindProperty("cameraController").objectReferenceValue = cam;
             so.ApplyModifiedProperties();
             EditorSceneManager.MarkSceneDirty(overlay.gameObject.scene);
         }

@@ -1,9 +1,10 @@
 using System;
 using BossFight.Boss;
+using BossFight.Core;
 using BossFight.Cutscene;
 using UnityEngine;
 
-namespace BossFight.Core
+namespace BossFight.Battle
 {
     /// <summary>戰鬥流程的狀態。T6 只有開場與第一階段；轉階段、第二階段、勝利、失敗由 T7、T9 加上。</summary>
     public enum BattleState
@@ -21,6 +22,7 @@ namespace BossFight.Core
     /// 開場結束（播完或跳過）時記下「看過開場」，切到第一階段並呼叫 BossController.StartBattle，Boss 從固定開場序列開打。
     /// 沒有接 CutsceneDirector 時直接開打。「看過開場」存在 BattleSession，重新載入場景（重試）時保留。
     /// UI 與演出訂閱 OnBattleStateChanged。
+    /// 放在 Battle（最上層）：它要指揮 Boss 與演出，Core 才能維持在最底層、不引用其他系統。
     /// </summary>
     [DisallowMultipleComponent]
     public class BattleManager : MonoBehaviour

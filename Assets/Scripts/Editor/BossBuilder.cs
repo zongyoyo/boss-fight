@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using BossFight.Boss;
 using BossFight.Boss.Moves;
-using BossFight.Cameras;
 using BossFight.Core;
 using BossFight.DebugTools;
 using BossFight.Player;
@@ -21,7 +20,7 @@ namespace BossFight.EditorTools
     /// 數值資產（BossStats、第一階段／第二階段／狂暴、招式）只在不存在時建立並填入企劃書的數值，之後在 Inspector 改的值不會被覆蓋；
     /// 唯一例外是第一階段的開場序列還是 T3 的假招式時，換成 迴旋衝撞 → 貓掌連拍 → 魔法陣落雷。
     /// 存成 Assets/Prefabs/OiiaCat.prefab，放在場地中心、面向南方的玩家出生點；刪掉 T1 的 FakeBoss，
-    /// 並把鏡頭的鎖定清單、玩家的處決清單、BossStagger 訂閱的玩家 PlayerHealth、PlayerDebugOverlay 的距離對象、
+    /// 並把玩家的鎖定清單與處決清單、PlayerDebugOverlay 的距離對象、
     /// DebugTools 上的 BossDebugTools 接到新的 Boss。
     /// 選單 Tools > Boss > Build Boss Placeholder；重建時沿用舊 Boss 的位置與朝向。尺寸、顏色都是純視覺參數。
     /// </summary>
@@ -468,18 +467,17 @@ namespace BossFight.EditorTools
             return move;
         }
 
-        // 場景裡的引用：玩家、場地中心、鏡頭鎖定清單、玩家的處決清單與盾反事件、Debug 工具
+        // 場景裡的引用：玩家、場地中心、玩家的鎖定清單與處決清單、Debug 工具
         static void WireScene(GameObject root)
         {
             var controller = root.GetComponent<BossController>();
             var player = Object.FindAnyObjectByType<PlayerController>();
-            var playerHealth = player != null ? player.GetComponent<PlayerHealth>() : null;
             var arenaGen = Object.FindAnyObjectByType<ArenaGenerator>();
             var cso = new SerializedObject(controller);
             cso.FindProperty("target").objectReferenceValue = player != null ? player.transform : null;
             cso.FindProperty("arenaCenter").objectReferenceValue = arenaGen != null ? arenaGen.transform : null;
             cso.ApplyModifiedProperties();
-            if (player == null) Debug.LogWarning("[Boss] 場景裡沒有 PlayerController，BossController 的 target、BossStagger 的 player 要手動指定。");
+            if (player == null) Debug.LogWarning("[Boss] 場景裡沒有 PlayerController，BossController 的 target 要手動指定，玩家的鎖定、處決清單也要手動加。");
 
             var mainCamera = Camera.main;
             var fso = new SerializedObject(root.GetComponent<BossDamageFeedback>());
@@ -487,27 +485,12 @@ namespace BossFight.EditorTools
             fso.ApplyModifiedProperties();
             if (mainCamera == null) Debug.LogWarning("[Boss] 場景裡沒有 Main Camera，BossDamageFeedback 的 viewCamera 要手動指定（傷害數字會不面向鏡頭）。");
 
-            var stagger = root.GetComponent<BossStagger>();
-            var sso = new SerializedObject(stagger);
-            sso.FindProperty("player").objectReferenceValue = playerHealth;
-            sso.ApplyModifiedProperties();
             if (player != null)
             {
                 var pso = new SerializedObject(player);
                 AddToList(pso.FindProperty("executionTargets"), root.GetComponent<ExecutionTarget>());
+                AddToList(pso.FindProperty("lockTargets"), root.GetComponent<LockOnTarget>());
                 pso.ApplyModifiedProperties();
-            }
-
-            var cam = Object.FindAnyObjectByType<CameraController>();
-            if (cam != null)
-            {
-                var so = new SerializedObject(cam);
-                AddToList(so.FindProperty("lockTargets"), root.GetComponent<LockOnTarget>());
-                so.ApplyModifiedProperties();
-            }
-            else
-            {
-                Debug.LogWarning("[Boss] 場景裡沒有 CameraController，Boss 不會出現在鎖定清單。");
             }
 
             var overlay = Object.FindAnyObjectByType<PlayerDebugOverlay>();
@@ -534,8 +517,8 @@ namespace BossFight.EditorTools
             var tso = new SerializedObject(tools);
             tso.FindProperty("boss").objectReferenceValue = controller;
             tso.FindProperty("bossHealth").objectReferenceValue = root.GetComponent<BossHealth>();
-            tso.FindProperty("stagger").objectReferenceValue = stagger;
-            tso.FindProperty("playerHealth").objectReferenceValue = playerHealth;
+            tso.FindProperty("stagger").objectReferenceValue = root.GetComponent<BossStagger>();
+            tso.FindProperty("playerHealth").objectReferenceValue = player != null ? player.GetComponent<PlayerHealth>() : null;
             tso.ApplyModifiedProperties();
         }
 

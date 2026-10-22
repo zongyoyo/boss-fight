@@ -161,7 +161,7 @@ namespace BossFight.DebugTools
             waitTime = data.attackInterval;
         }
 
-        public DamageResult TakeDamage(in DamageInfo info)
+        public DamageOutcome TakeDamage(in DamageInfo info)
         {
             if (Time.time - lastHitTime > data.comboResetTime) comboDamage = 0f;
             lastHitTime = Time.time;

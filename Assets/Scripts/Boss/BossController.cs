@@ -38,6 +38,8 @@ namespace BossFight.Boss
         Opening,
         /// <summary>依距離、冷卻篩選後加權隨機。</summary>
         Random,
+        /// <summary>走位逾時（BossPhaseData.repositionTimeout）：沒走進距離範圍，直接出正在走向的那一招。</summary>
+        Timeout,
     }
 
     /// <summary>選招的結果，OnMoveChosen 送出。</summary>
@@ -59,17 +61,37 @@ namespace BossFight.Boss
         }
     }
 
+    /// <summary>一次預兆，OnMoveTelegraph 送出：招式開頭的預兆，或招式中途下一下的預兆（例如三連拍第三下改成不可擋）。</summary>
+    public readonly struct MoveTelegraph
+    {
+        public readonly BossMove move;
+        /// <summary>這一下可以擋（白光）；不可擋為紅光。</summary>
+        public readonly bool canBlock;
+        /// <summary>預兆幾秒後出手。</summary>
+        public readonly float duration;
+
+        public MoveTelegraph(BossMove move, bool canBlock, float duration)
+        {
+            this.move = move;
+            this.canBlock = canBlock;
+            this.duration = duration;
+        }
+    }
+
     /// <summary>
     /// OIIA 貓的 AI 狀態機與選招，持有目前階段的 BossPhaseData。數值讀 BossStats／BossPhaseData／BossMoveData；
     /// 冷卻、開場序列進度這些執行期狀態存在元件自己身上。
     /// 選招順序：F3 指定（什麼都不看）→ 階段的固定開場序列（不看冷卻、權重、不連出，但要走進距離範圍）→
     /// 目前招式池裡「距離內、冷卻好、不是上一招、權重 &gt; 0」的招式加權隨機。
     /// 沒有能出的招時，往「冷卻好、不是上一招」裡距離範圍最近的一招走位（靠近或後退）；全部都在冷卻就原地轉向玩家等。
+    /// 連續走位超過階段的 repositionTimeout 秒還走不到（Boss 比玩家慢，玩家一直拉開或貼身就永遠走不到）：
+    /// 開場序列跳過這一招，一般選招直接出正在走向的那一招。
     /// 冷卻從招式結束（或被打斷）開始算，乘上當下階段的冷卻倍率。
     /// 血量降到下一個階段的門檻時換階段：有 transitionTime 的進入 Transition（無敵、打斷招式），結束後才套用；沒有的直接套用。
     /// 頭暈（Stun）打斷目前的招式，時間到回到 Idle；失衡值的累積、受傷倍率與處決在同一個物件上的 BossStagger，
     /// 它在處決進行中設 HoldStun（時間到也先不結束），處決打到時呼叫 EndStun。
-    /// 招式的執行交給 BossMove；這裡只送事件，UI 與演出訂閱 OnStateChanged、OnMoveChosen、OnPhaseChanged、OnMoveHit。
+    /// 轉階段時收掉場上所有招式放出的 Hazard（ClearAllHazards）。
+    /// 招式的執行交給 BossMove；這裡只送事件，UI 與演出訂閱 OnStateChanged、OnMoveChosen、OnMoveTelegraph、OnPhaseChanged、OnMoveHit。
     /// </summary>
     [RequireComponent(typeof(BossHealth))]
     [DisallowMultipleComponent]
@@ -93,6 +115,8 @@ namespace BossFight.Boss
         public event Action<BossState> OnStateChanged;
         /// <summary>選好一招，接著進入預兆。</summary>
         public event Action<BossMoveChoice> OnMoveChosen;
+        /// <summary>預兆開始：進入 Telegraph 時送一次（BossMoveData.canBlock），招式中途的下一下由 BossMove.Telegraph 再送。預兆閃光訂閱。</summary>
+        public event Action<MoveTelegraph> OnMoveTelegraph;
         /// <summary>套用新的階段；Start 時也會送一次第一階段。</summary>
         public event Action<BossPhaseData> OnPhaseChanged;
         /// <summary>招式的攻擊判定打到目標並結算完（命中火花、Debug 面板）。盾反的失衡值走 PlayerHealth.OnParry，不在這裡加。</summary>
@@ -114,6 +138,8 @@ namespace BossFight.Boss
         public BossMove ForcedNextMove { get; private set; }
         /// <summary>沒有能出的招時，正在走進哪一招的距離範圍；null = 原地等。</summary>
         public BossMove RepositionGoal { get; private set; }
+        /// <summary>這次已經連續走位幾秒（逾時判定用）；沒在走位為 0。</summary>
+        public float RepositionTime { get; private set; }
         /// <summary>目前階段的開場序列已經出了幾招。</summary>
         public int OpeningIndex { get; private set; }
         /// <summary>這次 Idle 要等的秒數。</summary>
@@ -242,13 +268,22 @@ namespace BossFight.Boss
                 return;
             }
             FaceTarget(dt);
-            if (RepositionGoal != null) WalkTowardRange(RepositionGoal.Data, distance, dt);
+            if (RepositionGoal == null)
+            {
+                RepositionTime = 0f; // 全部在冷卻：原地等，不算走位
+                return;
+            }
+            WalkTowardRange(RepositionGoal.Data, distance, dt);
+            RepositionTime += dt;
         }
+
+        bool RepositionTimedOut => Phase.repositionTimeout > 0f && RepositionTime >= Phase.repositionTimeout;
 
         bool TryChoose(float distance, out BossMoveChoice choice)
         {
             choice = default;
             RepositionGoal = null;
+            bool timedOut = RepositionTimedOut;
 
             if (ForcedNextMove != null)
             {
@@ -270,6 +305,14 @@ namespace BossFight.Boss
                 }
                 if (!move.Data.InRange(distance))
                 {
+                    if (timedOut)
+                    {
+                        // 走不到這一招的距離：跳過它，下一招重新計時
+                        OpeningIndex++;
+                        RepositionTime = 0f;
+                        timedOut = false;
+                        continue;
+                    }
                     RepositionGoal = move;
                     return false;
                 }
@@ -298,7 +341,13 @@ namespace BossFight.Boss
                     RepositionGoal = move;
                 }
             }
-            if (candidates.Count == 0) return false;
+            if (candidates.Count == 0)
+            {
+                if (!timedOut || RepositionGoal == null) return false;
+                choice = new BossMoveChoice(RepositionGoal, MoveChoiceSource.Timeout, 0, distance);
+                RepositionGoal = null;
+                return true;
+            }
 
             RepositionGoal = null;
             choice = new BossMoveChoice(PickWeighted(totalWeight), MoveChoiceSource.Random, candidates.Count, distance);
@@ -334,6 +383,7 @@ namespace BossFight.Boss
             LastMove = choice.move;
             OnMoveChosen?.Invoke(choice);
             SetState(BossState.Telegraph);
+            OnMoveTelegraph?.Invoke(new MoveTelegraph(CurrentMove, CurrentMove.Data.canBlock, CurrentMove.TelegraphTime));
             CurrentMove.BeginTelegraph();
         }
 
@@ -376,6 +426,18 @@ namespace BossFight.Boss
 
         internal void NotifyMoveHit(BossMove move, in HitReport report) => OnMoveHit?.Invoke(move, report);
 
+        // 只接受目前這一招的預兆（被打斷後還在跑的招不算）
+        internal void NotifyTelegraph(BossMove move, bool canBlock, float duration)
+        {
+            if (move == CurrentMove) OnMoveTelegraph?.Invoke(new MoveTelegraph(move, canBlock, duration));
+        }
+
+        /// <summary>收掉場上所有招式放出、還沒跑完的 Hazard（轉階段清場；已經結束的招放的衝擊波、落雷也一起）。</summary>
+        public void ClearAllHazards()
+        {
+            foreach (var move in moves) move.ClearHazards();
+        }
+
         // ---------- 頭暈、轉階段、倒下 ----------
 
         /// <summary>進入頭暈（失衡值滿）：打斷目前的招式，階段的頭暈時間後回到 Idle。轉階段、倒下時無效。</summary>
@@ -415,6 +477,7 @@ namespace BossFight.Boss
             }
 
             InterruptMove();
+            ClearAllHazards(); // 企劃書：轉階段時場上所有攻擊判定清除
             pendingPhase = phaseIndex;
             health.Invulnerable = true;
             TimedStateDuration = next.transitionTime;
@@ -461,6 +524,7 @@ namespace BossFight.Boss
             if (next != BossState.Stunned) HoldStun = false;
             State = next;
             StateTime = 0f;
+            RepositionTime = 0f;
             OnStateChanged?.Invoke(next);
         }
 

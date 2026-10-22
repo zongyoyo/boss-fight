@@ -4,7 +4,8 @@ namespace BossFight.Boss
 {
     /// <summary>
     /// Boss 身上的發光：預兆閃光（企劃書的預兆顏色規則：可擋的招閃白光，不可擋的閃紅光）與受擊閃光。
-    /// 預兆只訂閱 BossController 的事件：選到招時記下顏色，預兆期間一明一暗地越閃越亮，出招那一刻最亮再淡掉，其他狀態熄滅。
+    /// 預兆只訂閱 BossController 的事件：OnMoveTelegraph 決定顏色與時間，一明一暗地越閃越亮，出手那一刻（預兆時間到、或進入出招）最亮再淡掉；
+    /// 招式中途的預兆（BossMove.Telegraph，例如三連拍第三下紅光）也是同一套。破綻、頭暈等其他狀態熄滅。
     /// 受擊閃光由 BossDamageFeedback 呼叫 FlashHit，疊加在預兆的亮度上（兩者都改 _EmissionColor，所以由這裡統一寫入）。
     /// 材質要開 Emission；顏色、亮度、閃爍頻率都是純視覺參數。
     /// </summary>
@@ -26,7 +27,9 @@ namespace BossFight.Boss
         static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
 
         MaterialPropertyBlock block;
-        BossState state;
+        enum Glow { Off, Blink, Fade }
+
+        Glow glow;
         Color color, hitColor, written;
         float telegraphTime, timer, hitTime, hitTimer;
 
@@ -45,25 +48,33 @@ namespace BossFight.Boss
 
         void OnEnable()
         {
-            boss.OnMoveChosen += HandleMoveChosen;
+            boss.OnMoveTelegraph += HandleMoveTelegraph;
             boss.OnStateChanged += HandleStateChanged;
         }
 
         void OnDisable()
         {
-            boss.OnMoveChosen -= HandleMoveChosen;
+            boss.OnMoveTelegraph -= HandleMoveTelegraph;
             boss.OnStateChanged -= HandleStateChanged;
         }
 
-        void HandleMoveChosen(BossMoveChoice choice)
+        void HandleMoveTelegraph(MoveTelegraph telegraph)
         {
-            color = choice.move.Data.canBlock ? blockableColor : unblockableColor;
-            telegraphTime = choice.move.TelegraphTime;
+            color = telegraph.canBlock ? blockableColor : unblockableColor;
+            telegraphTime = telegraph.duration;
+            SetGlow(Glow.Blink);
         }
 
         void HandleStateChanged(BossState next)
         {
-            state = next;
+            // 進入預兆時 OnMoveTelegraph 緊接著送；進入出招時還在閃就直接最亮；其他狀態熄滅
+            if (next == BossState.Active) { if (glow == Glow.Blink) SetGlow(Glow.Fade); }
+            else if (next != BossState.Telegraph) SetGlow(Glow.Off);
+        }
+
+        void SetGlow(Glow next)
+        {
+            glow = next;
             timer = 0f;
         }
 
@@ -71,11 +82,13 @@ namespace BossFight.Boss
         {
             float dt = Time.deltaTime;
             Color emission = Color.black;
-            if (state == BossState.Telegraph || state == BossState.Active)
+            if (glow == Glow.Blink && timer >= telegraphTime) SetGlow(Glow.Fade); // 招式中途的預兆：時間到就是出手
+            if (glow == Glow.Fade && timer >= fadeTime) SetGlow(Glow.Off);
+            if (glow != Glow.Off)
             {
                 timer += dt;
                 float intensity;
-                if (state == BossState.Telegraph)
+                if (glow == Glow.Blink)
                 {
                     float k = telegraphTime > 0f ? Mathf.Clamp01(timer / telegraphTime) : 1f;
                     float blink = 0.5f + 0.5f * Mathf.Cos(timer * blinkRate * Mathf.PI * 2f);

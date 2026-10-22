@@ -105,8 +105,8 @@ namespace BossFight.Core
                 if (!alreadyHit.Add(hurtbox.Owner)) continue;
 
                 var sent = info.WithSource(from.position, from.gameObject);
-                var result = hurtbox.Owner.TakeDamage(sent);
-                OnHit?.Invoke(new HitReport(hurtbox, hurtbox.Owner, sent, result));
+                var outcome = hurtbox.Owner.TakeDamage(sent);
+                OnHit?.Invoke(new HitReport(hurtbox, hurtbox.Owner, sent, outcome));
             }
         }
 

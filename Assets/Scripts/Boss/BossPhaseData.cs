@@ -29,6 +29,9 @@ namespace BossFight.Boss
         [Min(0f)] public float moveIntervalMax = 1.5f;
         [Tooltip("招式冷卻倍率")]
         [Min(0f)] public float cooldownMultiplier = 1f;
+        [Tooltip("走位逾時（秒）：為了走進某招的距離範圍連續走位這麼久還走不到（玩家一直拉開或貼身）就不等了——" +
+                 "開場序列跳過這一招，一般選招直接出正在走向的那一招。0 = 不限，一直走")]
+        [Min(0f)] public float repositionTimeout = 3f;
 
         [Header("失衡與頭暈")]
         [Tooltip("失衡值上限，滿了打斷目前的招式、進入頭暈（衰減與受傷倍率在 BossStats）")]

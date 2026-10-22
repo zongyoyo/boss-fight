@@ -66,6 +66,26 @@ namespace BossFight.Core
         Parried,
     }
 
+    /// <summary>
+    /// IDamageable.TakeDamage 的回傳：結算結果，加上要回給攻擊方的失衡值（例如玩家盾反時的 PlayerStats.parryImbalance）。
+    /// 失衡值由被打方決定、跟著 HitReport 回到攻擊方，攻擊方（Boss）就不用引用被打方（Player）。
+    /// 可以直接用 DamageResult 隱含轉換（失衡值 0）。
+    /// </summary>
+    public readonly struct DamageOutcome
+    {
+        public readonly DamageResult result;
+        /// <summary>要加到攻擊方身上的失衡值；沒有為 0。</summary>
+        public readonly float counterImbalance;
+
+        public DamageOutcome(DamageResult result, float counterImbalance = 0f)
+        {
+            this.result = result;
+            this.counterImbalance = counterImbalance;
+        }
+
+        public static implicit operator DamageOutcome(DamageResult result) => new DamageOutcome(result);
+    }
+
     /// <summary>Hitbox 打到一個目標後的回報。</summary>
     public readonly struct HitReport
     {
@@ -74,13 +94,16 @@ namespace BossFight.Core
         /// <summary>實際送出的攻擊（已填入來源位置）。</summary>
         public readonly DamageInfo info;
         public readonly DamageResult result;
+        /// <summary>被打方要回給攻擊方的失衡值（盾反時 &gt; 0），見 DamageOutcome。</summary>
+        public readonly float counterImbalance;
 
-        public HitReport(Hurtbox hurtbox, IDamageable target, in DamageInfo info, DamageResult result)
+        public HitReport(Hurtbox hurtbox, IDamageable target, in DamageInfo info, in DamageOutcome outcome)
         {
             this.hurtbox = hurtbox;
             this.target = target;
             this.info = info;
-            this.result = result;
+            result = outcome.result;
+            counterImbalance = outcome.counterImbalance;
         }
     }
 }

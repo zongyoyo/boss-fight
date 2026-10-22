@@ -38,7 +38,7 @@ namespace BossFight.Cutscene
         [SerializeField] IntroCutsceneSettings settings;
         [Tooltip("開場期間鎖住輸入，由 Timeline 帶著走進場")]
         [SerializeField] PlayerController player;
-        [Tooltip("開場期間鎖住視角與鎖定；結束時轉到玩家背後")]
+        [Tooltip("開場期間鎖住視角；結束時轉到玩家背後")]
         [SerializeField] CameraController cameraController;
         [Tooltip("開場結束時，自由視角轉到玩家背後、面向這個目標（Boss）")]
         [SerializeField] Transform faceTarget;
@@ -155,7 +155,9 @@ namespace BossFight.Cutscene
         // 第 6 鏡混回的自由視角：玩家背後、面向 Boss（輸入鎖住時視角不會被滑鼠轉走）
         void FaceGameplayCamera()
         {
-            if (cameraController != null && faceTarget != null) cameraController.ResetBehind(faceTarget.position);
+            if (cameraController == null || faceTarget == null) return;
+            if (player != null) player.ClearLockTarget();
+            cameraController.ResetBehind(faceTarget.position);
         }
 
         public void OnNotify(Playable origin, INotification notification, object context)

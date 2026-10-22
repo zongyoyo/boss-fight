@@ -172,13 +172,13 @@ OIIA 音樂與貓的形象來自網路迷因，課堂展示問題不大；若要
 
 | # | 任務 | 依賴 | 完成標準 | 狀態 |
 | --- | --- | --- | --- | --- |
-| T0 | 專案骨架與 CLAUDE.md | — | BossArena 場景可執行，規範寫進 CLAUDE.md | 未開始 |
-| T1 | 玩家移動、鏡頭鎖定、翻滾、耐力 | T0 | 膠囊狗能跑、翻滾、鎖定假 Boss，耐力數值正確 | 未開始 |
-| T2 | 玩家攻防與傷害系統 | T1 | 對木樁打出 10 / 10 / 16 連擊，盾反判定正確 | 未開始 |
-| T3 | Boss 狀態機、招式資料、選招 AI | T2 | 假招式能跑完 待機 → 選招 → 預兆 → 出招 → 硬直 | 未開始 |
-| T4 | 第一階段 5 招與危害物件 | T3 | 5 招都能觸發，可擋與不可擋判定正確 | 未開始 |
-| T5 | 失衡值、頭暈、處決 | T4 | 盾反 4 次讓 Boss 頭暈，F 處決造成 150 | 未開始 |
-| T6 | 開場動畫 | T4 | 14.5 秒照分鏡播放，結束接迴旋衝撞，可跳過 | 未開始 |
+| T0 | 專案骨架與 CLAUDE.md | — | BossArena 場景可執行，規範寫進 CLAUDE.md | 已完成 |
+| T1 | 玩家移動、鏡頭鎖定、翻滾、耐力 | T0 | 膠囊狗能跑、翻滾、鎖定假 Boss，耐力數值正確 | 已完成 |
+| T2 | 玩家攻防與傷害系統 | T1 | 對木樁打出 10 / 10 / 16 連擊，盾反判定正確 | 已完成 |
+| T3 | Boss 狀態機、招式資料、選招 AI | T2 | 假招式能跑完 待機 → 選招 → 預兆 → 出招 → 硬直 | 已完成 |
+| T4 | 第一階段 5 招與危害物件 | T3 | 5 招都能觸發，可擋與不可擋判定正確 | 已完成 |
+| T5 | 失衡值、頭暈、處決 | T4 | 盾反 4 次讓 Boss 頭暈，F 處決造成 150 | 已完成 |
+| T6 | 開場動畫 | T4 | 14.5 秒照分鏡播放，結束接迴旋衝撞，可跳過 | 已完成 |
 | T7 | 轉階段演出與第二階段強化招式 | T5、T6 | HP 1000 觸發演出，音樂 1.2 倍速，4 招強化版可用 | 未開始 |
 | T8 | 龍捲風、幻影分身、終極技、狂暴 | T7 | HP 400 觸發大迴旋一次，之後進入狂暴 | 未開始 |
 | T9 | 戰鬥 UI 與勝敗流程 | T5 | 各血條與字卡正常，失敗可重試 | 未開始 |
@@ -188,7 +188,51 @@ OIIA 音樂與貓的形象來自網路迷因，課堂展示問題不大；若要
 
 1. 把這份企劃書匯出成 Markdown，放進 repo 的 `docs/boss-oiia.md`，以下每個指令都會叫 Claude Code 讀它。
 2. 一個任務開一次新對話（或先 `/clear`），請它先列計畫，確認後再實作。
-3. 每個任務完成後進 Play 模式驗收，通過再 commit，然後才做下一個。
+3. 測試交給你：Claude Code 寫完只確認編譯沒有錯誤，然後列出測試步驟；不讓它截 Game 或 Scene 畫面、不讓它讀整串 Console 自行驗收，由你自己按 Play 測試，通過再 commit。
+4. 做到對應系統時參考下表的 skill；規則寫進 CLAUDE.md 後會自動套用，不必每次點名。
+
+### 安裝的 skill 與對照
+
+先在 Claude Code 裝好 Unity 官方 plugin，以及 awesome-gamedev-agent-skills 的 Unity 組：
+
+```text
+claude plugin marketplace add gamedev-skills/awesome-gamedev-agent-skills
+claude plugin install unity@awesome-gamedev-agent-skills
+```
+
+| 系統 | 參考的 skill | 相關任務 |
+| --- | --- | --- |
+| 攻擊、盾反、受擊回饋、畫面震動 | game-feel | T2、T4、T5 |
+| 移動、翻滾、輸入 | unity-input-system、game-feel | T1 |
+| 鏡頭與鎖定 | camera-systems | T1、T6 |
+| Boss 狀態機與選招 | game-ai | T3、T7、T8 |
+| 招式與階段資料 | unity-scriptableobjects | T3 |
+| 碰撞與攻擊判定 | physics-3d-collision（官方） | T2、T4 |
+| 閃電、法陣光效 | urp-postprocessing（官方） | T6、T7 |
+| 戰鬥 UI | ui（官方） | T9 |
+
+### CLAUDE.md 補充規則
+
+T0 會把這段寫進 CLAUDE.md；已經做完 T0 的話，手動貼到 CLAUDE.md 最後面。
+
+```text
+## Skill 使用規則
+- 打擊感、受擊回饋、畫面震動：參考 game-feel
+- 移動與輸入：參考 unity-input-system
+- 鏡頭：參考 camera-systems
+- Boss AI、狀態機：參考 game-ai
+- ScriptableObject 資料：參考 unity-scriptableobjects
+- 碰撞判定：參考 physics-3d-collision
+- 光效、後處理：參考 urp-postprocessing
+- UI：參考 ui
+- skill 建議與 docs/boss-oiia.md 衝突時，以企劃書為準，不要改企劃定好的數值
+
+## 測試與驗收規則
+- 不要截 Game View 或 Scene View 畫面，也不要讀整串 Console 來自行驗收
+- 寫完只確認編譯沒有錯誤，有錯就修到沒有為止
+- 最後列出測試步驟（按什麼鍵、預期看到什麼），交給我在 Play 模式測試
+- 等我回報問題再修，不要自己反覆試跑
+```
 
 ### T0 專案骨架與 CLAUDE.md
 
@@ -197,7 +241,7 @@ OIIA 音樂與貓的形象來自網路迷因，課堂展示問題不大；若要
 1. 資料夾：Scripts/{Core,Player,Camera,Boss,Boss/Moves,Hazards,Cutscene,UI,Debug}、ScriptableObjects、Prefabs、Scenes、Audio、Models。
 2. 確認已安裝 Cinemachine、Input System、Timeline，沒有就加上。
 3. 場景 BossArena：半徑 12 公尺的圓形競技場（內建幾何體即可）、外牆碰撞體、Directional Light、雷雲 Skybox 佔位。
-4. 寫一份 CLAUDE.md：專案目標、各資料夾用途、程式規範（數值一律放 ScriptableObject 不寫死；系統之間用 C# event 溝通，不用 FindObjectOfType）、每個任務的驗收方式。
+4. 寫一份 CLAUDE.md：專案目標、各資料夾用途、程式規範（數值一律放 ScriptableObject 不寫死；系統之間用 C# event 溝通，不用 FindObjectOfType）、每個任務的驗收方式，並加入 docs/boss-oiia.md「CLAUDE.md 補充規則」一節的內容。
 先列計畫給我確認再實作。
 ```
 

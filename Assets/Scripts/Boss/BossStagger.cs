@@ -1,6 +1,5 @@
 using System;
 using BossFight.Core;
-using BossFight.Player;
 using UnityEngine;
 
 namespace BossFight.Boss
@@ -19,7 +18,8 @@ namespace BossFight.Boss
     /// <summary>
     /// OIIA 貓的失衡值、頭暈與處決（企劃書「Boss 數值」的失衡值規則）。
     /// 增加：玩家的攻擊直接命中時加 DamageInfo.imbalance（輕攻擊 +3、重攻擊 +15，數值在 PlayerStats）；
-    /// 玩家盾反了這隻 Boss 的攻擊時加 PlayerHealth.OnParry 送來的值（+25，PlayerStats.parryImbalance）；招式可以呼叫 AddImbalance（龍捲風 +40）。
+    /// 這隻 Boss 的招式被盾反時加 HitReport.counterImbalance（被打方回傳的值，玩家是 PlayerStats.parryImbalance +25，從 BossController.OnMoveHit 拿）；
+    /// 招式可以呼叫 AddImbalance（龍捲風 +40）。不引用玩家，換角色（多職業）時不用改這裡。
     /// 頭暈、轉階段、倒下、還沒開打時不累積。最後一次增加後 BossStats.imbalanceDecayDelay 秒開始每秒減少 imbalanceDecayRate。
     /// 上限是目前 BossPhaseData.imbalanceMax，換階段時保留目前的值（不超過新上限）。滿了呼叫 BossController.Stun，打斷招式、進入頭暈。
     /// 不管頭暈是怎麼來的（失衡值滿、招式指定的固定頭暈），頭暈期間受傷 × BossStats.stunDamageMultiplier、可以被處決（ExecutionTarget）；
@@ -34,8 +34,6 @@ namespace BossFight.Boss
     {
         [Tooltip("失衡值衰減與頭暈受傷倍率")]
         [SerializeField] BossStats stats;
-        [Tooltip("玩家：盾反打在這隻 Boss 身上時，加上 OnParry 送來的失衡值（PlayerStats.parryImbalance）")]
-        [SerializeField] PlayerHealth player;
 
         /// <summary>(目前失衡值, 上限)。</summary>
         public event Action<float, float> OnStaggerChanged;
@@ -72,7 +70,6 @@ namespace BossFight.Boss
                 return;
             }
             if (executionTarget == null) Debug.LogWarning("[Boss] Boss 身上沒有 ExecutionTarget，頭暈時不能處決。", this);
-            if (player == null) Debug.LogWarning("[Boss] BossStagger 沒有指定玩家的 PlayerHealth，盾反不會加失衡值。", this);
         }
 
         void OnEnable()
@@ -80,7 +77,7 @@ namespace BossFight.Boss
             health.OnDamaged += HandleDamaged;
             boss.OnStateChanged += HandleStateChanged;
             boss.OnPhaseChanged += HandlePhaseChanged;
-            if (player != null) player.OnParry += HandleParry;
+            boss.OnMoveHit += HandleMoveHit;
             if (executionTarget != null)
             {
                 executionTarget.OnExecutionStarted += HandleExecutionStarted;
@@ -93,7 +90,7 @@ namespace BossFight.Boss
             health.OnDamaged -= HandleDamaged;
             boss.OnStateChanged -= HandleStateChanged;
             boss.OnPhaseChanged -= HandlePhaseChanged;
-            if (player != null) player.OnParry -= HandleParry;
+            boss.OnMoveHit -= HandleMoveHit;
             if (executionTarget != null)
             {
                 executionTarget.OnExecutionStarted -= HandleExecutionStarted;
@@ -164,10 +161,10 @@ namespace BossFight.Boss
             AddImbalance(report.info.imbalance);
         }
 
-        // 只算這隻 Boss 的攻擊（招式的 Hitbox 與 Hazard 都以 Boss 根物件為攻擊方）
-        void HandleParry(DamageInfo info, float imbalance)
+        // OnMoveHit 只有這隻 Boss 的招式（Hitbox 與 Hazard）打到東西才會送
+        void HandleMoveHit(BossMove move, HitReport report)
         {
-            if (info.source == gameObject) AddImbalance(imbalance);
+            if (report.result == DamageResult.Parried) AddImbalance(report.counterImbalance);
         }
 
         void HandlePhaseChanged(BossPhaseData phase)

@@ -1,5 +1,4 @@
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-using BossFight.Cameras;
 using BossFight.Core;
 using BossFight.Player;
 using UnityEngine;
@@ -20,7 +19,6 @@ namespace BossFight.DebugTools
         [SerializeField] PlayerStamina stamina;
         [SerializeField] PlayerHealth health;
         [SerializeField] PlayerAttack attack;
-        [SerializeField] CameraController cameraController;
         [Tooltip("顯示和這個物件的水平距離（Boss）")]
         [SerializeField] Transform distanceReference;
         [SerializeField] bool visible = true;
@@ -40,7 +38,7 @@ namespace BossFight.DebugTools
         void OnEnable()
         {
             if (stamina != null) stamina.OnStaminaChanged += HandleStaminaChanged;
-            if (cameraController != null) cameraController.OnLockTargetChanged += HandleLockTargetChanged;
+            if (player != null) player.OnLockTargetChanged += HandleLockTargetChanged;
             if (player != null)
             {
                 player.OnRollStarted += HandleRollStarted;
@@ -58,7 +56,7 @@ namespace BossFight.DebugTools
         void OnDisable()
         {
             if (stamina != null) stamina.OnStaminaChanged -= HandleStaminaChanged;
-            if (cameraController != null) cameraController.OnLockTargetChanged -= HandleLockTargetChanged;
+            if (player != null) player.OnLockTargetChanged -= HandleLockTargetChanged;
             if (player != null)
             {
                 player.OnRollStarted -= HandleRollStarted;

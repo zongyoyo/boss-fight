@@ -90,8 +90,14 @@ namespace BossFight.Boss
             return hazard;
         }
 
-        /// <summary>收掉這招放到場上、還沒跑完的 Hazard。</summary>
-        protected void ClearHazards()
+        /// <summary>
+        /// 招式中途預告下一下（例如三連拍第三下改成不可擋、紅光）：Boss 身上的預兆閃光換成這個顏色，閃 duration 秒後最亮再淡掉。
+        /// 招式開頭的預兆由 BossController 依 BossMoveData.canBlock 自動送，不用呼叫。
+        /// </summary>
+        protected void Telegraph(bool canBlock, float duration) => Boss.NotifyTelegraph(this, canBlock, duration);
+
+        /// <summary>收掉這招放到場上、還沒跑完的 Hazard（被打斷時，或轉階段時由 BossController.ClearAllHazards 呼叫）。</summary>
+        public void ClearHazards()
         {
             for (int i = hazards.Count - 1; i >= 0; i--)
             {

@@ -19,9 +19,10 @@
 
 | 路徑 | 用途 |
 | --- | --- |
-| `Assets/Scripts/Core` | 跨系統共用：BattleManager（戰鬥流程，T6 只有 Intro → Phase1）、BattleSession（這次執行的挑戰次數與「看過開場」）、事件、傷害系統（DamageInfo、Hitbox、Hurtbox、IDamageable）、畫面停頓（HitStop）、AudioManager（戰鬥音樂與變速、音效）、競技場（ArenaData、ArenaGenerator、天色 ArenaAtmosphere／AtmosphereData）、LockOnTarget、可處決目標（ExecutionTarget） |
+| `Assets/Scripts/Battle` | 最上層的流程指揮：BattleManager（戰鬥流程狀態機，T6 只有 Intro → Phase1），指揮 Boss 與演出 |
+| `Assets/Scripts/Core` | 跨系統共用（最底層，不引用其他系統）：BattleSession（這次執行的挑戰次數與「看過開場」）、事件、傷害系統（DamageInfo、Hitbox、Hurtbox、IDamageable）、畫面停頓（HitStop）、AudioManager（戰鬥音樂與變速、音效）、競技場（ArenaData、ArenaGenerator、天色 ArenaAtmosphere／AtmosphereData）、LockOnTarget、可處決目標（ExecutionTarget） |
 | `Assets/Scripts/Player` | PlayerController、PlayerAttack、PlayerHealth、PlayerStamina、PlayerStats 定義、DaoDunDogAnimator |
-| `Assets/Scripts/Camera` | CameraController（Cinemachine 第三人稱與鎖定 Boss） |
+| `Assets/Scripts/Camera` | CameraController（Cinemachine 第三人稱與鎖定鏡頭；鎖定哪個目標由 PlayerController 決定，鏡頭訂閱 `OnLockTargetChanged`） |
 | `Assets/Scripts/Boss` | BossController 狀態機與選招、BossHealth、失衡值／頭暈／處決（BossStagger）、BossMove 基底類別、BossStats／BossMoveData／BossPhaseData 定義、預兆閃光（BossTelegraphFlash）、佔位模型的程序化姿勢（OiiaCatPoser）、命中火花（BossHitFeedback，Boss 打到玩家）、受擊反饋（BossDamageFeedback，玩家打到 Boss：火花、閃白、後仰、傷害數字）、頭暈星星（BossStunVisual） |
 | `Assets/Scripts/Boss/Moves` | 每招一個 BossMove 子類別；招式特有的數值寫成 BossMoveData 的子類別放在同一個資料夾 |
 | `Assets/Scripts/Hazards` | 場上判定物件（Hazard 基底、衝擊波 ShockwaveRing、落雷 LightningStrike，之後的龍捲風、安全區）、地面範圍提示（GroundTelegraph，URP Decal）、場地中央的魔法陣（MagicCircle，URP Decal，出現進度／脈動／顏色／半徑）、一次性特效（TimedFx、傷害數字 DamageNumber） |
@@ -58,6 +59,9 @@ ScriptableObject 的「類別」寫在 `Scripts/` 對應的系統資料夾，「
 - UI 與演出只訂閱事件，不直接讀其他元件的欄位。
 - 引用用 `[SerializeField]` 在 Inspector 接好；同一個 GameObject 上的元件可以在 `Awake` 用 `GetComponent` 取。
 - **執行期程式禁用** `FindObjectOfType`、`FindAnyObjectByType`、`FindFirstObjectByType`、`FindObjectsByType`、`GameObject.Find`、`FindWithTag`，也不用 static singleton 互相存取。`Scripts/Editor` 底下的編輯器工具不受此限。
+- 依賴方向只能往下，不能互相引用（之後接回主遊戲、加 asmdef 才拆得開）：
+  Core（最底層）← Hazards ← Player ← Camera ← Boss ← Cutscene ← Battle ← UI／Debug。Boss 不引用 Player、Player 不引用 Camera、Core 不引用任何系統。
+  需要反方向的資訊時，由下層發事件或把結果放進回傳值（例如盾反失衡值走 `DamageOutcome`／`HitReport`）。新增 `using BossFight.*` 前先確認方向。
 - 唯一的 static 例外是 `Core/BattleSession`（第幾次挑戰、看過開場沒有）：重新載入場景後元件都是新的，跨場景的資料要放在活得比場景久的地方。它只放這兩個值、不放元件引用，進 Play 模式時清空；只有 BattleManager 讀寫，其他系統透過 BattleManager 的事件或參數得知。
 
 ### 命名空間
@@ -66,7 +70,7 @@ ScriptableObject 的「類別」寫在 `Scripts/` 對應的系統資料夾，「
 
 | 資料夾 | 命名空間 |
 | --- | --- |
-| Core / Player / Boss / Boss/Moves / Hazards / Cutscene / UI | `BossFight.Core`、`BossFight.Player`、`BossFight.Boss`、`BossFight.Boss.Moves`、`BossFight.Hazards`、`BossFight.Cutscene`、`BossFight.UI` |
+| Battle / Core / Player / Boss / Boss/Moves / Hazards / Cutscene / UI | `BossFight.Battle`、`BossFight.Core`、`BossFight.Player`、`BossFight.Boss`、`BossFight.Boss.Moves`、`BossFight.Hazards`、`BossFight.Cutscene`、`BossFight.UI` |
 | Camera | `BossFight.Cameras` |
 | Debug | `BossFight.DebugTools` |
 | Editor | `BossFight.EditorTools` |
@@ -76,12 +80,13 @@ ScriptableObject 的「類別」寫在 `Scripts/` 對應的系統資料夾，「
 ### 其他
 
 - 輸入只用新版 Input System，從 `InputSystem.actions` 讀 `Player` map；新動作加進 `InputSystem_Actions.inputactions`。`Player/SkipCutscene`（Space、手把 A）是長按跳過開場用的，和 Jump 同鍵；演出期間 PlayerController／CameraController 被 `SetInputLocked` 鎖住，不會跳起來。
-- 演出（開場、之後的轉階段）由 CutsceneDirector 鎖輸入：`PlayerController.SetInputLocked`（不讀按鍵，只照 `ScriptedMoveTo` 走）、`CameraController.SetInputLocked`（不轉視角、不能鎖定），結束前用 `CameraController.ResetBehind` 把自由視角擺到玩家背後。
+- 演出（開場、之後的轉階段）由 CutsceneDirector 鎖輸入：`PlayerController.SetInputLocked`（不讀按鍵、不能切換鎖定，只照 `ScriptedMoveTo` 走）、`CameraController.SetInputLocked`（不轉視角），結束前先 `PlayerController.ClearLockTarget` 再用 `CameraController.ResetBehind` 把自由視角擺到玩家背後。
+- 鎖定（中鍵）由 PlayerController 負責：鎖定清單 `lockTargets` 在玩家身上（Builder 會自動加），結果用 `OnLockTargetChanged` 送出，鏡頭與 Debug 面板訂閱。
 - Timeline 自訂片段要算進度時用片段本身的長度（Track 在 `CreatePlayable` 填進 behaviour 的 `clipDuration`），不要用 `playable.GetDuration()`：片段設成 Hold 延伸時，playable 的長度會包含延伸的部分（約 100 萬秒）。
 - Debug 程式整個檔案包在 `#if UNITY_EDITOR || DEVELOPMENT_BUILD`。
 - Layer：`ArenaWall`（8）用於外牆、入口門與門柱，Boss 撞牆判定用；`Hurtbox`（9）是受擊範圍的 trigger，Hitbox 只掃這一層。新增 Layer 時記在這裡。
 - 傷害一律走 Hitbox → Hurtbox → `IDamageable.TakeDamage`；無敵、格擋、盾反由被打方自己結算，結果（`DamageResult`）用 `Hitbox.OnHit` 回報攻擊方。處決（F）也走這條路，`DamageInfo.isExecution` 為 true（固定傷害，不吃頭暈倍率）。
-- 失衡值：玩家攻擊的值放在 `PlayerStats` 的 AttackSpec.imbalance，跟著 `DamageInfo` 送出；盾反的值是 `PlayerStats.parryImbalance`，跟著 `PlayerHealth.OnParry` 送出。Boss 端的 `BossStagger` 累積，衰減與頭暈倍率在 `BossStats`，上限與頭暈時間在 `BossPhaseData`。招式要自己加失衡值時用 `BossMove.AddImbalance`。
+- 失衡值：玩家攻擊的值放在 `PlayerStats` 的 AttackSpec.imbalance，跟著 `DamageInfo` 送出；盾反的值是 `PlayerStats.parryImbalance`，由 `PlayerHealth.TakeDamage` 放進回傳的 `DamageOutcome.counterImbalance`，經 `HitReport` 回到攻擊方（BossStagger 從 `BossController.OnMoveHit` 拿）。Boss 端的 `BossStagger` 累積，衰減與頭暈倍率在 `BossStats`，上限與頭暈時間在 `BossPhaseData`。招式要自己加失衡值時用 `BossMove.AddImbalance`。
 - 玩家的 CharacterController `minMoveDistance` 要保持 0：站著不動時每幀的重力位移比預設的 0.001 m 還小，`isGrounded` 會一幀有一幀沒有，舉盾、攻擊、跳躍都會失靈。
 - 搬移或改名資產要在 Unity 裡做（或用 `AssetDatabase.MoveAsset`），保留 `.meta` 與 GUID，引用才不會斷。
 - 註解用繁體中文，風格跟現有檔案一致：public 欄位加 `[Tooltip]`，用 `[Header]` 分組，數值欄位加 `[Min]`／`[Range]`。
@@ -91,7 +96,9 @@ ScriptableObject 的「類別」寫在 `Scripts/` 對應的系統資料夾，「
 - 刀盾狗 prefab 是用基本形體拼的，沒有骨架，動畫是 DaoDunDogAnimator 的程序化姿勢。
 - OIIA 貓（BossArena 中心的 `OiiaCat`，prefab `Assets/Prefabs/OiiaCat.prefab`）是 BossBuilder（Tools > Boss > Build Boss Placeholder）用膠囊拼的佔位物件，還沒有模型與動畫；舉爪、伏低、旋轉等姿勢是 OiiaCatPoser 的程序化動作。
 - 第一階段 5 招已在 T4 完成；第二階段的招式池暫時還是 2 個 T3 假招式（`TestFlashMove`，`Test_P2_Near`／`Test_P2_Far`），讓 F1 進第二階段後 Boss 還有招可出。T7 做好強化招式後把它們移出 Boss，連同 `ScriptableObjects/Boss/Moves/Test/` 與 `TestFlashMove` 一起刪掉。
-- 招式被打斷（Interrupt）時只會收掉「目前這招」放出的 Hazard；已經結束的招放出的衝擊波、落雷會跑完才消失。T7 轉階段要「清除所有 Hazard」時，要對所有招式呼叫 `ClearHazards`（或加一個 Hazard 總管）。
+- 招式被打斷（Interrupt）時只會收掉「目前這招」放出的 Hazard；已經結束的招放出的衝擊波、落雷會跑完才消失。轉階段（`BeginTransition`）會呼叫 `BossController.ClearAllHazards` 收掉所有招式的 Hazard；Boss 倒下時目前不清。
+- 預兆閃光訂閱 `BossController.OnMoveTelegraph`：進入預兆時依 `BossMoveData.canBlock` 送一次；一招裡某一下要換顏色（例如 T7 三連拍第三下紅光）由招式呼叫 `BossMove.Telegraph(canBlock, duration)`。地面範圍提示的顏色與 `DamageInfo` 的可擋／可盾反還是讀整招的 `BossMoveData`，T7 要逐下不同時再加。
+- Boss 走位逾時：為了走進某招距離範圍連續走位超過 `BossPhaseData.repositionTimeout`（目前 3 秒）還走不到，開場序列跳過那招、一般選招直接出正在走向的那招（Debug 面板顯示「走位逾時，直接出」）。企劃書沒寫這條，是 Boss 比玩家慢、玩家一直拉開或貼身時不會卡死的保險。
 - 地面範圍提示的 Decal angle fade 沒有作用：紅圈碰到外牆時牆腳會染一條（投影深度已降到 0.3 m 減輕）。之後要乾淨的話改用 Rendering Layers 只投在地板上。
 - 開場動畫（T6）由 IntroCutsceneBuilder（Tools > Cutscene > Build Intro）產生場景物件並綁定 Timeline：軌道依類型綁定，同類型的 CurveTrack／AudioTrack／CameraMoveTrack 依**軌道名稱**、鏡頭片段依**片段名稱**對應同名的鏡頭，改名後重建就要手動綁。Timeline 資產只在不存在時建立（Tools > Cutscene > Reset Intro Timeline 會重排），場景物件每次重建。
 - Timeline 視窗在編輯模式預覽時，只看得到鏡頭（Cinemachine、CameraMove）、Activation 與聲音；天色、法陣、閃電、白屏、走位、旋轉這些自訂軌道只在 Play 模式套用（避免預覽改到場景存檔）。
@@ -100,7 +107,6 @@ ScriptableObject 的「類別」寫在 `Scripts/` 對應的系統資料夾，「
 - 開場結束時貓的轉速（720 度/秒）留在 OiiaCatPoser 上，只有迴旋衝撞的預兆會從這個轉速接著加速；開場序列第一招以外（例如用 F3 指定別招當第一招）貓會一直轉到那一招 ResetPose。
 - T0 的比例參考膠囊 `ScaleRef_2m`（EditorOnly）在編輯器 Play 時會出現在開場的狗身邊；左上、右上的 Debug 面板（IMGUI）也會蓋在開場與字卡上面。正式 build 都不會有。
 - 轉階段目前是 `transitionTime` 計時自動結束（第二階段 5 秒），T7 改由轉階段演出呼叫 `BossController.CompleteTransition`。
-- `BossStagger` 在 Inspector 引用玩家的 `PlayerHealth` 來訂閱 `OnParry`，是 Boss 唯一引用 Player 命名空間的地方；之後接回主遊戲（多職業）時可以改由 BattleManager 轉發。
 - 失衡值在招式之間也會衰減：只靠盾反時，兩次貓掌連拍之間是 破綻 1.2 + 出招間隔 0.8–1.5 + 預兆 0.5 = 2.5–3.2 秒，間隔抽到超過約 1.3 秒，第 4 次盾反會停在 99（中間砍一刀 +3 就補回）。T10 平衡時再看要不要調整衰減延遲。
 - `BossPhaseData.contactDamage`（接觸傷害）只有數值，規則（可否格擋、判定間隔、哪些狀態有效）待企劃書確定後再實作。
 - 測試木樁 `TrainingDummy` 已經在 T3 從場景移除（程式與 `TrainingDummyData.asset` 還在 `Scripts/Debug`、`ScriptableObjects/Debug`）。要練格擋或盾反時用 Tools > Debug > Build Training Dummy 重建，它會自己加進鎖定清單；正式 build 前要刪掉物件，否則會變成 Missing Script。
@@ -132,3 +138,11 @@ ScriptableObject 的「類別」寫在 `Scripts/` 對應的系統資料夾，「
 | T8 | 龍捲風、幻影分身、終極技、狂暴 | HP 首次 ≤ 400 觸發大迴旋一次，落地頭暈 3 秒；之後進入狂暴（出招間隔 0.3 秒、冷卻 ×0.75、音樂 1.3 倍速）；龍捲風、幻影分身可用 |
 | T9 | 戰鬥 UI 與勝敗流程 | 玩家血條、耐力條、骨頭次數、Boss 血條（50% 與 20% 刻度）、失衡條都隨事件更新；BOSS FIGHT 字卡；勝利畫面；失敗可重試，重試後可跳過開場 |
 | T10 | 平衡測試與收尾 | F12 面板能即時調整數值；完整打通 3 次，通關時間 4–5 分鐘 |
+
+
+## Skill 使用規則
+- 打擊感、受擊回饋、畫面震動：參考 game-feel
+- Boss AI、狀態機：參考 game-ai
+- 鏡頭：參考 camera-systems
+- 光效、後處理：參考 urp-postprocessing
+- skill 建議與 docs/boss-oiia.md 衝突時，以企劃書為準

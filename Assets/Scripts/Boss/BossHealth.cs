@@ -59,7 +59,7 @@ namespace BossFight.Boss
             OnBossHealthChanged?.Invoke(Current, Max);
         }
 
-        public DamageResult TakeDamage(in DamageInfo info)
+        public DamageOutcome TakeDamage(in DamageInfo info)
         {
             if (IsDefeated) return DamageResult.Ignored;
             if (Invulnerable)

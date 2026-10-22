@@ -20,6 +20,7 @@ MonoBehaviour:
   moveIntervalMin: 0.3
   moveIntervalMax: 0.3
   cooldownMultiplier: 0.75
+  repositionTimeout: 3
   imbalanceMax: 120
   stunDuration: 2.5
   contactDamage: 8

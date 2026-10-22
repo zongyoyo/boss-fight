@@ -162,6 +162,9 @@ namespace BossFight.DebugTools
                 case MoveChoiceSource.Opening:
                     source = $"開場序列 {boss.OpeningIndex}/{boss.Phase.openingSequence.Length}";
                     break;
+                case MoveChoiceSource.Timeout:
+                    source = "走位逾時，直接出";
+                    break;
                 default:
                     source = $"隨機（候選 {choice.candidateCount}）";
                     break;
@@ -288,7 +291,7 @@ namespace BossFight.DebugTools
                 case BossState.ChooseMove:
                     s += " s";
                     if (boss.RepositionGoal != null)
-                        s += $"　走位 → {boss.RepositionGoal.DisplayName}（{RangeText(boss.RepositionGoal.Data)}）";
+                        s += $"　走位 → {boss.RepositionGoal.DisplayName}（{RangeText(boss.RepositionGoal.Data)}）{boss.RepositionTime:0.0}/{boss.Phase.repositionTimeout:0.#} 秒";
                     else
                         s += "　沒有能出的招，原地等";
                     break;
