@@ -7,6 +7,7 @@ namespace BossFight.Boss.Moves
     /// 旋轉衝擊波（第一階段，近–中距離）：預兆原地越轉越快（紅光），腳下的紅圈慢慢填滿；
     /// 填滿那一刻放出環狀衝擊波（Hazards/ShockwaveRing），波自己往外擴散到外牆，Boss 收轉 spinOutTime 秒後進入破綻。
     /// 不可擋，要翻滾穿過環。招式正常結束時波照常跑完，被打斷時一起收掉。數值讀 SpinShockwaveData。
+    /// 雙重衝擊波（waveCount &gt; 1，第二階段）：放完第一圈後繼續高速旋轉，每 waveInterval 秒從 Boss 腳下再放一圈，放完最後一圈才收轉。
     /// </summary>
     [DisallowMultipleComponent]
     public class SpinShockwaveMove : BossMove
@@ -23,6 +24,7 @@ namespace BossFight.Boss.Moves
         SpinShockwaveData wave;
         GroundTelegraph circle;
         float timer;
+        int wavesLeft;
 
         void Awake()
         {
@@ -59,7 +61,13 @@ namespace BossFight.Boss.Moves
             circle.SetFill(1f);
             circle.Strike();
             circle.Hide();
+            wavesLeft = wave.waveCount;
+            Launch();
+        }
 
+        void Launch()
+        {
+            wavesLeft--;
             Vector3 center = OnGround(Boss.transform.position);
             float endRadius = wave.maxRadius;
             if (endRadius <= 0f && Boss.Arena != null)
@@ -74,7 +82,13 @@ namespace BossFight.Boss.Moves
         public override bool TickActive(float dt)
         {
             timer += dt;
-            return timer >= wave.spinOutTime;
+            if (wavesLeft <= 0) return timer >= wave.spinOutTime;
+            if (timer >= wave.waveInterval)
+            {
+                timer -= wave.waveInterval;
+                Launch();
+            }
+            return false;
         }
 
         public override void BeginRecovery() => poser.SetSpin(0f);

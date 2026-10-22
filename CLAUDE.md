@@ -19,19 +19,19 @@
 
 | 路徑 | 用途 |
 | --- | --- |
-| `Assets/Scripts/Battle` | 最上層的流程指揮：BattleManager（戰鬥流程狀態機，T6 只有 Intro → Phase1），指揮 Boss 與演出 |
+| `Assets/Scripts/Battle` | 最上層的流程指揮：BattleManager（戰鬥流程狀態機 Intro → Phase1 → Transition → Phase2，T9 加勝敗），指揮 Boss 與演出（播轉階段演出、結束時呼叫 `BossController.CompleteTransition`、換階段改音樂速度） |
 | `Assets/Scripts/Core` | 跨系統共用（最底層，不引用其他系統）：BattleSession（這次執行的挑戰次數與「看過開場」）、事件、傷害系統（DamageInfo、Hitbox、Hurtbox、IDamageable）、畫面停頓（HitStop）、AudioManager（戰鬥音樂與變速、音效）、競技場（ArenaData、ArenaGenerator、天色 ArenaAtmosphere／AtmosphereData）、LockOnTarget、可處決目標（ExecutionTarget） |
 | `Assets/Scripts/Player` | PlayerController、PlayerAttack、PlayerHealth、PlayerStamina、PlayerStats 定義、DaoDunDogAnimator |
 | `Assets/Scripts/Camera` | CameraController（Cinemachine 第三人稱與鎖定鏡頭；鎖定哪個目標由 PlayerController 決定，鏡頭訂閱 `OnLockTargetChanged`） |
-| `Assets/Scripts/Boss` | BossController 狀態機與選招、BossHealth、失衡值／頭暈／處決（BossStagger）、BossMove 基底類別、BossStats／BossMoveData／BossPhaseData 定義、預兆閃光（BossTelegraphFlash）、佔位模型的程序化姿勢（OiiaCatPoser）、命中火花（BossHitFeedback，Boss 打到玩家）、受擊反饋（BossDamageFeedback，玩家打到 Boss：火花、閃白、後仰、傷害數字）、頭暈星星（BossStunVisual） |
+| `Assets/Scripts/Boss` | BossController 狀態機與選招、BossHealth、失衡值／頭暈／處決（BossStagger）、BossMove 基底類別、BossStats／BossMoveData／BossPhaseData 定義、預兆閃光（BossTelegraphFlash）、佔位模型的程序化姿勢（OiiaCatPoser）、命中火花（BossHitFeedback，Boss 打到玩家）、受擊反饋（BossDamageFeedback，玩家打到 Boss：火花、閃白、後仰、傷害數字）、頭暈星星（BossStunVisual）、強化階段外觀（BossPhaseVisual：紅色電光與殘影） |
 | `Assets/Scripts/Boss/Moves` | 每招一個 BossMove 子類別；招式特有的數值寫成 BossMoveData 的子類別放在同一個資料夾 |
-| `Assets/Scripts/Hazards` | 場上判定物件（Hazard 基底、衝擊波 ShockwaveRing、落雷 LightningStrike，之後的龍捲風、安全區）、地面範圍提示（GroundTelegraph，URP Decal）、場地中央的魔法陣（MagicCircle，URP Decal，出現進度／脈動／顏色／半徑）、一次性特效（TimedFx、傷害數字 DamageNumber） |
-| `Assets/Scripts/Cutscene` | CutsceneDirector（播開場 Timeline、鎖輸入、長按跳過、字卡事件）、IntroCutsceneSettings、Timeline 自訂 Track／Clip（CurveClip 加 CurveTrack／StormTrack／BossSpinTrack／MagicCircleTrack、ActorWalk、CameraMove、MusicCue、CutsceneEventMarker）、演出物件（ScreenFlash、IntroLightning、SmokePuffs、CameraShaker） |
+| `Assets/Scripts/Hazards` | 場上判定物件（Hazard 基底、衝擊波 ShockwaveRing、落雷 LightningStrike，之後的龍捲風、安全區）、地面範圍提示（GroundTelegraph，URP Decal）、場地中央的魔法陣（MagicCircle，URP Decal，出現進度／脈動／顏色／半徑）、一次性特效（TimedFx、傷害數字 DamageNumber）、佔位電光（ElectricArcs，Boss 身上與轉階段的場地邊緣共用） |
+| `Assets/Scripts/Cutscene` | CutsceneDirector（播一段演出的 Timeline、鎖輸入、長按跳過、字卡事件；開場與轉階段各一個物件）、CutsceneStage（轉階段時依玩家位置擺演出鏡頭）、IntroCutsceneSettings、Timeline 自訂 Track／Clip（CurveClip 加 CurveTrack／StormTrack／BossSpinTrack／MagicCircleTrack／ElectricArcsTrack、ActorWalk、ActorPush、BossActor、CameraMove、MusicCue、CutsceneEventMarker）、演出物件（ScreenFlash、IntroLightning、SmokePuffs、CameraShaker、ExpandingRing） |
 | `Assets/Scripts/UI` | BattleUI、字卡（TitleCardUI）、跳過提示（SkipPromptUI）、勝敗畫面（只訂閱事件） |
 | `Assets/Scripts/Debug` | Debug 快捷鍵 F1–F5 與右上角的 Boss 面板（BossDebugTools，F5 重新載入場景＝重新挑戰）、平衡面板（F12）、左上角的玩家狀態（PlayerDebugOverlay）、測試木樁（TrainingDummy） |
-| `Assets/Scripts/Editor` | 編輯器工具（ArenaBuilder、DaoDunDogBuilder、CameraRigBuilder、TrainingDummyBuilder、BossBuilder、HazardBuilder、IntroCutsceneBuilder、PlaceholderAudioBuilder），不會進 build |
-| `Assets/ScriptableObjects` | 數值資產（`.asset`），依系統分子資料夾：`Arena/`（ArenaData、Atmosphere 天色）、`Player/`、`Boss/`（BossStats）、`Boss/Phases/`、`Boss/Moves/Phase1/`（第一階段 5 招）、`Boss/Moves/Test/`（T3 假招式）、`Cutscene/`（IntroCutsceneSettings）、`Debug/`（測試木樁） |
-| `Assets/Timelines` | Timeline 資產：`Intro.playable`（開場 14.5 秒，鏡頭與各效果的時間點都在這裡調） |
+| `Assets/Scripts/Editor` | 編輯器工具（ArenaBuilder、DaoDunDogBuilder、CameraRigBuilder、TrainingDummyBuilder、BossBuilder、HazardBuilder、IntroCutsceneBuilder、TransitionCutsceneBuilder、PlaceholderAudioBuilder），不會進 build |
+| `Assets/ScriptableObjects` | 數值資產（`.asset`），依系統分子資料夾：`Arena/`（ArenaData、Atmosphere 天色）、`Player/`、`Boss/`（BossStats）、`Boss/Phases/`、`Boss/Moves/Phase1/`（第一階段 5 招）、`Boss/Moves/Phase2/`（第二階段 4 個強化招，和第一階段同一招共用類別）、`Cutscene/`（IntroCutsceneSettings）、`Debug/`（測試木樁） |
+| `Assets/Timelines` | Timeline 資產：`Intro.playable`（開場 14.5 秒）、`Transition.playable`（轉階段 5.0 秒）；鏡頭與各效果的時間點都在這裡調 |
 | `Assets/Prefabs` | 玩家、Boss、UI 的 prefab；`Prefabs/Hazards` 是地面提示、Hazard 與特效，由 HazardBuilder 產生，重建會覆寫 |
 | `Assets/Shaders` | 自製 shader（都是手寫 JSON 的 URP Decal Shader Graph，Custom Function 用 UV 畫圖）：`TelegraphDecal.shadergraph`（地面範圍提示：圓、環、長方形）、`MagicCircleDecal.shadergraph`（魔法陣：雙環、符文帶、倒五芒星，由中心描繪、外圈分段點亮） |
 | `Assets/Scenes` | `BossArena.unity`（`SampleScene` 是範本殘留） |
@@ -95,18 +95,19 @@ ScriptableObject 的「類別」寫在 `Scripts/` 對應的系統資料夾，「
 
 - 刀盾狗 prefab 是用基本形體拼的，沒有骨架，動畫是 DaoDunDogAnimator 的程序化姿勢。
 - OIIA 貓（BossArena 中心的 `OiiaCat`，prefab `Assets/Prefabs/OiiaCat.prefab`）是 BossBuilder（Tools > Boss > Build Boss Placeholder）用膠囊拼的佔位物件，還沒有模型與動畫；舉爪、伏低、旋轉等姿勢是 OiiaCatPoser 的程序化動作。
-- 第一階段 5 招已在 T4 完成；第二階段的招式池暫時還是 2 個 T3 假招式（`TestFlashMove`，`Test_P2_Near`／`Test_P2_Far`），讓 F1 進第二階段後 Boss 還有招可出。T7 做好強化招式後把它們移出 Boss，連同 `ScriptableObjects/Boss/Moves/Test/` 與 `TestFlashMove` 一起刪掉。
+- 第二階段 4 個強化招沿用第一階段的類別（PawSwipeMove、SpinChargeMove、SpinShockwaveMove、ThunderCircleMove），差別全在 `Boss/Moves/Phase2/` 的資料（最後一下強化、連撞次數、圈數、波數）。企劃書沒寫的距離、冷卻、權重先照第一階段同一招；三連拍第 2 → 3 下間隔 0.8 秒、連環衝撞每次撞牆後蓄力 0.6 秒、追蹤落雷第二波在第一波落雷同一刻出現，都是 T7 計畫的預設值，T10 平衡時再看。龍捲風、幻影分身、大迴旋、狂暴是 T8。
 - 招式被打斷（Interrupt）時只會收掉「目前這招」放出的 Hazard；已經結束的招放出的衝擊波、落雷會跑完才消失。轉階段（`BeginTransition`）會呼叫 `BossController.ClearAllHazards` 收掉所有招式的 Hazard；Boss 倒下時目前不清。
-- 預兆閃光訂閱 `BossController.OnMoveTelegraph`：進入預兆時依 `BossMoveData.canBlock` 送一次；一招裡某一下要換顏色（例如 T7 三連拍第三下紅光）由招式呼叫 `BossMove.Telegraph(canBlock, duration)`。地面範圍提示的顏色與 `DamageInfo` 的可擋／可盾反還是讀整招的 `BossMoveData`，T7 要逐下不同時再加。
+- 預兆閃光訂閱 `BossController.OnMoveTelegraph`：進入預兆時依 `BossMoveData.canBlock` 送一次；一招裡某一下要換顏色（例如三連拍第三下紅光）由招式呼叫 `BossMove.Telegraph(canBlock, duration)`，那一下的地面範圍與 `DamageInfo` 由招式自己換（PawSwipeData 的 finisher 欄位）。
 - Boss 走位逾時：為了走進某招距離範圍連續走位超過 `BossPhaseData.repositionTimeout`（目前 3 秒）還走不到，開場序列跳過那招、一般選招直接出正在走向的那招（Debug 面板顯示「走位逾時，直接出」）。企劃書沒寫這條，是 Boss 比玩家慢、玩家一直拉開或貼身時不會卡死的保險。
 - 地面範圍提示的 Decal angle fade 沒有作用：紅圈碰到外牆時牆腳會染一條（投影深度已降到 0.3 m 減輕）。之後要乾淨的話改用 Rendering Layers 只投在地板上。
-- 開場動畫（T6）由 IntroCutsceneBuilder（Tools > Cutscene > Build Intro）產生場景物件並綁定 Timeline：軌道依類型綁定，同類型的 CurveTrack／AudioTrack／CameraMoveTrack 依**軌道名稱**、鏡頭片段依**片段名稱**對應同名的鏡頭，改名後重建就要手動綁。Timeline 資產只在不存在時建立（Tools > Cutscene > Reset Intro Timeline 會重排），場景物件每次重建。
+- 開場動畫（T6）由 IntroCutsceneBuilder（Tools > Cutscene > Build Intro）產生場景物件並綁定 Timeline（最後也會重建轉階段演出，因為它引用重建後的 MagicCircle、AudioManager、BattleManager；重建 Boss 之後要再跑一次 Build Intro）：軌道依類型綁定，同類型的 CurveTrack／AudioTrack／CameraMoveTrack 依**軌道名稱**、鏡頭片段依**片段名稱**對應同名的鏡頭，改名後重建就要手動綁。Timeline 資產只在不存在時建立（Tools > Cutscene > Reset Intro Timeline 會重排），場景物件每次重建。
 - Timeline 視窗在編輯模式預覽時，只看得到鏡頭（Cinemachine、CameraMove）、Activation 與聲音；天色、法陣、閃電、白屏、走位、旋轉這些自訂軌道只在 Play 模式套用（避免預覽改到場景存檔）。
 - 開場的暴風雨天色會一直維持到戰鬥結束：主光源 1.1 → 0.35，戰鬥畫面比 T0–T5 暗；太暗就調 `ScriptableObjects/Arena/Atmosphere.asset` 的 storm。雷雲、煙霧、閃電柱都是佔位幾何。
 - OIIA 音樂的 BPM 還不知道：魔法陣脈動先用每秒 2 下（`MagicCircle.pulseRate`）。音樂變速（T7 的 1.2、1.3 倍）是 `AudioManager.SetMusicSpeed` 改 pitch，音高會跟著變。
 - 開場結束時貓的轉速（720 度/秒）留在 OiiaCatPoser 上，只有迴旋衝撞的預兆會從這個轉速接著加速；開場序列第一招以外（例如用 F3 指定別招當第一招）貓會一直轉到那一招 ResetPose。
 - T0 的比例參考膠囊 `ScaleRef_2m`（EditorOnly）在編輯器 Play 時會出現在開場的狗身邊；左上、右上的 Debug 面板（IMGUI）也會蓋在開場與字卡上面。正式 build 都不會有。
-- 轉階段目前是 `transitionTime` 計時自動結束（第二階段 5 秒），T7 改由轉階段演出呼叫 `BossController.CompleteTransition`。
+- 轉階段（T7）：Boss 血量過門檻時自己進入 Transition（無敵、打斷招式、清 Hazard）；BattleManager 播 TransitionCutscene，演出結束時呼叫 `BossController.CompleteTransition` 套用下一階段。有接演出時 BattleManager 會關掉 `BossController.AutoCompleteTransition`；沒接演出時才照 `BossPhaseData.transitionTime` 計時自動結束。演出由 TransitionCutsceneBuilder（Tools > Cutscene > Build Transition／Reset Transition Timeline）建立，鏡頭在執行時由 CutsceneStage 依玩家位置整組轉向；狗離貓不到 6 m 時第 1 步先退到 6 m（特寫才不會穿模），第 5 步推到 `ArenaData.transitionPushRadius`（10 m）。轉階段不能跳過，期間不另外設玩家無敵。
+- 第二階段的魔法陣是紅色、鋪滿整個場地（Hold 在轉階段最後的值），地面的紅圈、衝刺路徑疊在上面；看不清楚的話 T10 調 `MagicCircle` 的亮度或 phase2Color。第二階段外觀（電光、殘影）讀 `BossPhaseData.electrified`。
 - 失衡值在招式之間也會衰減：只靠盾反時，兩次貓掌連拍之間是 破綻 1.2 + 出招間隔 0.8–1.5 + 預兆 0.5 = 2.5–3.2 秒，間隔抽到超過約 1.3 秒，第 4 次盾反會停在 99（中間砍一刀 +3 就補回）。T10 平衡時再看要不要調整衰減延遲。
 - `BossPhaseData.contactDamage`（接觸傷害）只有數值，規則（可否格擋、判定間隔、哪些狀態有效）待企劃書確定後再實作。
 - 測試木樁 `TrainingDummy` 已經在 T3 從場景移除（程式與 `TrainingDummyData.asset` 還在 `Scripts/Debug`、`ScriptableObjects/Debug`）。要練格擋或盾反時用 Tools > Debug > Build Training Dummy 重建，它會自己加進鎖定清單；正式 build 前要刪掉物件，否則會變成 Missing Script。

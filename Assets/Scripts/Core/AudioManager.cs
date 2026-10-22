@@ -4,7 +4,9 @@ namespace BossFight.Core
 {
     /// <summary>
     /// 戰鬥音樂（OIIA 音樂）的播放與變速，以及一次性音效。開場由 Timeline 的 MusicCue 在第 6 鏡呼叫 PlayBattleMusic，
-    /// 之後一直播到戰鬥結束；第二階段、狂暴用 SetMusicSpeed 改速度（T7、T8）。
+    /// 之後一直播到戰鬥結束；換階段時 BattleManager 用 SetMusicSpeed 改速度（第二階段 1.2、狂暴 1.3）。
+    /// 轉階段演出先 StopMusic（唱片刮擦後靜音），再由 Timeline 的 MusicCue 用 RestartBattleMusic 以新的速度從頭播；
+    /// BattleManager 在演出開始時用 SetMusicSpeed(speed, false) 先排好速度，重播時才套用，演出前段的音樂不會先變快。
     /// 還沒指定音樂（Assets/Audio/oiia_bgm 還沒放進來）時只在 Console 寫一行一般訊息，不報錯，開場與戰鬥照常進行；
     /// 檔案放進來後在 Inspector 的 battleMusic 指定即可。開場的腳步、風聲、嗡鳴、雷聲是 Timeline 自己的 Audio Track，不經過這裡。
     /// </summary>
@@ -46,11 +48,21 @@ namespace BossFight.Core
             musicSource.Play();
         }
 
-        /// <summary>音樂速度倍率（第二階段 1.2、狂暴 1.3）；用 pitch 實作，音高會跟著變。</summary>
-        public void SetMusicSpeed(float speed)
+        /// <summary>從頭重播戰鬥音樂（轉階段演出），用目前的 MusicSpeed。沒有指定音樂時什麼都不做。</summary>
+        public void RestartBattleMusic()
+        {
+            StopMusic();
+            PlayBattleMusic();
+        }
+
+        /// <summary>
+        /// 音樂速度倍率（第二階段 1.2、狂暴 1.3）；用 pitch 實作，音高會跟著變。
+        /// applyNow = false 時只記下來，下次 PlayBattleMusic／RestartBattleMusic 才套用（正在播的音樂速度不變）。
+        /// </summary>
+        public void SetMusicSpeed(float speed, bool applyNow = true)
         {
             MusicSpeed = Mathf.Max(0.01f, speed);
-            if (musicSource != null) musicSource.pitch = MusicSpeed;
+            if (applyNow && musicSource != null) musicSource.pitch = MusicSpeed;
         }
 
         public void StopMusic()

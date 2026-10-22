@@ -9,7 +9,8 @@ namespace BossFight.Hazards
     /// 出現方式分兩段：先由中心往外描繪到外圈內側（drawProgress），再把外圈分 segments 段依序點亮（segmentProgress）；
     /// 開場第 2 鏡由 Timeline 的 MagicCircleTrack 推進度，SetRevealProgress 把一個 0..1 的進度依 drawPortion 拆成這兩段。
     /// 脈動（SetPulse）是隨節拍一下一下變亮再衰減，第 6 鏡音樂開始後打開，之後戰鬥中一直維持。
-    /// 半徑讀 ArenaData.magicCircleRadius；T7 轉階段的「由紫轉紅、擴大到場地邊緣」用 SetColor、SetRadius。
+    /// 半徑讀 ArenaData.magicCircleRadius；轉階段的「由紫轉紅、擴大到場地邊緣」由 Timeline 的 MagicCircleTrack 推 SetColorBlend（0 紫 → 1 紅）
+    /// 與 SetExpand（0 原本半徑 → 1 場地邊緣），第二階段維持紅色、全場大小。
     /// 每個實例用自己的材質複本。這裡的數字全是視覺參數。
     /// </summary>
     [DisallowMultipleComponent]
@@ -22,6 +23,10 @@ namespace BossFight.Hazards
         [Header("外觀")]
         [Tooltip("顏色（HDR，A 是不透明度）")]
         [SerializeField] [ColorUsage(true, true)] Color color = new Color(0.62f, 0.18f, 1f, 1f);
+        [Tooltip("第二階段的顏色（SetColorBlend = 1）")]
+        [SerializeField] [ColorUsage(true, true)] Color phase2Color = new Color(1f, 0.1f, 0.06f, 1f);
+        [Tooltip("SetExpand = 1 時外圈離場地外牆多遠 (m)；留一點才不會染到牆腳")]
+        [Min(0f)] [SerializeField] float expandedEdgeInset = 0.25f;
         [Tooltip("線寬 (m)")]
         [Min(0.005f)] [SerializeField] float lineWidth = 0.07f;
         [Tooltip("發光強度")]
@@ -49,7 +54,7 @@ namespace BossFight.Hazards
         static readonly int SizeId = Shader.PropertyToID("_Size");
 
         Material material;
-        float draw, lit, pulseWeight, pulseTime, radius;
+        float draw, lit, pulseWeight, pulseTime, radius, colorBlend;
 
         /// <summary>目前半徑 (m)。</summary>
         public float Radius => radius;
@@ -64,7 +69,7 @@ namespace BossFight.Hazards
             projector.material = material;
             radius = arena != null ? arena.magicCircleRadius : projector.size.x * 0.5f;
             ApplySize();
-            material.SetColor(ColorId, color);
+            ApplyColor();
             // 預設是開場結束後的樣子（全亮、脈動）；有開場時第一幀就被 Timeline 蓋成看不見
             SetReveal(1f, 1f);
             SetPulse(1f);
@@ -96,8 +101,25 @@ namespace BossFight.Hazards
         public void SetColor(Color c)
         {
             color = c;
-            material.SetColor(ColorId, color);
+            ApplyColor();
         }
+
+        /// <summary>顏色由原本的顏色（0，紫）漸變到第二階段的顏色（1，紅）。</summary>
+        public void SetColorBlend(float t)
+        {
+            colorBlend = Mathf.Clamp01(t);
+            ApplyColor();
+        }
+
+        /// <summary>半徑由原本的大小（0，ArenaData.magicCircleRadius）擴大到場地邊緣（1，ArenaData.radius）。</summary>
+        public void SetExpand(float t)
+        {
+            if (arena == null) return;
+            float edge = Mathf.Max(arena.magicCircleRadius, arena.radius - expandedEdgeInset);
+            SetRadius(Mathf.Lerp(arena.magicCircleRadius, edge, Mathf.Clamp01(t)));
+        }
+
+        void ApplyColor() => material.SetColor(ColorId, Color.Lerp(color, phase2Color, colorBlend));
 
         public void SetRadius(float r)
         {

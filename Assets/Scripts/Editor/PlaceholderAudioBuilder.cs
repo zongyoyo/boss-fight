@@ -5,8 +5,9 @@ using UnityEngine;
 namespace BossFight.EditorTools
 {
     /// <summary>
-    /// 程序合成開場用的佔位音效（44.1 kHz 單聲道 16-bit WAV），放在 Assets/Audio/Placeholder，每次重建覆寫：
-    /// 腳步（沙地 4 步，1.3 秒）、風聲（8 秒無縫循環）、法陣嗡鳴（4 秒，前 2.5 秒漸強）、雷聲（1.5 秒，炸裂聲接低頻悶雷）。
+    /// 程序合成演出用的佔位音效（44.1 kHz 單聲道 16-bit WAV），放在 Assets/Audio/Placeholder，每次重建覆寫：
+    /// 腳步（沙地 4 步，1.3 秒）、風聲（8 秒無縫循環）、法陣嗡鳴（4 秒，前 2.5 秒漸強）、雷聲（1.5 秒，炸裂聲接低頻悶雷）、
+    /// 唱片刮擦（0.55 秒，轉階段音樂中斷）。
     /// 之後有正式音效時，直接在 Timeline 的 Audio Track 換掉片段即可。選單 Tools > Audio > Build Placeholder Sounds；IntroCutsceneBuilder 也會呼叫。
     /// </summary>
     public static class PlaceholderAudioBuilder
@@ -20,6 +21,7 @@ namespace BossFight.EditorTools
             public AudioClip wind;
             public AudioClip hum;
             public AudioClip thunder;
+            public AudioClip scratch;
         }
 
         [MenuItem("Tools/Audio/Build Placeholder Sounds")]
@@ -34,6 +36,7 @@ namespace BossFight.EditorTools
                 wind = Save("Amb_Wind", Wind()),
                 hum = Save("Sfx_CircleHum", Hum()),
                 thunder = Save("Sfx_Thunder", Thunder()),
+                scratch = Save("Sfx_RecordScratch", Scratch()),
             };
             Debug.Log($"[Audio] 佔位音效已建立：{Dir}");
             return r;
@@ -127,6 +130,27 @@ namespace BossFight.EditorTools
                 s[i] = (crack * 0.8f + rumble) * tail;
             }
             return Normalize(s, 0.95f);
+        }
+
+        // 唱片刮擦：音高快速來回晃、整體往下滑的鋸齒波，加一點沙沙的雜訊，0.55 秒內收掉
+        static float[] Scratch()
+        {
+            var rnd = new System.Random(31);
+            const float length = 0.55f;
+            var s = new float[Seconds(length)];
+            float phase = 0f, lp = 0f;
+            for (int i = 0; i < s.Length; i++)
+            {
+                float t = i / (float)Rate;
+                float wobble = Mathf.Sin(2f * Mathf.PI * 9f * t);
+                float f = Mathf.Lerp(900f, 140f, t / length) * (1f + 0.6f * wobble);
+                phase += f / Rate;
+                float saw = 2f * (phase - Mathf.Floor(phase)) - 1f;
+                lp += (Noise(rnd) - lp) * 0.5f;
+                float env = Mathf.Clamp01(t / 0.01f) * Mathf.Exp(-t * 3f) * Mathf.Clamp01((length - t) / 0.05f);
+                s[i] = (saw * 0.6f + lp * 0.45f) * env;
+            }
+            return Normalize(s, 0.8f);
         }
 
         // ---------- 工具 ----------

@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cbf29c791824b38439b4ca3956cd2e2e, type: 3}
+  m_Name: DoubleShockwave
+  m_EditorClassIdentifier: Assembly-CSharp::BossFight.Boss.Moves.SpinShockwaveData
+  displayName: "\u96D9\u91CD\u885D\u64CA\u6CE2"
+  phase: 2
+  minDistance: 0
+  maxDistance: 5
+  cooldown: 8
+  weight: 1
+  telegraphTime: 1.2
+  recoveryTime: 1
+  damage: 24
+  canBlock: 0
+  canParry: 0
+  spinOutTime: 0.2
+  startRadius: 1.2
+  maxRadius: 0
+  expandSpeed: 8
+  bandWidth: 0.8
+  hitHeight: 0.8
+  telegraphRadius: 2.8
+  waveCount: 2
+  waveInterval: 0.6

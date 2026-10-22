@@ -87,7 +87,8 @@ namespace BossFight.Boss
     /// 連續走位超過階段的 repositionTimeout 秒還走不到（Boss 比玩家慢，玩家一直拉開或貼身就永遠走不到）：
     /// 開場序列跳過這一招，一般選招直接出正在走向的那一招。
     /// 冷卻從招式結束（或被打斷）開始算，乘上當下階段的冷卻倍率。
-    /// 血量降到下一個階段的門檻時換階段：有 transitionTime 的進入 Transition（無敵、打斷招式），結束後才套用；沒有的直接套用。
+    /// 血量降到下一個階段的門檻時換階段：有 transitionTime 的進入 Transition（無敵、打斷招式、清掉 Hazard），結束後才套用；沒有的直接套用。
+    /// 轉階段的結束：有轉階段演出時由 BattleManager 關掉 AutoCompleteTransition，演出結束時呼叫 CompleteTransition；沒有演出時 transitionTime 秒後自動結束。
     /// 頭暈（Stun）打斷目前的招式，時間到回到 Idle；失衡值的累積、受傷倍率與處決在同一個物件上的 BossStagger，
     /// 它在處決進行中設 HoldStun（時間到也先不結束），處決打到時呼叫 EndStun。
     /// 轉階段時收掉場上所有招式放出的 Hazard（ClearAllHazards）。
@@ -144,6 +145,12 @@ namespace BossFight.Boss
         public int OpeningIndex { get; private set; }
         /// <summary>這次 Idle 要等的秒數。</summary>
         public float IdleDuration { get; private set; }
+        /// <summary>轉階段中，結束後要套用的階段；其他時候為 null。</summary>
+        public BossPhaseData PendingPhase => pendingPhase >= 0 ? stats.phases[pendingPhase] : null;
+        /// <summary>
+        /// 轉階段 transitionTime 秒後自動結束（預設）。有轉階段演出時由 BattleManager 關掉，改由演出結束時呼叫 CompleteTransition。
+        /// </summary>
+        public bool AutoCompleteTransition { get; set; } = true;
         /// <summary>這次頭暈或轉階段的總秒數。</summary>
         public float TimedStateDuration { get; private set; }
         /// <summary>頭暈時間到也先不結束（被處決中，等那一刀打到）；離開頭暈時自動清掉。由 BossStagger 設定。</summary>
@@ -252,7 +259,7 @@ namespace BossFight.Boss
                     if (StateTime >= TimedStateDuration && !HoldStun) EnterIdle();
                     break;
                 case BossState.Transition:
-                    if (StateTime >= TimedStateDuration) CompleteTransition();
+                    if (AutoCompleteTransition && StateTime >= TimedStateDuration) CompleteTransition();
                     break;
             }
         }
@@ -484,7 +491,7 @@ namespace BossFight.Boss
             SetState(BossState.Transition);
         }
 
-        /// <summary>結束轉階段：套用新階段、解除無敵、回到 Idle。現在由 transitionTime 計時呼叫，T7 改由轉階段演出呼叫。</summary>
+        /// <summary>結束轉階段：套用新階段、解除無敵、回到 Idle。由轉階段演出結束時呼叫（沒有演出時由 transitionTime 計時呼叫）。不在轉階段中時無效。</summary>
         public void CompleteTransition()
         {
             if (State != BossState.Transition) return;

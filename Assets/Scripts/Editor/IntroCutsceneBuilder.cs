@@ -29,6 +29,7 @@ namespace BossFight.EditorTools
     /// 3. 把 Timeline 的每條軌道綁到場景物件（依軌道類型；同類型有好幾條的依軌道名稱），Cinemachine 片段依片段名稱接到同名的鏡頭。
     ///    所以在 Timeline 視窗調時間點、加減片段都沒關係，但不要改軌道與鏡頭片段的名稱。
     /// 4. BossController.startOnPlay 關掉（場景與 prefab），改由 BattleManager 在開場結束時開打。
+    /// 5. 最後重建轉階段演出（TransitionCutsceneBuilder），因為它引用這裡重建的魔法陣、AudioManager 與 BattleManager。
     /// Tools > Cutscene > Reset Intro Timeline 會刪掉 Timeline 重排一次（在 Timeline 視窗做的調整會不見）。
     /// 鏡頭位置、顏色、大小都是純視覺參數。
     /// </summary>
@@ -181,7 +182,7 @@ namespace BossFight.EditorTools
             var shots = BuildShots(root.transform, layout, targets, freeLook);
             var fx = DaoDunDogBuilder.Node(root.transform, "Fx", Vector3.zero);
             var lightning = BuildLightning(fx, boltPrefab, layout);
-            var smoke = BuildSmoke(fx, smokeMat, layout);
+            var smoke = BuildSmoke(fx, smokeMat, layout.center);
             var flash = BuildFlash(root.transform);
             var shaker = shots[Shot3].GetComponent<CameraShaker>();
             var sources = BuildCutsceneAudio(root.transform);
@@ -193,6 +194,7 @@ namespace BossFight.EditorTools
             var battle = battleGo.AddComponent<BattleManager>();
             DaoDunDogBuilder.SetReference(battle, "intro", cutscene);
             DaoDunDogBuilder.SetReference(battle, "boss", boss);
+            DaoDunDogBuilder.SetReference(battle, "audioManager", audio);
 
             DisableStartOnPlay(boss);
 
@@ -215,6 +217,9 @@ namespace BossFight.EditorTools
                 { TrackThunder, sources[TrackThunder] },
             };
             Bind(director, timeline, brain, shots, named, player, circle, atmosphere, poser, audio);
+
+            // 轉階段演出引用這裡重建的 MagicCircle、AudioManager、BattleManager，一起重建
+            TransitionCutsceneBuilder.Build();
 
             Undo.CollapseUndoOperations(undoGroup);
             AssetDatabase.SaveAssets();
@@ -314,7 +319,7 @@ namespace BossFight.EditorTools
         static Vector3 OrbitPoint(Layout L, float radius, float height, float angle) =>
             L.center + ArenaData.Dir(angle) * radius + Vector3.up * height;
 
-        static CinemachineCamera Shot(Transform parent, string name, Vector3 pos, Transform lookAt, float fov, LensSettings lens)
+        internal static CinemachineCamera Shot(Transform parent, string name, Vector3 pos, Transform lookAt, float fov, LensSettings lens)
         {
             var go = new GameObject(name);
             go.transform.SetParent(parent, false);
@@ -370,10 +375,10 @@ namespace BossFight.EditorTools
             return lightning;
         }
 
-        static SmokePuffs BuildSmoke(Transform parent, Material mat, Layout L)
+        internal static SmokePuffs BuildSmoke(Transform parent, Material mat, Vector3 center)
         {
             var go = DaoDunDogBuilder.Node(parent, "Smoke", Vector3.zero);
-            go.position = L.center;
+            go.position = center;
             var rnd = new System.Random(7);
             var puffs = new List<Renderer>();
             for (int i = 0; i < 9; i++)
@@ -396,7 +401,7 @@ namespace BossFight.EditorTools
             return smoke;
         }
 
-        static ScreenFlash BuildFlash(Transform root)
+        internal static ScreenFlash BuildFlash(Transform root)
         {
             var canvasGo = new GameObject("Overlay", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler));
             canvasGo.transform.SetParent(root, false);
@@ -642,7 +647,7 @@ namespace BossFight.EditorTools
             return t;
         }
 
-        static void Stretch(RectTransform rt)
+        internal static void Stretch(RectTransform rt)
         {
             rt.anchorMin = Vector2.zero;
             rt.anchorMax = Vector2.one;
@@ -741,7 +746,7 @@ namespace BossFight.EditorTools
             return tl;
         }
 
-        static TimelineClip Clip<T>(TrackAsset track, string name, double start, double duration) where T : PlayableAsset
+        internal static TimelineClip Clip<T>(TrackAsset track, string name, double start, double duration) where T : PlayableAsset
         {
             var clip = track.CreateClip<T>();
             clip.start = start;
@@ -750,7 +755,7 @@ namespace BossFight.EditorTools
             return clip;
         }
 
-        static TimelineClip ShotClip(CinemachineTrack track, string camera, double start, double duration)
+        internal static TimelineClip ShotClip(CinemachineTrack track, string camera, double start, double duration)
         {
             var clip = Clip<CinemachineShot>(track, camera, start, duration);
             var shot = (CinemachineShot)clip.asset;
@@ -759,7 +764,7 @@ namespace BossFight.EditorTools
             return clip;
         }
 
-        static TimelineClip CurveClipAt(TrackAsset track, string name, double start, double duration, AnimationCurve curve, float scale)
+        internal static TimelineClip CurveClipAt(TrackAsset track, string name, double start, double duration, AnimationCurve curve, float scale)
         {
             var clip = Clip<CurveClip>(track, name, start, duration);
             var b = ((CurveClip)clip.asset).template;
@@ -768,7 +773,7 @@ namespace BossFight.EditorTools
             return clip;
         }
 
-        static TimelineClip AudioClipAt(AudioTrack track, AudioClip audio, double start, double duration, bool loop)
+        internal static TimelineClip AudioClipAt(AudioTrack track, AudioClip audio, double start, double duration, bool loop)
         {
             var clip = track.CreateClip(audio);
             clip.start = start;
@@ -777,10 +782,10 @@ namespace BossFight.EditorTools
             return clip;
         }
 
-        static AnimationCurve Constant(float v) => new AnimationCurve(new Keyframe(0f, v), new Keyframe(1f, v));
+        internal static AnimationCurve Constant(float v) => new AnimationCurve(new Keyframe(0f, v), new Keyframe(1f, v));
 
         // 片段結束後維持最後的狀態（直到下一個片段或時間軸結束）；Timeline 沒有公開這個 setter
-        static TimelineClip Hold(TimelineClip clip)
+        internal static TimelineClip Hold(TimelineClip clip)
         {
             typeof(TimelineClip).GetProperty("postExtrapolationMode").GetSetMethod(true)
                 .Invoke(clip, new object[] { TimelineClip.ClipExtrapolation.Hold });
@@ -941,7 +946,7 @@ namespace BossFight.EditorTools
         }
 
         // 半透明（Alpha 混合）的 Particles/Unlit；不透明度由 SmokePuffs 用 MaterialPropertyBlock 改 _BaseColor
-        static Material GetSmokeMaterial()
+        internal static Material GetSmokeMaterial()
         {
             DaoDunDogBuilder.EnsureFolder(MatDir);
             string path = $"{MatDir}/Smoke.mat";
@@ -957,7 +962,7 @@ namespace BossFight.EditorTools
             return mat;
         }
 
-        static void SetArray<T>(SerializedProperty list, List<T> values) where T : Object
+        internal static void SetArray<T>(SerializedProperty list, List<T> values) where T : Object
         {
             list.arraySize = values.Count;
             for (int i = 0; i < values.Count; i++) list.GetArrayElementAtIndex(i).objectReferenceValue = values[i];

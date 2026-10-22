@@ -9,6 +9,8 @@ namespace BossFight.Boss.Moves
     /// 前 trackTime 秒路徑跟著玩家轉，之後鎖定。填滿那一刻沿路徑直線衝刺，判定是 Boss 周圍的圓柱，穿過玩家不停、整段只打一次。
     /// 撞牆用 ArenaData 的 ArenaWall Layer 做 SphereCast（入口的門與門柱也算）；衝出場地半徑也當成撞牆。
     /// 撞牆時出現衝擊環、Boss 停轉搖晃，硬直 recoveryTime。可擋但耗耐力大（格擋耐力倍率），不可盾反。數值讀 SpinChargeData。
+    /// 連環衝撞（chargeCount &gt; 1，第二階段）：撞牆後不停轉，立刻轉向玩家，地上重新出現路徑並再閃一次預兆（BossMove.Telegraph），
+    /// rechargeTime 秒後再衝（前 rechargeTrackTime 秒路徑跟著玩家轉）；每次衝刺各自只打一次，最後一次撞牆後才停轉搖晃、硬直。
     /// </summary>
     [DisallowMultipleComponent]
     public class SpinChargeMove : BossMove
@@ -30,7 +32,8 @@ namespace BossFight.Boss.Moves
         GroundTelegraph path;
         Vector3 direction;
         float timer, startSpin;
-        bool hitWall;
+        int chargeIndex;
+        bool charging, hitWall;
 
         void Awake()
         {
@@ -53,6 +56,7 @@ namespace BossFight.Boss.Moves
         {
             timer = 0f;
             hitWall = false;
+            charging = false;
             startSpin = poser.SpinSpeed; // 開場的貓直接從旋轉接這一招，不先停下來
             Vector3 dir = Flat(Boss.transform.forward).normalized;
             path.ShowRect(OnGround(Boss.transform.position), dir, PathLength(dir), charge.pathWidth, Data.canBlock);
@@ -76,8 +80,16 @@ namespace BossFight.Boss.Moves
 
         public override void BeginActive()
         {
+            chargeIndex = 0;
+            StartCharge();
+        }
+
+        void StartCharge()
+        {
             timer = 0f;
+            charging = true;
             direction = Flat(Boss.transform.forward).normalized;
+            poser.SetSpinImmediate(spinSpeed);
             hitbox.SetCylinder(new Vector3(0f, charge.hitHeight * 0.5f, 0f), charge.hitRadius, charge.hitHeight);
             hitbox.Activate(CreateDamage().WithBlockStaminaMultiplier(charge.blockStaminaMultiplier));
             path.SetFill(1f);
@@ -88,6 +100,8 @@ namespace BossFight.Boss.Moves
         public override bool TickActive(float dt)
         {
             timer += dt;
+            if (!charging) return TickRecharge(dt);
+
             Vector3 pos = Boss.transform.position;
             float step = charge.chargeSpeed * dt;
             float radius = Boss.BodyRadius;
@@ -98,8 +112,7 @@ namespace BossFight.Boss.Moves
                                                     arena.WallMask, QueryTriggerInteraction.Ignore))
             {
                 Boss.transform.position = pos + direction * hit.distance;
-                HitWall(OnGround(hit.point));
-                return true;
+                return EndCharge(OnGround(hit.point), true);
             }
 
             // 保險：衝出場地半徑也當成撞牆（例如一開始就貼著牆，SphereCast 掃不到）
@@ -108,23 +121,60 @@ namespace BossFight.Boss.Moves
             if (Flat(clamped - next).sqrMagnitude > 1e-6f)
             {
                 Boss.transform.position = clamped;
-                HitWall(OnGround(clamped + direction * radius));
-                return true;
+                return EndCharge(OnGround(clamped + direction * radius), true);
             }
 
             Boss.transform.position = next;
-            return timer >= charge.maxChargeTime;
+            return timer >= charge.maxChargeTime && EndCharge(OnGround(next), false);
         }
 
-        void HitWall(Vector3 point)
+        // 一次衝刺結束；回傳整招的出招是否結束（最後一次）
+        bool EndCharge(Vector3 point, bool wall)
         {
-            hitWall = true;
             hitbox.Deactivate();
             Boss.SetBodyCollision(true);
-            path.Hide();
-            poser.SetSpin(0f);
-            poser.SetWobble(true);
-            TimedFx.Spawn(impactPrefab, point, Quaternion.identity, impactColor, impactSize);
+            if (wall) TimedFx.Spawn(impactPrefab, point, Quaternion.identity, impactColor, impactSize);
+            chargeIndex++;
+            if (chargeIndex >= charge.chargeCount)
+            {
+                hitWall = wall;
+                path.Hide();
+                poser.SetSpin(0f);
+                if (wall) poser.SetWobble(true);
+                return true;
+            }
+
+            // 連環衝撞：不停轉，立刻轉向玩家，重新預兆
+            charging = false;
+            timer = 0f;
+            startSpin = poser.SpinSpeed;
+            FaceTargetNow();
+            Vector3 dir = Flat(Boss.transform.forward).normalized;
+            path.ShowRect(OnGround(Boss.transform.position), dir, PathLength(dir), charge.pathWidth, Data.canBlock);
+            Telegraph(Data.canBlock, charge.rechargeTime);
+            return false;
+        }
+
+        bool TickRecharge(float dt)
+        {
+            float t = charge.rechargeTime > 0f ? Mathf.Clamp01(timer / charge.rechargeTime) : 1f;
+            poser.SetSpinImmediate(Mathf.Lerp(startSpin, spinSpeed, t));
+            if (timer < charge.rechargeTrackTime)
+            {
+                Boss.FaceTarget(dt);
+                Vector3 dir = Flat(Boss.transform.forward).normalized;
+                path.MoveRect(OnGround(Boss.transform.position), dir, PathLength(dir), charge.pathWidth);
+            }
+            path.SetFill(t);
+            if (timer >= charge.rechargeTime) StartCharge();
+            return false;
+        }
+
+        void FaceTargetNow()
+        {
+            if (Boss.Target == null) return;
+            Vector3 to = Flat(Boss.Target.position - Boss.transform.position);
+            if (to.sqrMagnitude > 1e-4f) Boss.transform.rotation = Quaternion.LookRotation(to);
         }
 
         public override void BeginRecovery()

@@ -5,8 +5,9 @@ namespace BossFight.Boss.Moves
     /// <summary>
     /// 魔法陣落雷：預兆抬頭長叫，出招時地上出現 circleCount 個紅圈（Hazards/LightningStrike），warningTime 秒後同時落雷，每道 damage。
     /// 第一個紅圈在玩家當下的位置，其他的在玩家周圍 scatterMin–scatterMax 公尺內隨機。
-    /// recoveryTime 是「施法中」Boss 不動的總時間，從紅圈出現算起（企劃書的 2.0 秒），落雷後剩下的時間才是破綻。
-    /// 資產在 Assets/ScriptableObjects/Boss/Moves/Phase1/。
+    /// recoveryTime 是「施法中」Boss 不動的總時間，從第一波紅圈出現算起（企劃書的 2.0 秒），最後一波落雷後剩下的時間才是破綻。
+    /// waveCount &gt; 1 是第二階段的追蹤落雷：每隔 waveInterval 秒以玩家「當下」的位置再放一波。
+    /// 資產在 Assets/ScriptableObjects/Boss/Moves/Phase1/、Phase2/。
     /// </summary>
     [CreateAssetMenu(fileName = "ThunderCircle", menuName = "BossFight/Boss/Moves/Thunder Circle")]
     public class ThunderCircleData : BossMoveData
@@ -30,5 +31,14 @@ namespace BossFight.Boss.Moves
         [Min(0.01f)] public float hitWindow = 0.1f;
         [Tooltip("落雷判定的高度 (m)，從地面往上；跳起來也躲不掉")]
         [Min(0.1f)] public float hitHeight = 6f;
+
+        [Header("多波（第二階段追蹤落雷）")]
+        [Tooltip("放幾波；每波 circleCount 道，各自以那一刻玩家的位置為準")]
+        [Min(1)] public int waveCount = 1;
+        [Tooltip("兩波紅圈出現的間隔（秒）；等於 warningTime 時下一波在上一波落雷的同一刻出現")]
+        [Min(0.05f)] public float waveInterval = 1f;
+
+        /// <summary>從第一波紅圈出現到最後一波落雷的秒數。</summary>
+        public float CastTime => (waveCount - 1) * waveInterval + warningTime;
     }
 }

@@ -3,6 +3,7 @@ using BossFight.Boss;
 using BossFight.Boss.Moves;
 using BossFight.Core;
 using BossFight.DebugTools;
+using BossFight.Hazards;
 using BossFight.Player;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -11,14 +12,15 @@ using UnityEngine;
 namespace BossFight.EditorTools
 {
     /// <summary>
-    /// 建立 OIIA 貓的佔位 Boss（T3–T5）：高 2.5 m 的膠囊身體，加上耳朵、眼睛、鼻子標出面向，以及左右爪；
+    /// 建立 OIIA 貓的佔位 Boss（T3–T7）：高 2.5 m 的膠囊身體，加上耳朵、眼睛、鼻子標出面向，以及左右爪；
     /// 掛好 BossHealth、BossController、BossTelegraphFlash、OiiaCatPoser、BossHitFeedback、BossDamageFeedback（被打到的火花、閃白、數字）、
     /// LockOnTarget、實心碰撞（kinematic Rigidbody）與 Hurtbox，
     /// 失衡值與處決（BossStagger、ExecutionTarget）、頭暈時頭上轉的星星（BossStunVisual，T5），
-    /// 以及 Moves 底下的招式：第一階段 5 招（T4），和第二階段的 2 個假招式（TestFlashMove，T7 換成正式招式）。
+    /// 強化階段的外觀（BossPhaseVisual：身上的紅色電光 ElectricAura、殘影，T7），
+    /// 以及 Moves 底下的招式：第一階段 5 招（T4），和第二階段 4 個強化招（T7，沿用第一階段的招式類別、換成 Phase2 的資料）。
     /// 地面提示、Hazard 與特效的 prefab 由 HazardBuilder 建立後接到招式上。
     /// 數值資產（BossStats、第一階段／第二階段／狂暴、招式）只在不存在時建立並填入企劃書的數值，之後在 Inspector 改的值不會被覆蓋；
-    /// 唯一例外是第一階段的開場序列還是 T3 的假招式時，換成 迴旋衝撞 → 貓掌連拍 → 魔法陣落雷。
+    /// 唯一例外是第一階段的開場序列是空的或有遺失的招式時，換成 迴旋衝撞 → 貓掌連拍 → 魔法陣落雷。
     /// 存成 Assets/Prefabs/OiiaCat.prefab，放在場地中心、面向南方的玩家出生點；刪掉 T1 的 FakeBoss，
     /// 並把玩家的鎖定清單與處決清單、PlayerDebugOverlay 的距離對象、
     /// DebugTools 上的 BossDebugTools 接到新的 Boss。
@@ -32,8 +34,9 @@ namespace BossFight.EditorTools
         const string BossDir = "Assets/ScriptableObjects/Boss";
         const string PhaseDir = BossDir + "/Phases";
         const string Phase1MoveDir = BossDir + "/Moves/Phase1";
-        const string TestMoveDir = BossDir + "/Moves/Test";
+        const string Phase2MoveDir = BossDir + "/Moves/Phase2";
         const string ArenaDataPath = "Assets/ScriptableObjects/Arena/ArenaData.asset";
+        const string FxMaterialPath = "Assets/Models/Hazards/Materials/Fx_Additive.mat";
 
         const float BodyHeight = 2.5f;
         const float BodyRadius = 0.8f;
@@ -57,6 +60,15 @@ namespace BossFight.EditorTools
             public BossMoveData[] All => new BossMoveData[] { paw, charge, shockwave, thunder, pounce };
         }
 
+        /// 第二階段 4 個強化招的數值資產（類別和第一階段同一招一樣）。
+        struct Phase2Moves
+        {
+            public PawSwipeData paw;
+            public SpinChargeData charge;
+            public SpinShockwaveData shockwave;
+            public ThunderCircleData thunder;
+        }
+
         [MenuItem("Tools/Boss/Build Boss Placeholder")]
         public static void BuildFromMenu()
         {
@@ -78,7 +90,7 @@ namespace BossFight.EditorTools
             var hazards = HazardBuilder.Build();
             if (hazards.telegraph == null) return null;
             var phase1 = GetPhase1Moves();
-            var testMoves = GetTestMoves();
+            var phase2 = GetPhase2Moves();
             var stats = GetStats(phase1);
 
             Undo.SetCurrentGroupName("Build Boss Placeholder");
@@ -97,7 +109,7 @@ namespace BossFight.EditorTools
             var fake = GameObject.Find("FakeBoss");
             if (fake != null) Undo.DestroyObjectImmediate(fake);
 
-            var root = BuildRoot(stats, arena, phase1, testMoves, hazards, hurtLayer);
+            var root = BuildRoot(stats, arena, phase1, phase2, hazards, hurtLayer);
             DaoDunDogBuilder.EnsureFolder(PrefabPath.Substring(0, PrefabPath.LastIndexOf('/')));
             PrefabUtility.SaveAsPrefabAssetAndConnect(root, PrefabPath, InteractionMode.AutomatedAction);
             Undo.RegisterCreatedObjectUndo(root, "Build Boss Placeholder");
@@ -108,7 +120,7 @@ namespace BossFight.EditorTools
             Undo.CollapseUndoOperations(undoGroup);
             AssetDatabase.SaveAssets();
             EditorSceneManager.MarkSceneDirty(root.scene);
-            Debug.Log($"[Boss] OIIA 貓佔位已建立：{PrefabPath}，位置 {pos}，第一階段 5 招、第二階段假招式 {testMoves.Count} 招");
+            Debug.Log($"[Boss] OIIA 貓佔位已建立：{PrefabPath}，位置 {pos}，第一階段 5 招、第二階段 4 招");
             return root;
         }
 
@@ -179,10 +191,10 @@ namespace BossFight.EditorTools
         }
 
         static void SetMove(BossMoveData d, string label, float minDistance, float maxDistance, float cooldown,
-                            float telegraph, float recovery, float damage, bool canBlock, bool canParry)
+                            float telegraph, float recovery, float damage, bool canBlock, bool canParry, int phase = 1)
         {
             d.displayName = label;
-            d.phase = 1;
+            d.phase = phase;
             d.minDistance = minDistance;
             d.maxDistance = maxDistance;
             d.cooldown = cooldown;
@@ -194,33 +206,71 @@ namespace BossFight.EditorTools
             d.canParry = canParry;
         }
 
-        // 第二階段的假招式：T7 做正式招式前，讓轉階段後的 Boss 還有招可出
-        static List<TestFlashMoveData> GetTestMoves()
+        // 企劃書「第二階段招式」表格（第一階段 4 招的強化版）；距離、冷卻、權重與表格沒寫的數值是 T7 計畫確認過的預設值（和第一階段同一招一樣）
+        static Phase2Moves GetPhase2Moves()
         {
-            return new List<TestFlashMoveData>
+            var m = new Phase2Moves();
+            m.paw = GetOrCreate<PawSwipeData>($"{Phase2MoveDir}/PawTriple.asset", d =>
             {
-                TestMove("Test_P2_Near", "假招式·二階近", 2, 0f, 4f, 0.6f, 0.8f, 2f, 1f),
-                TestMove("Test_P2_Far", "假招式·二階遠", 2, 3f, Mathf.Infinity, 0.8f, 1f, 3f, 1f),
-            };
-        }
-
-        static TestFlashMoveData TestMove(string file, string label, int phase, float minDistance, float maxDistance,
-                                          float telegraph, float recovery, float cooldown, float weight)
-        {
-            return GetOrCreate<TestFlashMoveData>($"{TestMoveDir}/{file}.asset", d =>
-            {
-                d.displayName = label;
-                d.phase = phase;
-                d.minDistance = minDistance;
-                d.maxDistance = maxDistance;
-                d.telegraphTime = telegraph;
-                d.recoveryTime = recovery;
-                d.cooldown = cooldown;
-                d.weight = weight;
-                d.damage = 10f;
-                d.canBlock = true;
-                d.canParry = true;
+                SetMove(d, "貓掌三連拍", 0f, 2.5f, 3f, 0.4f, 1f, 18f, true, true, 2);
+                d.strikeCount = 3;
+                d.strikeInterval = 0.6f;
+                d.hitWindow = 0.1f;
+                d.hitReach = 3f;
+                d.hitWidth = 2.4f;
+                d.hitHeight = 2f;
+                d.enhancedFinisher = true; // 第三下：24、帶電、範圍 ×1.5、紅光不可擋
+                d.finisherDamage = 24f;
+                d.finisherCanBlock = false;
+                d.finisherCanParry = false;
+                d.finisherRangeScale = 1.5f;
+                d.finisherInterval = 0.8f;
+                d.finisherElectric = true;
             });
+            m.charge = GetOrCreate<SpinChargeData>($"{Phase2MoveDir}/ChainCharge.asset", d =>
+            {
+                SetMove(d, "連環迴旋衝撞", 4f, Mathf.Infinity, 6f, 0.8f, 2f, 30f, true, false, 2);
+                d.trackTime = 0.5f;
+                d.chargeSpeed = 14f;
+                d.maxChargeTime = 3f;
+                d.hitRadius = 1.1f;
+                d.hitHeight = 2.2f;
+                d.pathWidth = 2.2f;
+                d.blockStaminaMultiplier = 2f;
+                d.chargeCount = 3;
+                d.rechargeTime = 0.6f;
+                d.rechargeTrackTime = 0.3f;
+            });
+            m.shockwave = GetOrCreate<SpinShockwaveData>($"{Phase2MoveDir}/DoubleShockwave.asset", d =>
+            {
+                SetMove(d, "雙重衝擊波", 0f, 5f, 8f, 1.2f, 1f, 24f, false, false, 2);
+                d.spinOutTime = 0.2f;
+                d.startRadius = 1.2f;
+                d.maxRadius = 0f;
+                d.expandSpeed = 8f;
+                d.bandWidth = 0.8f;
+                d.hitHeight = 0.8f;
+                d.telegraphRadius = 2.8f;
+                d.waveCount = 2;
+                d.waveInterval = 0.6f;
+            });
+            m.thunder = GetOrCreate<ThunderCircleData>($"{Phase2MoveDir}/TrackingThunder.asset", d =>
+            {
+                // 施法中 2.5 = 第一波紅圈出現 → 1.0 第一波落雷、第二波（玩家當下位置）出現 → 2.0 第二波落雷 → 0.5 破綻
+                SetMove(d, "追蹤落雷", 6f, Mathf.Infinity, 10f, 0.6f, 2.5f, 24f, false, false, 2);
+                d.circleCount = 5;
+                d.circleRadius = 2f;
+                d.warningTime = 1f;
+                d.scatterMin = 2.5f;
+                d.scatterMax = 5f;
+                d.minSpacing = 3f;
+                d.edgeMargin = 1f;
+                d.hitWindow = 0.1f;
+                d.hitHeight = 6f;
+                d.waveCount = 2;
+                d.waveInterval = 1f;
+            });
+            return m;
         }
 
         // 企劃書「Boss 數值」表格；第一階段的開場序列是 迴旋衝撞 → 貓掌連拍 → 魔法陣落雷
@@ -232,22 +282,22 @@ namespace BossFight.EditorTools
                 SetPhase(p, "第一階段", 2000f, 1, 0f, 3f, 0.8f, 1.5f, 1f, 100f, 3f, 5f, 1f);
                 p.openingSequence = opening;
             });
-            // T3 的開場序列是假招式「遠 → 近 → 中」，換成正式招式
-            bool hasTestMove = phase1.openingSequence == null || phase1.openingSequence.Length == 0;
+            // 開場序列是空的或有遺失的招式（例如刪掉的 T3 假招式）時，換成正式招式
+            bool broken = phase1.openingSequence == null || phase1.openingSequence.Length == 0;
             if (phase1.openingSequence != null)
             {
-                foreach (var m in phase1.openingSequence) hasTestMove |= m == null || m is TestFlashMoveData;
+                foreach (var m in phase1.openingSequence) broken |= m == null;
             }
-            if (hasTestMove)
+            if (broken)
             {
                 phase1.openingSequence = opening;
                 EditorUtility.SetDirty(phase1);
                 Debug.Log("[Boss] 第一階段開場序列改為 迴旋衝撞 → 貓掌連拍 → 魔法陣落雷");
             }
             var phase2 = GetOrCreate<BossPhaseData>($"{PhaseDir}/Phase2.asset",
-                p => SetPhase(p, "第二階段", 1000f, 2, 5f, 4f, 0.5f, 0.8f, 1f, 120f, 2.5f, 8f, 1.2f));
+                p => SetPhase(p, "第二階段", 1000f, 2, 5f, 4f, 0.5f, 0.8f, 1f, 120f, 2.5f, 8f, 1.2f, true));
             var berserk = GetOrCreate<BossPhaseData>($"{PhaseDir}/Berserk.asset",
-                p => SetPhase(p, "狂暴", 400f, 2, 0f, 4.5f, 0.3f, 0.3f, 0.75f, 120f, 2.5f, 8f, 1.3f));
+                p => SetPhase(p, "狂暴", 400f, 2, 0f, 4.5f, 0.3f, 0.3f, 0.75f, 120f, 2.5f, 8f, 1.3f, true));
 
             return GetOrCreate<BossStats>($"{BossDir}/BossStats.asset", s =>
             {
@@ -259,7 +309,7 @@ namespace BossFight.EditorTools
 
         static void SetPhase(BossPhaseData p, string label, float threshold, int pool, float transition, float speed,
                              float intervalMin, float intervalMax, float cooldownMul, float imbalanceMax, float stun,
-                             float contact, float music)
+                             float contact, float music, bool electrified = false)
         {
             p.displayName = label;
             p.healthThreshold = threshold;
@@ -273,6 +323,7 @@ namespace BossFight.EditorTools
             p.stunDuration = stun;
             p.contactDamage = contact;
             p.musicSpeed = music;
+            p.electrified = electrified;
         }
 
         static T GetOrCreate<T>(string path, System.Action<T> init) where T : ScriptableObject
@@ -288,7 +339,7 @@ namespace BossFight.EditorTools
 
         // ---------- 物件 ----------
 
-        static GameObject BuildRoot(BossStats stats, ArenaData arena, Phase1Moves phase1, List<TestFlashMoveData> testMoves,
+        static GameObject BuildRoot(BossStats stats, ArenaData arena, Phase1Moves phase1, Phase2Moves phase2,
                                     HazardBuilder.Result hazards, int hurtLayer)
         {
             var fur = GetMat("OiiaCat_Fur", new Color(0.62f, 0.6f, 0.58f), 0.2f);
@@ -361,7 +412,7 @@ namespace BossFight.EditorTools
             var moves = new List<BossMove>
             {
                 AddMove<PawSwipeMove>(movesRoot, phase1.paw, root.transform, hurtLayer, true, poser, hazards.telegraph,
-                                      ("slashPrefab", hazards.clawSlash)),
+                                      ("slashPrefab", hazards.clawSlash), ("boltPrefab", hazards.bolt)),
                 AddMove<SpinChargeMove>(movesRoot, phase1.charge, root.transform, hurtLayer, true, poser, hazards.telegraph,
                                         ("impactPrefab", hazards.impactRing)),
                 AddMove<SpinShockwaveMove>(movesRoot, phase1.shockwave, root.transform, hurtLayer, false, poser, hazards.telegraph,
@@ -371,8 +422,15 @@ namespace BossFight.EditorTools
                 AddMove<ButtPounceMove>(movesRoot, phase1.pounce, root.transform, hurtLayer, true, poser, hazards.telegraph,
                                         ("impactPrefab", hazards.impactRing)),
             };
-            foreach (var data in testMoves)
-                moves.Add(AddMove<TestFlashMove>(movesRoot, data, root.transform, hurtLayer, true, null, null));
+            // 第二階段：同樣的招式類別，換成強化版的資料
+            moves.Add(AddMove<PawSwipeMove>(movesRoot, phase2.paw, root.transform, hurtLayer, true, poser, hazards.telegraph,
+                                            ("slashPrefab", hazards.clawSlash), ("boltPrefab", hazards.bolt)));
+            moves.Add(AddMove<SpinChargeMove>(movesRoot, phase2.charge, root.transform, hurtLayer, true, poser, hazards.telegraph,
+                                              ("impactPrefab", hazards.impactRing)));
+            moves.Add(AddMove<SpinShockwaveMove>(movesRoot, phase2.shockwave, root.transform, hurtLayer, false, poser, hazards.telegraph,
+                                                 ("wavePrefab", hazards.shockwave)));
+            moves.Add(AddMove<ThunderCircleMove>(movesRoot, phase2.thunder, root.transform, hurtLayer, false, poser, null,
+                                                 ("strikePrefab", hazards.lightning)));
 
             var controller = root.AddComponent<BossController>();
             var cso = new SerializedObject(controller);
@@ -423,7 +481,50 @@ namespace BossFight.EditorTools
             vso.FindProperty("starsRoot").objectReferenceValue = BuildStunStars(model);
             vso.ApplyModifiedPropertiesWithoutUndo();
 
+            // 強化階段的外觀（T7）：身上的紅色電光（平常隱藏）與殘影
+            var aura = BuildAura(root.transform);
+            var phaseVisual = root.AddComponent<BossPhaseVisual>();
+            var pvso = new SerializedObject(phaseVisual);
+            pvso.FindProperty("boss").objectReferenceValue = controller;
+            pvso.FindProperty("aura").objectReferenceValue = aura;
+            pvso.FindProperty("model").objectReferenceValue = model;
+            pvso.FindProperty("ghostMaterial").objectReferenceValue = GetGhostMaterial();
+            pvso.ApplyModifiedPropertiesWithoutUndo();
+
             return root;
+        }
+
+        /// 第二階段身上纏繞的紅色電光（佔位）：沿身體圓柱面由下往上繞的鋸齒線，強度 0 時隱藏。
+        static ElectricArcs BuildAura(Transform root)
+        {
+            var go = DaoDunDogBuilder.Node(root, "ElectricAura", Vector3.zero).gameObject;
+            var arcs = go.AddComponent<ElectricArcs>();
+            var so = new SerializedObject(arcs);
+            so.FindProperty("material").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Material>(FxMaterialPath);
+            so.FindProperty("layout").enumValueIndex = (int)ArcLayout.Wrap;
+            so.FindProperty("arcCount").intValue = 6;
+            so.FindProperty("radius").floatValue = BodyRadius + 0.15f;
+            so.FindProperty("baseHeight").floatValue = 0.15f;
+            so.FindProperty("height").floatValue = BodyHeight - 0.1f;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            return arcs;
+        }
+
+        /// 殘影材質：半透明（Alpha 混合）的 Particles/Unlit，顏色由 BossPhaseVisual 用 MaterialPropertyBlock 改 _BaseColor；只在不存在時建立。
+        static Material GetGhostMaterial()
+        {
+            DaoDunDogBuilder.EnsureFolder(MatDir);
+            string path = $"{MatDir}/OiiaCat_Ghost.mat";
+            var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (mat != null) return mat;
+            mat = new Material(Shader.Find("Universal Render Pipeline/Particles/Unlit")) { name = "OiiaCat_Ghost" };
+            mat.SetFloat("_Surface", 1f); // Transparent
+            mat.SetFloat("_Blend", 0f);   // Alpha
+            mat.SetColor("_BaseColor", new Color(1f, 0.15f, 0.12f, 0.45f));
+            BaseShaderGUI.SetupMaterialBlendMode(mat);
+            UnityEditor.Rendering.Universal.ShaderGUI.ParticleGUI.SetMaterialKeywords(mat);
+            AssetDatabase.CreateAsset(mat, path);
+            return mat;
         }
 
         /// 頭暈時頭上轉的星星（佔位）：一圈發光的小方塊，放在 Model 底下跟著身體一起晃；平常隱藏。

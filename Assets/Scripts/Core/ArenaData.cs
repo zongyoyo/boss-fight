@@ -47,6 +47,10 @@ namespace BossFight.Core
         [Tooltip("場地中央魔法陣的半徑 (m)；Boss 坐在正中央。T7 轉階段時擴大到場地邊緣")]
         [Min(0.5f)] public float magicCircleRadius = 5f;
 
+        [Header("轉階段")]
+        [Tooltip("轉階段最後的無傷害衝擊波把玩家推到離場地中心這個距離 (m)（外圈）；已經在更外面的玩家不移動")]
+        [Min(0f)] public float transitionPushRadius = 10f;
+
         [Header("觀眾席")]
         [Range(0, 40)] public int standTiers = 12;
         [Min(0.3f)] public float tierDepth = 1.2f;

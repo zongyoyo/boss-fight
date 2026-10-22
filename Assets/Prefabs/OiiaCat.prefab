@@ -1,5 +1,110 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &136958756884129883
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1429381478206257017}
+  - component: {fileID: 3226921015268479395}
+  m_Layer: 0
+  m_Name: ElectricAura
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1429381478206257017
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 136958756884129883}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3323286870755106738}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &3226921015268479395
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 136958756884129883}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0d4efae9acd74e44cbb14209ca504435, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BossFight.Hazards.ElectricArcs
+  material: {fileID: 2100000, guid: d5b334eb3ed64e94080cc4748deb51c3, type: 2}
+  layout: 0
+  color: {r: 4, g: 0.35, b: 0.25, a: 1}
+  arcCount: 6
+  points: 10
+  radius: 0.95000005
+  baseHeight: 0.15
+  height: 2.4
+  wrapAngle: 140
+  jitter: 0.18
+  width: 0.05
+  flickerInterval: 0.06
+  showChance: 0.7
+--- !u!1 &452738115255583890
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5302054272005469593}
+  - component: {fileID: 1378262594181981732}
+  m_Layer: 0
+  m_Name: TrackingThunder
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5302054272005469593
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 452738115255583890}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 6903142173469518080}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1378262594181981732
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 452738115255583890}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a8114dd40a660d847a7fda6b606d0f3d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BossFight.Boss.Moves.ThunderCircleMove
+  data: {fileID: 11400000, guid: 32d6f2254091cee45b2f213a6488c948, type: 2}
+  poser: {fileID: 3401692453794137451}
+  strikePrefab: {fileID: 462633018347803528, guid: 9254c39ccd3a8ba4f9e48cad9a63e28d, type: 3}
+  placementAttempts: 8
 --- !u!1 &584734019314377095
 GameObject:
   m_ObjectHideFlags: 0
@@ -73,6 +178,10 @@ MonoBehaviour:
   telegraphPrefab: {fileID: 6870321746339504149, guid: 2736527db7c2850409b418f29ac5f4e5, type: 3}
   slashPrefab: {fileID: 2481025170783460172, guid: b34091498cf68614cacf084c665c5745, type: 3}
   slashColor: {r: 3, g: 3, b: 3, a: 1}
+  finisherSlashColor: {r: 4, g: 0.6, b: 0.4, a: 1}
+  boltPrefab: {fileID: 4454527838104615769, guid: ab3997d9d3d080546af8ed058813b49b, type: 3}
+  boltColor: {r: 4, g: 0.5, b: 0.35, a: 1}
+  boltSize: 0.3
   slashHeight: 1.7
   slashForward: 0.45
   slashTilt: 30
@@ -151,75 +260,6 @@ MonoBehaviour:
   impactColor: {r: 3, g: 2.4, b: 1.6, a: 1}
   impactSize: 2.5
   spinSpeed: 1440
---- !u!1 &2310719292400675653
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 5841114923707637672}
-  - component: {fileID: 9043194328269494461}
-  - component: {fileID: 868276171075832933}
-  m_Layer: 0
-  m_Name: Test_P2_Near
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &5841114923707637672
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2310719292400675653}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 6903142173469518080}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &9043194328269494461
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2310719292400675653}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8122da464c8083c4aaf12d1db7473716, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::BossFight.Core.Hitbox
-  targetMask:
-    serializedVersion: 2
-    m_Bits: 512
-  attacker: {fileID: 3323286870755106738}
-  shape: 0
-  center: {x: 0, y: 0, z: 0}
-  size: {x: 1, y: 1, z: 1}
-  radius: 0.5
-  height: 1
-  innerRadius: 0
---- !u!114 &868276171075832933
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2310719292400675653}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2fa0df2a65410cb4e870bf11de38db4e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::BossFight.Boss.Moves.TestFlashMove
-  data: {fileID: 11400000, guid: 3cdd0837dce5e8d44af671d212969bb1, type: 2}
-  hitbox: {fileID: 9043194328269494461}
 --- !u!1 &2408069707916450749
 GameObject:
   m_ObjectHideFlags: 0
@@ -559,6 +599,56 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &3322091059436894962
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2408893469149142679}
+  - component: {fileID: 1658116467333862172}
+  m_Layer: 0
+  m_Name: DoubleShockwave
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2408893469149142679
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3322091059436894962}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 6903142173469518080}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1658116467333862172
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3322091059436894962}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 485f56adc2f9ec9418ece51a27e5dfb5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BossFight.Boss.Moves.SpinShockwaveMove
+  data: {fileID: 11400000, guid: b3349c84526e5f44998867f982fae7b7, type: 2}
+  poser: {fileID: 3401692453794137451}
+  telegraphPrefab: {fileID: 6870321746339504149, guid: 2736527db7c2850409b418f29ac5f4e5, type: 3}
+  wavePrefab: {fileID: 6600839791379374874, guid: 47133043c1bee614f978e1e1e3d50299, type: 3}
+  spinSpeed: 2160
+  startSpinRatio: 0.3
 --- !u!1 &3558515914246313493
 GameObject:
   m_ObjectHideFlags: 0
@@ -879,75 +969,6 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!1 &4980524399880341987
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 3137140960862840421}
-  - component: {fileID: 1162685378698900551}
-  - component: {fileID: 8602968733877391228}
-  m_Layer: 0
-  m_Name: Test_P2_Far
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &3137140960862840421
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4980524399880341987}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 6903142173469518080}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1162685378698900551
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4980524399880341987}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8122da464c8083c4aaf12d1db7473716, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::BossFight.Core.Hitbox
-  targetMask:
-    serializedVersion: 2
-    m_Bits: 512
-  attacker: {fileID: 3323286870755106738}
-  shape: 0
-  center: {x: 0, y: 0, z: 0}
-  size: {x: 1, y: 1, z: 1}
-  radius: 0.5
-  height: 1
-  innerRadius: 0
---- !u!114 &8602968733877391228
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4980524399880341987}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2fa0df2a65410cb4e870bf11de38db4e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::BossFight.Boss.Moves.TestFlashMove
-  data: {fileID: 11400000, guid: 44c9995e5edd2f64c8f6ef71d4180b5d, type: 2}
-  hitbox: {fileID: 1162685378698900551}
 --- !u!1 &5097514534993932424
 GameObject:
   m_ObjectHideFlags: 0
@@ -1408,6 +1429,7 @@ GameObject:
   - component: {fileID: 2676434795271280035}
   - component: {fileID: 9060212885600375809}
   - component: {fileID: 5359222579852415663}
+  - component: {fileID: 1804688899150798330}
   m_Layer: 0
   m_Name: OiiaCat
   m_TagString: Untagged
@@ -1432,6 +1454,7 @@ Transform:
   - {fileID: 8031100895711360039}
   - {fileID: 2396883953501962816}
   - {fileID: 6903142173469518080}
+  - {fileID: 1429381478206257017}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!54 &9168552698466870915
@@ -1553,8 +1576,10 @@ MonoBehaviour:
   - {fileID: 4769824633422222670}
   - {fileID: 6748717584738217466}
   - {fileID: 4842519950205972135}
-  - {fileID: 868276171075832933}
-  - {fileID: 8602968733877391228}
+  - {fileID: 2947506713563282992}
+  - {fileID: 5496946736481980450}
+  - {fileID: 1658116467333862172}
+  - {fileID: 1378262594181981732}
   startOnPlay: 0
 --- !u!114 &1786431513284646014
 MonoBehaviour:
@@ -1692,7 +1717,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Boss.BossStagger
   stats: {fileID: 11400000, guid: 74db1dcce1b438944ac95c1c5d0b4454, type: 2}
-  player: {fileID: 0}
 --- !u!114 &5359222579852415663
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1713,6 +1737,101 @@ MonoBehaviour:
   bobHeight: 0.08
   bobRate: 2
   popTime: 0.15
+--- !u!114 &1804688899150798330
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6106942073252838546}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: def6290cb5b98504b89238dabe5921b1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BossFight.Boss.BossPhaseVisual
+  boss: {fileID: 6270784483766062083}
+  aura: {fileID: 3226921015268479395}
+  model: {fileID: 4874618886317731435}
+  ghostMaterial: {fileID: 2100000, guid: 831d756f0f24ecd438819ebd34b5354c, type: 2}
+  ghostColor: {r: 1.6, g: 0.15, b: 0.12, a: 0.45}
+  interval: 0.06
+  lifetime: 0.3
+  minSpeed: 2.5
+--- !u!1 &6900416476033351766
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1001792127652122131}
+  - component: {fileID: 2727013933868008036}
+  - component: {fileID: 5496946736481980450}
+  m_Layer: 0
+  m_Name: ChainCharge
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1001792127652122131
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6900416476033351766}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 6903142173469518080}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2727013933868008036
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6900416476033351766}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8122da464c8083c4aaf12d1db7473716, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BossFight.Core.Hitbox
+  targetMask:
+    serializedVersion: 2
+    m_Bits: 512
+  attacker: {fileID: 3323286870755106738}
+  shape: 0
+  center: {x: 0, y: 0, z: 0}
+  size: {x: 1, y: 1, z: 1}
+  radius: 0.5
+  height: 1
+  innerRadius: 0
+--- !u!114 &5496946736481980450
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6900416476033351766}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f743397f28881fc41a349bb2cf50c1cc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BossFight.Boss.Moves.SpinChargeMove
+  data: {fileID: 11400000, guid: eae09c07879a4e444ad20335a4a04a3f, type: 2}
+  hitbox: {fileID: 2727013933868008036}
+  poser: {fileID: 3401692453794137451}
+  telegraphPrefab: {fileID: 6870321746339504149, guid: 2736527db7c2850409b418f29ac5f4e5, type: 3}
+  impactPrefab: {fileID: 4528881397876832156, guid: 82eeebd7c15af1040a6b882ca6079094, type: 3}
+  impactColor: {r: 3, g: 2.4, b: 1.6, a: 1}
+  impactSize: 2.5
+  spinSpeed: 1440
 --- !u!1 &6900840118585336547
 GameObject:
   m_ObjectHideFlags: 0
@@ -1963,8 +2082,10 @@ Transform:
   - {fileID: 1678605417369826690}
   - {fileID: 4105983346613399597}
   - {fileID: 8824697774626312791}
-  - {fileID: 5841114923707637672}
-  - {fileID: 3137140960862840421}
+  - {fileID: 6167512335825036815}
+  - {fileID: 1001792127652122131}
+  - {fileID: 2408893469149142679}
+  - {fileID: 5302054272005469593}
   m_Father: {fileID: 3323286870755106738}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &8025160973237462547
@@ -2264,6 +2385,86 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &8775022136261499732
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6167512335825036815}
+  - component: {fileID: 2636321815896535940}
+  - component: {fileID: 2947506713563282992}
+  m_Layer: 0
+  m_Name: PawTriple
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6167512335825036815
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8775022136261499732}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 6903142173469518080}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2636321815896535940
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8775022136261499732}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8122da464c8083c4aaf12d1db7473716, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BossFight.Core.Hitbox
+  targetMask:
+    serializedVersion: 2
+    m_Bits: 512
+  attacker: {fileID: 3323286870755106738}
+  shape: 0
+  center: {x: 0, y: 0, z: 0}
+  size: {x: 1, y: 1, z: 1}
+  radius: 0.5
+  height: 1
+  innerRadius: 0
+--- !u!114 &2947506713563282992
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8775022136261499732}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bdaea4dd3a71e294fb79a8eff179ff9d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BossFight.Boss.Moves.PawSwipeMove
+  data: {fileID: 11400000, guid: 25342d1fcc6415f48bd8cacf09c7fecc, type: 2}
+  hitbox: {fileID: 2636321815896535940}
+  poser: {fileID: 3401692453794137451}
+  telegraphPrefab: {fileID: 6870321746339504149, guid: 2736527db7c2850409b418f29ac5f4e5, type: 3}
+  slashPrefab: {fileID: 2481025170783460172, guid: b34091498cf68614cacf084c665c5745, type: 3}
+  slashColor: {r: 3, g: 3, b: 3, a: 1}
+  finisherSlashColor: {r: 4, g: 0.6, b: 0.4, a: 1}
+  boltPrefab: {fileID: 4454527838104615769, guid: ab3997d9d3d080546af8ed058813b49b, type: 3}
+  boltColor: {r: 4, g: 0.5, b: 0.35, a: 1}
+  boltSize: 0.3
+  slashHeight: 1.7
+  slashForward: 0.45
+  slashTilt: 30
 --- !u!1 &8885470502342996690
 GameObject:
   m_ObjectHideFlags: 0

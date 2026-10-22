@@ -17,8 +17,8 @@ namespace BossFight.Boss
         [Min(0f)] public float healthThreshold = 2000f;
         [Tooltip("使用哪個招式池（BossMoveData.phase）")]
         [Range(1, 2)] public int movePool = 1;
-        [Tooltip("進入這個階段的轉階段時間（秒）：期間 Boss 無敵、不出招、打斷目前的招式；0 = 直接切換，目前的招照常打完。" +
-                 "目前時間到自動結束，T7 改由轉階段演出呼叫 BossController.CompleteTransition")]
+        [Tooltip("進入這個階段要不要轉階段（> 0）：期間 Boss 無敵、不出招、打斷目前的招式、清掉場上的 Hazard；0 = 直接切換，目前的招照常打完。" +
+                 "有轉階段演出時由演出結束呼叫 BossController.CompleteTransition；沒有演出（BossController.AutoCompleteTransition）時這個秒數到就自動結束")]
         [Min(0f)] public float transitionTime;
 
         [Header("移動與節奏")]
@@ -42,8 +42,10 @@ namespace BossFight.Boss
         [Header("其他")]
         [Tooltip("碰到 Boss 本體的傷害（規則待定，尚未使用）")]
         [Min(0f)] public float contactDamage = 5f;
-        [Tooltip("OIIA 音樂的播放速度倍率（T7 的 AudioManager 讀）")]
+        [Tooltip("OIIA 音樂的播放速度倍率（BattleManager 換階段時交給 AudioManager）")]
         [Min(0.1f)] public float musicSpeed = 1f;
+        [Tooltip("強化外觀：身上纏繞紅色電光、移動時拖出殘影（BossPhaseVisual 讀）；第二階段與狂暴開啟")]
+        public bool electrified;
 
         [Header("開場序列")]
         [Tooltip("進入這個階段後依序固定出的招式：不看冷卻、權重與不連出，但要先走進那招的距離範圍。招式要掛在 Boss 的招式清單裡")]

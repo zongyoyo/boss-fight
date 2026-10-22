@@ -25,4 +25,5 @@ MonoBehaviour:
   stunDuration: 2.5
   contactDamage: 8
   musicSpeed: 1.3
+  electrified: 1
   openingSequence: []

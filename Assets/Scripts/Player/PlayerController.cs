@@ -95,7 +95,7 @@ namespace BossFight.Player
         float blockStartTime;
         float actionTime, healed;
         bool jumpRequested, bufferedAttack, bufferedRoll, bufferedExecute;
-        Vector3 scriptedTarget;
+        Vector3 scriptedTarget, scriptedFace;
         bool hasScriptedTarget;
 
         void Awake()
@@ -152,9 +152,13 @@ namespace BossFight.Player
         }
 
         /// <summary>輸入鎖住時，這一幀往 position（只看水平）走過去，面向前進方向；由 Timeline 每幀給。</summary>
-        public void ScriptedMoveTo(Vector3 position)
+        public void ScriptedMoveTo(Vector3 position) => ScriptedMoveTo(position, Vector3.zero);
+
+        /// <summary>同上，但面向 face（水平方向；零向量 = 面向前進方向），例如被衝擊波推開時面向 Boss 往後滑。</summary>
+        public void ScriptedMoveTo(Vector3 position, Vector3 face)
         {
             scriptedTarget = position;
+            scriptedFace = Flat(face);
             hasScriptedTarget = true;
         }
 
@@ -517,6 +521,7 @@ namespace BossFight.Player
             if (IsExecuting) face = ExecutingTarget != null ? Flat(ExecutingTarget.transform.position - transform.position) : Vector3.zero;
             else if (LockTarget != null) face = Flat(LockTarget.transform.position - transform.position);
             else if (IsRolling) face = RollDirection;
+            else if (InputLocked && hasScriptedTarget && scriptedFace.sqrMagnitude > 1e-4f) face = scriptedFace;
             else if (IsBlocking && cameraTransform != null) face = Flat(cameraTransform.forward);
             else face = wishDir;
 
