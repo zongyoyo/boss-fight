@@ -775,6 +775,7 @@ namespace BossFight.EditorTools
 
             BalancePanelBuilder.Wire();
             CombatFeedbackBuilder.Wire();
+            PauseMenuBuilder.Wire(); // 開發者模式開關的 Debug 工具清單
         }
 
         /// 把場景的魔法陣接到會用它的招式（幻影分身的閃爍、大迴旋的安全區）；IntroCutsceneBuilder 重建魔法陣後也會呼叫。circle 為 null 時清掉。

@@ -28,6 +28,7 @@ namespace BossFight.Cutscene
     /// 播放一段演出（同一個物件上 PlayableDirector 的 Timeline），期間鎖住玩家與鏡頭的輸入、由 Timeline 的 Cinemachine Track 接管鏡頭。
     /// 場景裡一段演出一個物件：開場（IntroCutscene，Assets/Timelines/Intro.playable）、轉階段（TransitionCutscene，Transition.playable）。
     /// BattleManager 呼叫 Play；skippable 時長按 Player/SkipCutscene（Space）settings.skipHoldTime 秒，跳到 Timeline 上的 SkipTarget 標記（開場第 7 鏡）。
+    /// Timeline 用遊戲時間播，暫停（ESC 選單、F12 面板，timeScale 0）時演出停住，長按跳過也不累積。
     /// 有接 CutsceneStage 時，開始播之前先依玩家與場地中心的位置擺好演出鏡頭（轉階段時玩家在哪裡都有可能）。
     /// 播完時把自由視角擺到玩家背後、面向 Boss，解除輸入鎖定，送出 OnCutsceneFinished；BattleManager 收到後讓 Boss 開打或進入下一個階段。
     /// 字卡由 Timeline 的 CutsceneEventMarker 觸發，轉成 OnTitleCard；UI 只訂閱這裡的事件。
@@ -106,9 +107,9 @@ namespace BossFight.Cutscene
 
         void Update()
         {
-            if (!CanSkip) return;
+            if (!CanSkip || Time.timeScale <= 0f) return; // 暫停中不累積（選單裡按 Space 改鍵不會跳過開場）
 
-            held = skipAction.IsPressed() ? held + Time.unscaledDeltaTime : 0f;
+            held =skipAction.IsPressed() ? held + Time.unscaledDeltaTime : 0f;
             float progress = Mathf.Clamp01(held / settings.skipHoldTime);
             if (!Mathf.Approximately(progress, lastProgress))
             {

@@ -38,7 +38,7 @@ MonoBehaviour:
   stunnedColor: {r: 1, g: 1, b: 0.75, a: 1}
   boneColor: {r: 0.98, g: 0.93, b: 0.82, a: 1}
   boneUsedColor: {r: 0.3, g: 0.3, b: 0.3, a: 0.6}
-  stunnedLabel: "\u982D\u6688\u4E2D\uFF01\u9760\u8FD1\u6309 F \u8655\u6C7A"
+  stunnedLabel: "\u982D\u6688\u4E2D\uFF01\u9760\u8FD1\u6309 {0} \u8655\u6C7A"
   victoryTitle: "\u52DD\u5229"
   victorySubtitle: "{0} \u8A0E\u4F10\u6210\u529F"
   defeatTitle: "\u843D\u6557"

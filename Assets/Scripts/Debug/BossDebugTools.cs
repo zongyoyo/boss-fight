@@ -102,6 +102,13 @@ namespace BossFight.DebugTools
             if (kb.f7Key.wasPressedThisFrame) KillPlayer();
         }
 
+        /// <summary>清掉 F2 玩家無敵與 F3 指定的下一招（關掉開發者模式時由 DeveloperMode 呼叫）。</summary>
+        public void ClearCheats()
+        {
+            if (playerHealth != null) playerHealth.ForcedInvulnerable = false;
+            if (boss != null && boss.ForcedNextMove != null) boss.ForceNextMove(null);
+        }
+
         // ---------- 快捷鍵 ----------
 
         void SetHealthAboveNextThreshold()

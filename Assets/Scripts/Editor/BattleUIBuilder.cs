@@ -23,6 +23,7 @@ namespace BossFight.EditorTools
     ///    參考解析度 1920×1080；左上、右上留給 Debug 面板（PlayerDebugOverlay、BossDebugTools）。開場字卡與跳過提示是 IntroUI（IntroCutsceneBuilder），排在這個 Canvas 上面。
     /// 3. EventSystem（InputSystemUIInputModule，沒有才建）：勝敗畫面的按鈕用滑鼠、Enter、手把 A 都能按。
     /// 4. 接好 BattleManager 的 T9 欄位（settings、bossHealth、playerHealth、player、cameraController）與 BossDebugTools.battle，並重新接上 F12 平衡面板（BalancePanelBuilder）。
+    /// 5. 重建 ESC 選單（PauseMenuBuilder，也會重接設定、暫停與按鍵名稱）。
     /// Tools > Cutscene > Build Intro 會重建 BattleManager，最後也會呼叫這裡。
     /// </summary>
     public static class BattleUIBuilder
@@ -126,6 +127,7 @@ namespace BossFight.EditorTools
             so.ApplyModifiedPropertiesWithoutUndo();
 
             BalancePanelBuilder.Wire();
+            PauseMenuBuilder.Build();
 
             Undo.CollapseUndoOperations(undoGroup);
             AssetDatabase.SaveAssets();
@@ -321,7 +323,7 @@ namespace BossFight.EditorTools
 
         // ---------- 共用 ----------
 
-        static EventSystem EnsureEventSystem()
+        internal static EventSystem EnsureEventSystem()
         {
             var existing = Object.FindAnyObjectByType<EventSystem>();
             if (existing != null)

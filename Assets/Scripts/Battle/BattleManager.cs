@@ -65,6 +65,7 @@ namespace BossFight.Battle
     /// 重試（Retry，勝敗畫面的按鈕與 Debug F5）重新載入場景；「看過開場」存在 BattleSession，重試後開場可以長按跳過。
     /// 音樂速度：換階段時照 BossPhaseData.musicSpeed 設定；轉階段演出開始時先排好下一階段的速度，演出中重播音樂時才套用。
     /// 沒有接 CutsceneDirector 時直接開打／直接換階段。
+    /// 暫停（ESC 選單，GamePause）：暫停時鎖住玩家與鏡頭的輸入、放開游標；解除時還原（演出中交給演出解鎖、勝敗畫面維持鎖定）。
     /// UI 與演出訂閱 OnBattleStateChanged、OnBattleResult。
     /// 放在 Battle（最上層）：它要指揮 Boss、玩家與演出，Core 才能維持在最底層、不引用其他系統。
     /// </summary>
@@ -88,6 +89,8 @@ namespace BossFight.Battle
         [SerializeField] CameraController cameraController;
         [Tooltip("換階段時改音樂速度、勝敗時淡出；留空時不管音樂")]
         [SerializeField] AudioManager audioManager;
+        [Tooltip("ESC 選單的暫停：暫停時鎖住玩家與鏡頭的輸入、放開游標；留空時不管")]
+        [SerializeField] GamePause pause;
 
         /// <summary>流程狀態改變；參數是新的狀態。</summary>
         public event Action<BattleState> OnBattleStateChanged;
@@ -101,6 +104,7 @@ namespace BossFight.Battle
         BattleResult pendingResult;
         float resultAt = -1f;      // 真實時間；< 0 = 沒有待送的結算
         float slowMotionUntil = -1f;
+        bool resultShown, pauseLocked;
 
         void OnEnable()
         {
@@ -158,6 +162,33 @@ namespace BossFight.Battle
             {
                 resultAt = -1f;
                 ShowResult();
+            }
+        }
+
+        // 暫停（ESC 選單）的輸入鎖定。放在 LateUpdate：選單在 Update 開關、F12 面板被關掉時還原的鎖定都處理完了才鎖或解鎖；
+        // 解除那一幀玩家的 Update 已經跑完，關選單用的鍵（手把 B＝翻滾、A＝跳躍）不會被當成動作
+        void LateUpdate()
+        {
+            bool paused = pause != null && pause.IsPaused;
+            if (paused == pauseLocked) return;
+            pauseLocked = paused;
+            if (paused)
+            {
+                if (player != null) player.SetInputLocked(true);
+                if (cameraController != null)
+                {
+                    cameraController.SetInputLocked(true);
+                    cameraController.SetCursorReleased(true);
+                }
+                return;
+            }
+            if (resultShown) return; // 勝敗畫面：維持 ShowResult 的鎖定與游標
+            bool cutscene = (intro != null && intro.IsPlaying) || (transition != null && transition.IsPlaying); // 演出結束時 CutsceneDirector 自己解鎖
+            if (!cutscene && player != null) player.SetInputLocked(false);
+            if (cameraController != null)
+            {
+                if (!cutscene) cameraController.SetInputLocked(false);
+                cameraController.SetCursorReleased(false);
             }
         }
 
@@ -250,6 +281,7 @@ namespace BossFight.Battle
 
         void ShowResult()
         {
+            resultShown = true;
             if (player != null)
             {
                 player.ClearLockTarget();

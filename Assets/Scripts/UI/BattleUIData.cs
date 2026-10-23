@@ -65,8 +65,8 @@ namespace BossFight.UI
         public Color boneProgressColor = new Color(0.98f, 0.8f, 0.45f);
 
         [Header("文字")]
-        [Tooltip("頭暈中顯示在失衡條上")]
-        public string stunnedLabel = "頭暈中！靠近按 F 處決";
+        [Tooltip("頭暈中顯示在失衡條上；{0} = 處決鍵（Player/Execute 目前的鍵鼠按鍵）")]
+        public string stunnedLabel = "頭暈中！靠近按 {0} 處決";
         public string victoryTitle = "勝利";
         [Tooltip("{0} = Boss 名稱")]
         public string victorySubtitle = "{0} 討伐成功";

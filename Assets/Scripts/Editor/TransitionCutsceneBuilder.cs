@@ -179,6 +179,7 @@ namespace BossFight.EditorTools
             // 戰鬥流程：Boss 進入轉階段時由 BattleManager 播這段，播完才套用第二階段
             DaoDunDogBuilder.SetReference(battle, "transition", cutscene);
             DaoDunDogBuilder.SetReference(battle, "audioManager", audio);
+            PauseMenuBuilder.Wire(); // 演出的音軌 AudioSource 重建了：音效音量要重接
 
             Undo.CollapseUndoOperations(undoGroup);
             AssetDatabase.SaveAssets();

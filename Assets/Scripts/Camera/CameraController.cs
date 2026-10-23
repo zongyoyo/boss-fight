@@ -11,7 +11,8 @@ namespace BossFight.Cameras
     /// 自由視角：Player/Look（滑鼠、右搖桿）直接推它 OrbitalFollow 的水平與垂直軸。
     /// 鎖定視角：Priority 比自由視角高時接手；每幀把水平軸轉到「玩家背後、朝向目標」，看向玩家與目標的 TargetGroup。
     /// 鎖定哪個目標由 PlayerController 決定（Player/LockOn），這裡只訂閱它的 OnLockTargetChanged 切換鏡頭。
-    /// Esc 釋放游標，點擊畫面重新鎖住。重建鏡頭：Tools > Camera > Build Camera Rig。
+    /// 游標：開打時鎖住；ESC 選單、勝敗畫面、F12 面板用 SetCursorReleased 放開，關掉時立刻鎖回。游標被別的原因放開（切出視窗、Editor 的 Esc）時點擊畫面重新鎖住。
+    /// 重建鏡頭：Tools > Camera > Build Camera Rig。
     /// 演出期間 CutsceneDirector 呼叫 SetInputLocked 鎖住視角，Timeline 的 Cinemachine Track 接管畫面；
     /// 演出結束前先解除玩家的鎖定，再用 ResetBehind 把自由視角擺到玩家背後、面向 Boss，Timeline 混回來時就是這個角度。
     /// </summary>
@@ -100,11 +101,11 @@ namespace BossFight.Cameras
             skipPointerFrames = locked ? 0 : 3; // 解除那幾幀累積的滑鼠位移不算
         }
 
-        /// <summary>放開游標給 UI 點按鈕（勝敗畫面），期間點滑鼠不會鎖回去；false 時恢復（下次點畫面才鎖）。</summary>
+        /// <summary>放開游標給 UI 點按鈕（ESC 選單、勝敗畫面），期間點滑鼠不會鎖回去；false 時立刻鎖回。</summary>
         public void SetCursorReleased(bool released)
         {
             CursorReleased = released;
-            if (released && lockCursor) SetCursorLocked(false);
+            if (lockCursor) SetCursorLocked(!released);
         }
 
         /// <summary>把自由視角轉到玩家背後、面向 lookAt（水平），俯仰回到預設。鎖定中要先解除（PlayerController.ClearLockTarget）。</summary>
@@ -186,11 +187,8 @@ namespace BossFight.Cameras
         void UpdateCursor()
         {
             if (!lockCursor || CursorReleased) return;
-            var keyboard = Keyboard.current;
-            var mouse = Mouse.current;
-            if (keyboard != null && keyboard.escapeKey.wasPressedThisFrame)
-                SetCursorLocked(false);
-            else if (mouse != null && mouse.leftButton.wasPressedThisFrame && Cursor.lockState != CursorLockMode.Locked)
+            var mouse = Mouse.current; // Esc 交給 ESC 選單（PauseMenuUI 用 SetCursorReleased 放開）
+            if (mouse != null && mouse.leftButton.wasPressedThisFrame && Cursor.lockState != CursorLockMode.Locked)
                 SetCursorLocked(true);
         }
 

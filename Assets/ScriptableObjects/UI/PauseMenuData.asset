@@ -1,0 +1,142 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f683145c4a68d4a479ec418497cbcf42, type: 3}
+  m_Name: PauseMenuData
+  m_EditorClassIdentifier: Assembly-CSharp::BossFight.UI.PauseMenuData
+  bindings:
+  - action: Player/Move
+    compositePart: up
+    label: "\u524D\u9032"
+    keyboard: 1
+    gamepad: 0
+    checkConflict: 1
+  - action: Player/Move
+    compositePart: down
+    label: "\u5F8C\u9000"
+    keyboard: 1
+    gamepad: 0
+    checkConflict: 1
+  - action: Player/Move
+    compositePart: left
+    label: "\u5DE6\u79FB"
+    keyboard: 1
+    gamepad: 0
+    checkConflict: 1
+  - action: Player/Move
+    compositePart: right
+    label: "\u53F3\u79FB"
+    keyboard: 1
+    gamepad: 0
+    checkConflict: 1
+  - action: Player/Attack
+    compositePart: 
+    label: "\u653B\u64CA\uFF08\u9577\u6309\u91CD\u64CA\uFF09"
+    keyboard: 1
+    gamepad: 1
+    checkConflict: 1
+  - action: Player/Block
+    compositePart: 
+    label: "\u8209\u76FE"
+    keyboard: 1
+    gamepad: 1
+    checkConflict: 1
+  - action: Player/Roll
+    compositePart: 
+    label: "\u7FFB\u6EFE"
+    keyboard: 1
+    gamepad: 1
+    checkConflict: 1
+  - action: Player/Jump
+    compositePart: 
+    label: "\u8DF3\u8E8D"
+    keyboard: 1
+    gamepad: 1
+    checkConflict: 1
+  - action: Player/LockOn
+    compositePart: 
+    label: "\u9396\u5B9A"
+    keyboard: 1
+    gamepad: 1
+    checkConflict: 1
+  - action: Player/Heal
+    compositePart: 
+    label: "\u5543\u9AA8\u982D"
+    keyboard: 1
+    gamepad: 1
+    checkConflict: 1
+  - action: Player/Execute
+    compositePart: 
+    label: "\u8655\u6C7A"
+    keyboard: 1
+    gamepad: 1
+    checkConflict: 1
+  - action: Player/SkipCutscene
+    compositePart: 
+    label: "\u9577\u6309\u8DF3\u904E\u958B\u5834"
+    keyboard: 1
+    gamepad: 1
+    checkConflict: 0
+  pauseTitle: "\u66AB\u505C"
+  resumeLabel: "\u7E7C\u7E8C"
+  settingsLabel: "\u8A2D\u5B9A"
+  retryLabel: "\u91CD\u65B0\u6311\u6230"
+  quitLabel: "\u9000\u51FA\u904A\u6232"
+  controlsLabel: "\u6309\u9375\u8A2D\u5B9A"
+  volumeLabel: "\u97F3\u91CF\u8A2D\u5B9A"
+  developerModeFormat: "\u958B\u767C\u8005\u6A21\u5F0F\uFF1A{0}"
+  onText: "\u958B"
+  offText: "\u95DC"
+  backLabel: "\u8FD4\u56DE"
+  navigationHint: "Esc\uFF0F\u624B\u628A B \u8FD4\u56DE"
+  keyboardLabel: "\u9375\u9F20\u6309\u9375\u8A2D\u5B9A"
+  gamepadLabel: "\u63A7\u5236\u5668\u6309\u9375\u8A2D\u5B9A"
+  resetLabel: "\u6062\u5FA9\u9810\u8A2D"
+  actionHeader: "\u52D5\u4F5C"
+  primaryHeader: "\u4E3B\u8981"
+  secondaryHeader: "\u6B21\u8981"
+  gamepadHeader: "\u6309\u9375"
+  keyboardFixedNote: "\u8996\u89D2\uFF1A\u6ED1\u9F20\u3000\u3000\u9078\u55AE\uFF1AEsc"
+  gamepadFixedNote: "\u79FB\u52D5\uFF1A\u5DE6\u6416\u687F\u3000\u3000\u8996\u89D2\uFF1A\u53F3\u6416\u687F\u3000\u3000\u9078\u55AE\uFF1AStart"
+  keyboardHint: "\u9EDE\u4E00\u683C\u5F8C\u6309\u4E0B\u65B0\u7684\u6309\u9375\u6216\u6ED1\u9F20\u9375"
+  gamepadHint: "\u9078\u4E00\u683C\u5F8C\u6309\u4E0B\u65B0\u7684\u624B\u628A\u6309\u9375"
+  listeningText: "\u8ACB\u6309\u4E0B\u6309\u9375\u2026"
+  keyboardListeningHint: "\u6309\u4E0B\u65B0\u7684\u6309\u9375\u3000Esc \u53D6\u6D88"
+  keyboardListeningHintSecondary: "\u6309\u4E0B\u65B0\u7684\u6309\u9375\u3000Esc
+    \u53D6\u6D88\u3000Delete \u6E05\u9664"
+  gamepadListeningHint: "\u6309\u4E0B\u65B0\u7684\u624B\u628A\u6309\u9375\u3000Start\uFF0FEsc
+    \u53D6\u6D88"
+  swappedFormat: "\u5DF2\u548C\u300C{0}\u300D\u4E92\u63DB"
+  movedFormat: "\u5DF2\u5F9E\u300C{0}\u300D\u79FB\u904E\u4F86"
+  inUseFormat: "\u300C{0}\u300D\u7684\u4E3B\u8981\u9375\u6B63\u5728\u7528\u9019\u500B\u9375"
+  resetDoneText: "\u5DF2\u6062\u5FA9\u9810\u8A2D"
+  masterLabel: "\u4E3B\u97F3\u91CF"
+  musicLabel: "\u97F3\u6A02"
+  sfxLabel: "\u97F3\u6548"
+  percentFormat: '{0}%'
+  sfxPreview: {fileID: 8300000, guid: 5f22d42bb927ea4499bbfdbca69a06e8, type: 3}
+  sfxPreviewVolume: 0.8
+  sfxPreviewInterval: 0.2
+  retryConfirm: "\u91CD\u65B0\u6311\u6230\uFF1F\n\u9019\u5834\u6230\u9B25\u7684\u9032\u5EA6\u6703\u6D88\u5931\u3002"
+  quitConfirm: "\u9000\u51FA\u904A\u6232\uFF1F"
+  confirmYes: "\u78BA\u5B9A"
+  confirmNo: "\u53D6\u6D88"
+  dimColor: {r: 0, g: 0, b: 0, a: 0.6}
+  panelColor: {r: 0.08, g: 0.08, b: 0.11, a: 1}
+  titleColor: {r: 1, g: 0.85, b: 0.4, a: 1}
+  textColor: {r: 1, g: 1, b: 1, a: 1}
+  hintColor: {r: 1, g: 1, b: 1, a: 0.6}
+  buttonColor: {r: 0.2, g: 0.2, b: 0.24, a: 0.95}
+  buttonHighlightColor: {r: 0.45, g: 0.38, b: 0.2, a: 1}
+  buttonPressedColor: {r: 0.7, g: 0.58, b: 0.25, a: 1}
+  listeningColor: {r: 1, g: 0.85, b: 0.4, a: 1}
+  noticeColor: {r: 0.55, g: 1, b: 0.95, a: 1}
+  sliderFillColor: {r: 0.98, g: 0.8, b: 0.45, a: 1}

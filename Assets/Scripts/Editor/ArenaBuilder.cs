@@ -182,7 +182,7 @@ namespace BossFight.EditorTools
             bs.transform.localRotation = Quaternion.LookRotation(playerDir);
             SetIcon(bs, "sv_label_6");
 
-            // 8. 比例參考：2 m 高膠囊，站在玩家出生點旁邊（不跟角色重疊），只在編輯器裡存在
+            // 8. 比例參考：2 m 高膠囊，站在玩家出生點旁邊（不跟角色重疊），只在編輯器裡存在；預設關閉，要對照尺寸時在 Hierarchy 打開
             var refCap = GameObject.CreatePrimitive(PrimitiveType.Capsule);
             refCap.name = "ScaleRef_2m";
             refCap.tag = "EditorOnly";
@@ -191,6 +191,7 @@ namespace BossFight.EditorTools
             Vector3 side = Vector3.Cross(Vector3.up, -playerDir);
             refCap.transform.localPosition = ps.transform.localPosition + side * 1.5f + Vector3.up;
             refCap.GetComponent<MeshRenderer>().sharedMaterial = refMat;
+            refCap.SetActive(false);
 
             Undo.CollapseUndoOperations(undoGroup);
             AssetDatabase.SaveAssets();

@@ -8,12 +8,14 @@ namespace BossFight.UI
     /// <summary>
     /// 下方置中的 Boss 名稱、血條（BattleUIData.bossHealthTicks 標出 50% 與 20% 刻度）與失衡條。
     /// 只訂閱 BossHealth.OnBossHealthChanged、BossStagger.OnStaggerChanged／OnStunned／OnStunEnded，名稱來自開場字卡（CutsceneDirector.OnTitleCard）。
-    /// 頭暈中失衡條閃爍，條上顯示「頭暈中！靠近按 F 處決」。出現、滑入由 BattleUI 控制。
+    /// 頭暈中失衡條閃爍，條上顯示「頭暈中！靠近按 F 處決」（F 是 Player/Execute 目前的鍵鼠按鍵，改鍵後跟著變）。出現、滑入由 BattleUI 控制。
     /// </summary>
     [DisallowMultipleComponent]
     public class BossHudUI : MonoBehaviour
     {
         [SerializeField] BattleUIData data;
+        [Tooltip("頭暈提示裡處決鍵的顯示名稱")]
+        [SerializeField] InputNameData inputNames;
         [SerializeField] BossHealth health;
         [SerializeField] BossStagger stagger;
         [Tooltip("開場演出：字卡上的 Boss 名稱用在血條上；留空時用 BattleUIData.fallbackBossName")]
@@ -31,7 +33,6 @@ namespace BossFight.UI
         void Awake()
         {
             nameText.text = data.fallbackBossName;
-            stunnedText.text = data.stunnedLabel;
             stunnedText.enabled = false;
             BuildTicks();
         }
@@ -92,6 +93,7 @@ namespace BossFight.UI
         void HandleStunned(float duration)
         {
             stunned = true;
+            stunnedText.text = string.Format(data.stunnedLabel, BindingText.FirstDisplay("Player/Execute", BindingText.KeyboardGroup, inputNames));
             stunnedText.enabled = true;
         }
 
