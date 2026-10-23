@@ -95,7 +95,7 @@ namespace BossFight.Boss
     /// 轉階段的結束：有轉階段演出時由 BattleManager 關掉 AutoCompleteTransition，演出結束時呼叫 CompleteTransition；沒有演出時 transitionTime 秒後自動結束。
     /// 頭暈（Stun）打斷目前的招式，時間到回到 Idle；失衡值的累積、受傷倍率與處決在同一個物件上的 BossStagger，
     /// 它在處決進行中設 HoldStun（時間到也先不結束），處決打到時呼叫 EndStun。
-    /// 轉階段時收掉場上所有招式放出的 Hazard（ClearAllHazards）。
+    /// 轉階段、倒下時收掉場上所有招式放出的 Hazard（ClearAllHazards）。
     /// 招式的執行交給 BossMove；這裡只送事件，UI 與演出訂閱 OnStateChanged、OnMoveChosen、OnMoveTelegraph、OnPhaseChanged、OnMoveHit。
     /// </summary>
     [RequireComponent(typeof(BossHealth))]
@@ -172,6 +172,7 @@ namespace BossFight.Boss
         public float DistanceToTarget => target != null ? Flat(target.position - transform.position).magnitude : float.PositiveInfinity;
 
         BossHealth health;
+        LockOnTarget lockOn;
         readonly Dictionary<BossMove, float> readyTime = new Dictionary<BossMove, float>();
         readonly List<BossMove> candidates = new List<BossMove>();
         int pendingPhase = -1;
@@ -180,6 +181,7 @@ namespace BossFight.Boss
         {
             health = GetComponent<BossHealth>();
             Stagger = GetComponent<BossStagger>();
+            lockOn = GetComponent<LockOnTarget>();
             if (stats == null || stats.phases == null || stats.phases.Length == 0 || stats.phases[0] == null)
             {
                 Debug.LogError("[Boss] BossStats 沒有設定階段，Boss 不會行動。", this);
@@ -533,13 +535,17 @@ namespace BossFight.Boss
             OnPhaseChanged?.Invoke(Phase);
         }
 
+        // 倒下：打斷招式、清掉場上所有 Hazard、不能再被鎖定（玩家的鎖定會自動解除）
         void HandleDefeated()
         {
             InterruptMove();
+            ClearAllHazards();
             ForcedNextMove = null;
             health.Invulnerable = false;
+            if (lockOn != null) lockOn.enabled = false;
             SetState(BossState.Defeated);
         }
+
 
         // 招式要求的無敵（BossMove.SetInvulnerable，大迴旋浮空期間）
         internal void SetMoveInvulnerable(bool on)

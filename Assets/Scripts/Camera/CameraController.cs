@@ -42,6 +42,8 @@ namespace BossFight.Cameras
         public LockOnTarget CurrentTarget { get; private set; }
         /// <summary>演出中：不轉視角。</summary>
         public bool InputLocked { get; private set; }
+        /// <summary>游標放開給 UI 用（勝敗畫面的按鈕）：點滑鼠不會再鎖回去。</summary>
+        public bool CursorReleased { get; private set; }
 
         InputAction lookAction;
         float lockYaw, lockYawVelocity;
@@ -96,6 +98,13 @@ namespace BossFight.Cameras
         {
             InputLocked = locked;
             skipPointerFrames = locked ? 0 : 3; // 解除那幾幀累積的滑鼠位移不算
+        }
+
+        /// <summary>放開游標給 UI 點按鈕（勝敗畫面），期間點滑鼠不會鎖回去；false 時恢復（下次點畫面才鎖）。</summary>
+        public void SetCursorReleased(bool released)
+        {
+            CursorReleased = released;
+            if (released && lockCursor) SetCursorLocked(false);
         }
 
         /// <summary>把自由視角轉到玩家背後、面向 lookAt（水平），俯仰回到預設。鎖定中要先解除（PlayerController.ClearLockTarget）。</summary>
@@ -176,7 +185,7 @@ namespace BossFight.Cameras
 
         void UpdateCursor()
         {
-            if (!lockCursor) return;
+            if (!lockCursor || CursorReleased) return;
             var keyboard = Keyboard.current;
             var mouse = Mouse.current;
             if (keyboard != null && keyboard.escapeKey.wasPressedThisFrame)

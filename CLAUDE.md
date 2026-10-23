@@ -19,7 +19,7 @@
 
 | 路徑 | 用途 |
 | --- | --- |
-| `Assets/Scripts/Battle` | 最上層的流程指揮：BattleManager（戰鬥流程狀態機 Intro → Phase1 → Transition → Phase2 → Ultimate → Berserk，T9 加勝敗），指揮 Boss 與演出（播轉階段演出、結束時呼叫 `BossController.CompleteTransition`、換階段改音樂速度） |
+| `Assets/Scripts/Battle` | 最上層的流程指揮：BattleManager（戰鬥流程狀態機 Intro → Phase1 → Transition → Phase2 → Ultimate → Berserk → Victory／Defeat），指揮 Boss、玩家與演出（播轉階段演出、結束時呼叫 `BossController.CompleteTransition`、換階段改音樂速度；勝利時慢動作與音樂淡出、送 `OnBattleResult`、`Retry` 重新載入場景）；BattleSettings（勝敗節奏） |
 | `Assets/Scripts/Core` | 跨系統共用（最底層，不引用其他系統）：BattleSession（這次執行的挑戰次數與「看過開場」）、事件、傷害系統（DamageInfo、Hitbox、Hurtbox、IDamageable）、畫面停頓（HitStop）、AudioManager（戰鬥音樂與變速、音效）、競技場（ArenaData、ArenaGenerator、天色 ArenaAtmosphere／AtmosphereData）、LockOnTarget、可處決目標（ExecutionTarget） |
 | `Assets/Scripts/Player` | PlayerController、PlayerAttack、PlayerHealth、PlayerStamina、PlayerStats 定義、DaoDunDogAnimator |
 | `Assets/Scripts/Camera` | CameraController（Cinemachine 第三人稱與鎖定鏡頭；鎖定哪個目標由 PlayerController 決定，鏡頭訂閱 `OnLockTargetChanged`） |
@@ -27,10 +27,10 @@
 | `Assets/Scripts/Boss/Moves` | 每招一個 BossMove 子類別；招式特有的數值寫成 BossMoveData 的子類別放在同一個資料夾；PounceRunner 是一次飛撲（扭屁股飛撲與幻影分身共用） |
 | `Assets/Scripts/Hazards` | 場上判定物件（Hazard 基底、衝擊波 ShockwaveRing、落雷 LightningStrike、龍捲風 TornadoVortex、大迴旋的全場判定 GrandSpinField 與安全區 SafeZone）、地面範圍提示（GroundTelegraph，URP Decal）、場地中央的魔法陣（MagicCircle，URP Decal，出現進度／脈動／顏色／半徑、幻影分身的閃爍、大迴旋安全區的符文熄滅）、一次性特效（TimedFx、傷害數字 DamageNumber）、佔位電光（ElectricArcs，Boss 身上與轉階段的場地邊緣共用） |
 | `Assets/Scripts/Cutscene` | CutsceneDirector（播一段演出的 Timeline、鎖輸入、長按跳過、字卡事件；開場與轉階段各一個物件）、CutsceneStage（轉階段時依玩家位置擺演出鏡頭）、IntroCutsceneSettings、Timeline 自訂 Track／Clip（CurveClip 加 CurveTrack／StormTrack／BossSpinTrack／MagicCircleTrack／ElectricArcsTrack、ActorWalk、ActorPush、BossActor、CameraMove、MusicCue、CutsceneEventMarker）、演出物件（ScreenFlash、IntroLightning、SmokePuffs、CameraShaker、ExpandingRing） |
-| `Assets/Scripts/UI` | BattleUI、字卡（TitleCardUI）、跳過提示（SkipPromptUI）、勝敗畫面（只訂閱事件） |
-| `Assets/Scripts/Debug` | Debug 快捷鍵 F1–F5 與右上角的 Boss 面板（BossDebugTools，F5 重新載入場景＝重新挑戰）、平衡面板（F12）、左上角的玩家狀態（PlayerDebugOverlay）、測試木樁（TrainingDummy） |
-| `Assets/Scripts/Editor` | 編輯器工具（ArenaBuilder、DaoDunDogBuilder、CameraRigBuilder、TrainingDummyBuilder、BossBuilder、HazardBuilder、IntroCutsceneBuilder、TransitionCutsceneBuilder、PlaceholderAudioBuilder），不會進 build |
-| `Assets/ScriptableObjects` | 數值資產（`.asset`），依系統分子資料夾：`Arena/`（ArenaData、Atmosphere 天色）、`Player/`、`Boss/`（BossStats）、`Boss/Phases/`、`Boss/Moves/Phase1/`（第一階段 5 招）、`Boss/Moves/Phase2/`（第二階段 4 個強化招，和第一階段同一招共用類別；新招龍捲風、幻影分身與終極技大迴旋）、`Cutscene/`（IntroCutsceneSettings）、`Debug/`（測試木樁） |
+| `Assets/Scripts/UI` | 只訂閱事件（uGUI）：BattleUI（HUD 何時出現、Boss 血條滑入）、PlayerHudUI（左下血條、耐力、骨頭）、BossHudUI（下方置中 Boss 名稱、血條與刻度、失衡條）、LockOnMarkerUI、BattleResultUI（勝敗畫面與重試按鈕）、ResourceBar（量條與延遲扣血）、BattleUIData；開場的字卡（TitleCardUI）、跳過提示（SkipPromptUI） |
+| `Assets/Scripts/Debug` | Debug 快捷鍵 F1–F7 與右上角的 Boss 面板（BossDebugTools，F5 重新挑戰＝`BattleManager.Retry`、F6 Boss 血量歸零、F7 玩家血量歸零）、平衡面板（F12）、左上角的玩家狀態（PlayerDebugOverlay）、測試木樁（TrainingDummy） |
+| `Assets/Scripts/Editor` | 編輯器工具（ArenaBuilder、DaoDunDogBuilder、CameraRigBuilder、TrainingDummyBuilder、BossBuilder、HazardBuilder、IntroCutsceneBuilder、TransitionCutsceneBuilder、BattleUIBuilder、PlaceholderAudioBuilder），不會進 build |
+| `Assets/ScriptableObjects` | 數值資產（`.asset`），依系統分子資料夾：`Arena/`（ArenaData、Atmosphere 天色）、`Player/`、`Boss/`（BossStats）、`Boss/Phases/`、`Boss/Moves/Phase1/`（第一階段 5 招）、`Boss/Moves/Phase2/`（第二階段 4 個強化招，和第一階段同一招共用類別；新招龍捲風、幻影分身與終極技大迴旋）、`Cutscene/`（IntroCutsceneSettings）、`Battle/`（BattleSettings）、`UI/`（BattleUIData：血條刻度、動畫時間、顏色、文字）、`Debug/`（測試木樁） |
 | `Assets/Timelines` | Timeline 資產：`Intro.playable`（開場 14.5 秒）、`Transition.playable`（轉階段 5.0 秒）；鏡頭與各效果的時間點都在這裡調 |
 | `Assets/Prefabs` | 玩家、Boss（`OiiaCat`、幻影 `OiiaCatPhantom`，BossBuilder 產生）、UI 的 prefab；`Prefabs/Hazards` 是地面提示、Hazard 與特效，由 HazardBuilder 產生，重建會覆寫 |
 | `Assets/Shaders` | 自製 shader（都是手寫 JSON 的 URP Decal Shader Graph，Custom Function 用 UV 畫圖）：`TelegraphDecal.shadergraph`（地面範圍提示：圓、環、長方形）、`MagicCircleDecal.shadergraph`（魔法陣：雙環、符文帶、倒五芒星，由中心描繪、外圈分段點亮；`_Holes` 加上 Size.y、Params.w 是大迴旋安全區的熄滅區） |
@@ -99,9 +99,9 @@ ScriptableObject 的「類別」寫在 `Scripts/` 對應的系統資料夾，「
 - T8 新招都是計畫確認過的預設值，T10 平衡時再看：
   - 龍捲風：不限距離、冷卻 12 秒；判定半徑 1.8 m、高 4 m（跳不過，翻滾可閃）；追蹤時 Boss 穿過玩家；失衡 +40 在硬直開始時加（加滿直接頭暈）。玩家受擊無敵剛好 0.5 秒，所以閃過的那一跳會在下一幀重試（TornadoVortex），站在漩渦裡就是每 0.5 秒 10。
   - 幻影分身：距離 3–6 m、冷卻 5 秒照扭屁股飛撲；召喚 1.0 秒，幻影在本體左右各 3 m；幻影隨機順序先撲、本體最後，每隻伏低 0.6 秒、相隔 0.8 秒；三隻都可擋可盾反，盾反幻影也加 Boss 失衡；幻影被打一下就碎、不扣 Boss 血；飛撲判定用 `Hitbox.Filter` 排除 Boss 本體與幻影。項圈只在這招期間亮。
-  - 大迴旋：狂暴 `BossPhaseData.entryMove`（BossBuilder 會在空的時候填上）。血量首次 ≤ 400 時打斷一切（含頭暈）、清 Hazard，立刻出（MoveChoiceSource.PhaseEntry）；上升 1.0 秒到 4 m、倒數 4 秒，浮空到落地無敵；安全區半徑 2 m、圓心離中心 4–8.5 m、彼此至少 8 m，玩家 Hurtbox 中心在圈內才安全；落地判定高 6 m，翻滾無敵仍可閃；落地頭暈 3 秒，頭暈結束（或被處決）才套用狂暴與 1.3 倍音樂。倒數數字是 DamageNumber 佔位，T9 可改 UI。F3 也能單獨出大迴旋，但不會換階段。
+  - 大迴旋：狂暴 `BossPhaseData.entryMove`（BossBuilder 會在空的時候填上）。血量首次 ≤ 400 時打斷一切（含頭暈）、清 Hazard，立刻出（MoveChoiceSource.PhaseEntry）；上升 1.0 秒到 4 m、倒數 4 秒，浮空到落地無敵；安全區半徑 2 m、圓心離中心 4–8.5 m、彼此至少 8 m，玩家 Hurtbox 中心在圈內才安全；落地判定高 6 m，翻滾無敵仍可閃；落地頭暈 3 秒，頭暈結束（或被處決）才套用狂暴與 1.3 倍音樂。倒數數字是 DamageNumber 佔位（T9 沒改，之後要的話再做成 UI）。F3 也能單獨出大迴旋，但不會換階段。
 - 大迴旋與幻影分身引用場景的 MagicCircle：BossBuilder 與 IntroCutsceneBuilder 都會用 `BossBuilder.WireMagicCircle` 接上；沒接時只是沒有閃爍與符文熄滅。
-- 招式被打斷（Interrupt）時只會收掉「目前這招」放出的 Hazard；已經結束的招放出的衝擊波、落雷會跑完才消失。轉階段（`BeginTransition`）與大迴旋開始時會呼叫 `BossController.ClearAllHazards` 收掉所有招式的 Hazard；Boss 倒下時目前不清。
+- 招式被打斷（Interrupt）時只會收掉「目前這招」放出的 Hazard；已經結束的招放出的衝擊波、落雷會跑完才消失。轉階段（`BeginTransition`）、大迴旋開始、Boss 倒下都會呼叫 `BossController.ClearAllHazards` 收掉所有招式的 Hazard。
 - 預兆閃光訂閱 `BossController.OnMoveTelegraph`：進入預兆時依 `BossMoveData.canBlock` 送一次；一招裡某一下要換顏色（例如三連拍第三下紅光）由招式呼叫 `BossMove.Telegraph(canBlock, duration)`，那一下的地面範圍與 `DamageInfo` 由招式自己換（PawSwipeData 的 finisher 欄位）。
 - Boss 走位逾時：為了走進某招距離範圍連續走位超過 `BossPhaseData.repositionTimeout`（目前 3 秒）還走不到，開場序列跳過那招、一般選招直接出正在走向的那招（Debug 面板顯示「走位逾時，直接出」）。企劃書沒寫這條，是 Boss 比玩家慢、玩家一直拉開或貼身時不會卡死的保險。
 - 地面範圍提示的 Decal angle fade 沒有作用：紅圈碰到外牆時牆腳會染一條（投影深度已降到 0.3 m 減輕）。之後要乾淨的話改用 Rendering Layers 只投在地板上。
@@ -115,6 +115,7 @@ ScriptableObject 的「類別」寫在 `Scripts/` 對應的系統資料夾，「
 - 第二階段的魔法陣是紅色、鋪滿整個場地（Hold 在轉階段最後的值），地面的紅圈、衝刺路徑疊在上面；看不清楚的話 T10 調 `MagicCircle` 的亮度或 phase2Color。第二階段外觀（電光、殘影）讀 `BossPhaseData.electrified`。
 - 失衡值在招式之間也會衰減：只靠盾反時，兩次貓掌連拍之間是 破綻 1.2 + 出招間隔 0.8–1.5 + 預兆 0.5 = 2.5–3.2 秒，間隔抽到超過約 1.3 秒，第 4 次盾反會停在 99（中間砍一刀 +3 就補回）。T10 平衡時再看要不要調整衰減延遲。
 - `BossPhaseData.contactDamage`（接觸傷害）只有數值，規則（可否格擋、判定間隔、哪些狀態有效）待企劃書確定後再實作。
+- 戰鬥 UI（T9）由 BattleUIBuilder（Tools > UI > Build Battle UI）建立 BattleUI Canvas 與 EventSystem（InputSystemUIInputModule 用內建的 DefaultInputActions，不動 Player map），並接好 BattleManager 的 T9 欄位；Build Intro 會重建 BattleManager，最後也會呼叫它。版面避開左上、右上的 Debug 面板；字型是內建 LegacyRuntime（uGUI Text），之後換 TextMeshPro 時一起換。勝敗畫面出現時 BattleManager 鎖住玩家與鏡頭輸入、`CameraController.SetCursorReleased(true)` 放開游標。Boss 倒地是 OiiaCatPoser.Fall 的佔位動作（往遠離最後一擊的方向倒 80°）。玩家倒下後 Boss 不停手、音樂照播，當作嘲諷（使用者決定；打到倒下的玩家是 Ignored，Hazard 照常放）。轉階段演出期間按 F7 讓玩家倒下的話，演出結束時會解除輸入鎖定（只有 Debug 會發生）。
 - 測試木樁 `TrainingDummy` 已經在 T3 從場景移除（程式與 `TrainingDummyData.asset` 還在 `Scripts/Debug`、`ScriptableObjects/Debug`）。要練格擋或盾反時用 Tools > Debug > Build Training Dummy 重建，它會自己加進鎖定清單；正式 build 前要刪掉物件，否則會變成 Missing Script。
 
 ## 工作流程

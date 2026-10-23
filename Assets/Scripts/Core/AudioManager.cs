@@ -8,7 +8,7 @@ namespace BossFight.Core
     /// 轉階段演出先 StopMusic（唱片刮擦後靜音），再由 Timeline 的 MusicCue 用 RestartBattleMusic 以新的速度從頭播；
     /// BattleManager 在演出開始時用 SetMusicSpeed(speed, false) 先排好速度，重播時才套用，演出前段的音樂不會先變快。
     /// 還沒指定音樂（Assets/Audio/oiia_bgm 還沒放進來）時只在 Console 寫一行一般訊息，不報錯，開場與戰鬥照常進行；
-    /// 檔案放進來後在 Inspector 的 battleMusic 指定即可。開場的腳步、風聲、嗡鳴、雷聲是 Timeline 自己的 Audio Track，不經過這裡。
+    /// 檔案放進來後在 Inspector 的 battleMusic 指定即可。勝利時 BattleManager 用 FadeOutMusic 淡出（失敗時照播）。開場的腳步、風聲、嗡鳴、雷聲是 Timeline 自己的 Audio Track，不經過這裡。
     /// </summary>
     [DisallowMultipleComponent]
     public class AudioManager : MonoBehaviour
@@ -27,6 +27,7 @@ namespace BossFight.Core
         public bool IsMusicPlaying => musicSource != null && musicSource.isPlaying;
 
         bool reportedMissingMusic;
+        float fadeTime, fadeFrom, fadeElapsed;
 
         /// <summary>從頭開始播戰鬥音樂（循環）；已經在播就不重來。沒有指定音樂時什麼都不做。</summary>
         public void PlayBattleMusic()
@@ -39,8 +40,9 @@ namespace BossFight.Core
                 reportedMissingMusic = true;
                 return;
             }
-            if (musicSource.clip == battleMusic && musicSource.isPlaying) return;
+            if (musicSource.clip == battleMusic && musicSource.isPlaying && fadeTime <= 0f) return;
 
+            fadeTime = 0f;
             musicSource.clip = battleMusic;
             musicSource.loop = true;
             musicSource.volume = musicVolume;
@@ -67,7 +69,30 @@ namespace BossFight.Core
 
         public void StopMusic()
         {
+            fadeTime = 0f;
             if (musicSource != null) musicSource.Stop();
+        }
+
+        /// <summary>音樂在 duration 秒（真實時間，不受慢動作影響）內淡出後停止（勝利結算）；duration ≤ 0 時直接停。</summary>
+        public void FadeOutMusic(float duration)
+        {
+            if (musicSource == null || !musicSource.isPlaying) return;
+            if (duration <= 0f)
+            {
+                StopMusic();
+                return;
+            }
+            fadeTime = duration;
+            fadeFrom = musicSource.volume;
+            fadeElapsed = 0f;
+        }
+
+        void Update()
+        {
+            if (fadeTime <= 0f || musicSource == null) return;
+            fadeElapsed += Time.unscaledDeltaTime;
+            musicSource.volume = Mathf.Lerp(fadeFrom, 0f, fadeElapsed / fadeTime);
+            if (fadeElapsed >= fadeTime) StopMusic();
         }
 
         /// <summary>播一次音效（2D）。clip 為 null 時忽略。</summary>

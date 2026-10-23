@@ -183,7 +183,7 @@ namespace BossFight.DebugTools
                     s = $"<color=#ff9f40>破防 {player.GuardBreakRemaining:0.00} s</color>";
                     break;
                 case PlayerAction.Dead:
-                    s = "<color=#ff4040>倒地（重新進 Play 模式）</color>";
+                    s = "<color=#ff4040>倒地（F5 或勝敗畫面的重試）</color>";
                     break;
                 default:
                     if (!player.IsGrounded) s = "空中";

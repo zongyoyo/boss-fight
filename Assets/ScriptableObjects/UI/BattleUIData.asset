@@ -1,0 +1,50 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 47bd6ce080e871143b0aeebee0da9f83, type: 3}
+  m_Name: BattleUIData
+  m_EditorClassIdentifier: Assembly-CSharp::BossFight.UI.BattleUIData
+  bossHealthTicks:
+  - 0.5
+  - 0.2
+  fallbackBossName: "OIIA \u8C93"
+  trailDelay: 0.5
+  trailSpeed: 0.8
+  fillSpeed: 6
+  emptyFlashTime: 0.6
+  flashRate: 6
+  hudFadeTime: 0.35
+  bossBarSlideTime: 0.6
+  bossBarSlideDistance: 160
+  resultFadeTime: 0.8
+  lockMarkerPopScale: 1.8
+  lockMarkerPopTime: 0.15
+  lockMarkerPulse: 0.1
+  lockMarkerPulseRate: 1.5
+  playerHealthColor: {r: 0.86, g: 0.2, b: 0.2, a: 1}
+  staminaColor: {r: 0.35, g: 0.85, b: 0.4, a: 1}
+  staminaEmptyColor: {r: 1, g: 0.85, b: 0.3, a: 1}
+  bossHealthColor: {r: 0.72, g: 0.18, b: 0.85, a: 1}
+  trailColor: {r: 1, g: 0.9, b: 0.65, a: 1}
+  staggerColor: {r: 1, g: 0.78, b: 0.2, a: 1}
+  stunnedColor: {r: 1, g: 1, b: 0.75, a: 1}
+  boneColor: {r: 0.98, g: 0.93, b: 0.82, a: 1}
+  boneUsedColor: {r: 0.3, g: 0.3, b: 0.3, a: 0.6}
+  stunnedLabel: "\u982D\u6688\u4E2D\uFF01\u9760\u8FD1\u6309 F \u8655\u6C7A"
+  victoryTitle: "\u52DD\u5229"
+  victorySubtitle: "{0} \u8A0E\u4F10\u6210\u529F"
+  defeatTitle: "\u843D\u6557"
+  defeatSubtitle: "\u5200\u76FE\u72D7\u5012\u4E0B\u4E86"
+  victoryButton: "\u518D\u6311\u6230"
+  defeatButton: "\u91CD\u8A66"
+  buttonHint: "Enter\uFF0F\u624B\u628A A"
+  victoryColor: {r: 1, g: 0.85, b: 0.4, a: 1}
+  defeatColor: {r: 0.85, g: 0.25, b: 0.25, a: 1}

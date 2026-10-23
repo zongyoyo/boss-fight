@@ -8,7 +8,8 @@ namespace BossFight.Boss
     /// Boss 被打到的反饋，讓玩家一眼看出有沒有打中：命中點爆火花、全身閃白（BossTelegraphFlash.FlashHit）、
     /// 身體往後仰一下（OiiaCatPoser.Flinch），頭上跳出實際扣血的數字。
     /// 一般命中白色；頭暈中（受傷倍率 &gt; 1）金色、比較大；處決橘紅色、最大；轉階段無敵時只冒一點灰色火花、不跳數字。
-    /// 只訂閱 BossHealth.OnDamaged；顏色、大小、時間都是純視覺參數。
+    /// 血量歸零時往遠離最後一擊的方向倒下（OiiaCatPoser.Fall，佔位的倒地動作）。
+    /// 只訂閱 BossHealth.OnDamaged／OnDefeated；顏色、大小、時間都是純視覺參數。
     /// （BossHitFeedback 是反方向：Boss 的招式打到玩家時的火花。）
     /// </summary>
     [DisallowMultipleComponent]
@@ -74,14 +75,28 @@ namespace BossFight.Boss
         [Tooltip("無敵（轉階段）：打不動")]
         [SerializeField] Look invulnerable = new Look(new Color(0.6f, 0.6f, 0.7f, 1f), 0.5f, Color.black, 0f, Color.gray, 0f);
 
+        Vector3 lastToAttacker;
+
         void OnEnable()
         {
-            if (health != null) health.OnDamaged += HandleDamaged;
+            if (health == null) return;
+            health.OnDamaged += HandleDamaged;
+            health.OnDefeated += HandleDefeated;
         }
 
         void OnDisable()
         {
-            if (health != null) health.OnDamaged -= HandleDamaged;
+            if (health == null) return;
+            health.OnDamaged -= HandleDamaged;
+            health.OnDefeated -= HandleDefeated;
+        }
+
+        // OnDamaged 在 OnDefeated 之前送，lastToAttacker 已經是最後一擊的方向；Debug 直接設血量時沒有方向，往後倒
+        void HandleDefeated()
+        {
+            if (poser == null) return;
+            poser.ResetPose();
+            poser.Fall(lastToAttacker.sqrMagnitude > 0f ? -lastToAttacker : -health.transform.forward);
         }
 
         void HandleDamaged(BossDamageReport report)
@@ -97,6 +112,7 @@ namespace BossFight.Boss
             Vector3 toAttacker = report.info.sourcePosition - root;
             toAttacker.y = 0f;
             toAttacker = toAttacker.sqrMagnitude > 1e-4f ? toAttacker.normalized : health.transform.forward;
+            lastToAttacker = toAttacker;
 
             Vector3 sparkPos = root + Vector3.up * sparkHeight + toAttacker * sparkOffset;
             TimedFx.Spawn(sparkPrefab, sparkPos, Quaternion.identity, look.spark, look.sparkSize);

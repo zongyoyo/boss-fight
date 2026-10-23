@@ -14,7 +14,7 @@ namespace BossFight.Boss
     }
 
     /// <summary>
-    /// OIIA 貓佔位模型的程序化姿勢（還沒有骨架與動畫）：舉爪、拍下、伏低扭屁股、抬頭、繞 Y 軸旋轉、撞暈後搖晃、受擊仰一下。
+    /// OIIA 貓佔位模型的程序化姿勢（還沒有骨架與動畫）：舉爪、拍下、伏低扭屁股、抬頭、繞 Y 軸旋轉、撞暈後搖晃、受擊仰一下、倒地。
     /// 招式呼叫 SetXxx 指定目標姿勢，這裡在 LateUpdate 平滑過去；旋轉只轉 Model，不影響 Boss 根物件的面向。
     /// 關節由 Editor/BossBuilder 指派；這裡的數字全是視覺參數。
     /// </summary>
@@ -68,12 +68,21 @@ namespace BossFight.Boss
         [Tooltip("彈回原狀的時間（秒）")]
         [Min(0.01f)] public float flinchTime = 0.22f;
 
+        [Header("倒地（血量歸零）")]
+        [Tooltip("往旁邊倒下的角度（度）")]
+        [Range(0f, 90f)] public float fallAngle = 80f;
+        [Tooltip("倒下花的時間（秒），越倒越快")]
+        [Min(0.01f)] public float fallTime = 0.7f;
+
         PawPose leftPose, rightPose;
         float crouchTarget, crouch, lookUpTarget, lookUp, wiggleWeight, wobbleWeight;
         bool wiggle, wobble;
         float spinTarget, spinSpeed, spinAngle, time;
         Vector3 flinchAxis;
         float flinchStrength, flinchTimer;
+        Vector3 fallAxis = Vector3.forward;
+        bool fallen;
+        float fallWeight;
 
         /// <summary>目前轉速（度/秒）。</summary>
         public float SpinSpeed => spinSpeed;
@@ -109,6 +118,15 @@ namespace BossFight.Boss
             flinchAxis = transform.InverseTransformDirection(Vector3.Cross(Vector3.up, away.normalized));
             flinchStrength = strength;
             flinchTimer = flinchTime;
+        }
+
+        /// <summary>倒地：往 away（世界座標的水平方向，通常是遠離最後一擊的攻擊者）倒下，fallTime 秒倒平；疊在其他姿勢上，ResetPose 不會扶起來。</summary>
+        public void Fall(Vector3 away)
+        {
+            away.y = 0f;
+            if (away.sqrMagnitude < 1e-4f) away = -transform.forward;
+            fallAxis = transform.InverseTransformDirection(Vector3.Cross(Vector3.up, away.normalized));
+            fallen = true;
         }
 
         /// <summary>回到坐姿：爪子放下、不伏低、不抬頭、停止旋轉與搖晃。</summary>
@@ -159,7 +177,10 @@ namespace BossFight.Boss
             float f = flinchTimer > 0f ? Mathf.Cos(u * Mathf.PI * 1.5f) * (1f - u) * flinchStrength : 0f;
             Quaternion flinch = Quaternion.AngleAxis(flinchAngle * f, flinchAxis);
 
-            model.localRotation = flinch * Quaternion.Euler(pitch, spinAngle, roll);
+            fallWeight = Mathf.MoveTowards(fallWeight, fallen ? 1f : 0f, dt / fallTime);
+            Quaternion fall = Quaternion.AngleAxis(fallAngle * fallWeight * fallWeight, fallAxis);
+
+            model.localRotation = fall * flinch * Quaternion.Euler(pitch, spinAngle, roll);
             float squash = flinchSquash * Mathf.Max(0f, f);
             model.localScale = new Vector3(1f + squash * 0.5f, Mathf.Lerp(1f, crouchScale, crouch) * (1f - squash), 1f + squash * 0.5f);
 

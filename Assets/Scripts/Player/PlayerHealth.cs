@@ -145,6 +145,16 @@ namespace BossFight.Player
             SetHealth(Current + amount);
         }
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        /// <summary>Debug 用：直接設定血量（F7 設 0 測失敗）。不會觸發 OnDamageTaken；設到 0 會倒下。</summary>
+        public void DebugSetHealth(float value)
+        {
+            if (IsDead) return;
+            SetHealth(value);
+            if (IsDead) OnDied?.Invoke();
+        }
+#endif
+
         // 攻擊來源在面向左右 blockAngle / 2 以內；貼在身上分不出方向時算正面
         bool IsInFront(Vector3 source)
         {
