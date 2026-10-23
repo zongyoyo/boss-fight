@@ -122,6 +122,7 @@ namespace BossFight.Boss.Moves
             poser.SetSpin(0f);
             poser.SetLookUp(0f);
             TimedFx.Spawn(impactPrefab, center, Quaternion.identity, impactColor, impactSize);
+            Impact(BossImpactKind.GrandSpinLanding, center);
         }
 
         // 落地判定結束：直接頭暈（BossController 會先 Interrupt 這招，再進入 Stunned）

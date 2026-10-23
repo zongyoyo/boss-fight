@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
 using UnityEngine;
@@ -9,6 +10,8 @@ namespace BossFight.EditorTools
     /// 腳步（沙地 4 步，1.3 秒）、風聲（8 秒無縫循環）、法陣嗡鳴（4 秒，前 2.5 秒漸強）、雷聲（1.5 秒，炸裂聲接低頻悶雷）、
     /// 唱片刮擦（0.55 秒，轉階段音樂中斷）。
     /// 之後有正式音效時，直接在 Timeline 的 Audio Track 換掉片段即可。選單 Tools > Audio > Build Placeholder Sounds；IntroCutsceneBuilder 也會呼叫。
+    /// 戰鬥的打擊回饋音效（T11，BuildCombat）：揮刀、命中、格擋、盾反、受擊、預兆、Boss 的撞牆與落地…，檔名 Sfx_Combat_*；
+    /// 由 CombatFeedbackBuilder 填進 CombatFeedbackData（只填空的或還是佔位音效的欄位，換成正式音效後重建不會蓋掉）。
     /// </summary>
     public static class PlaceholderAudioBuilder
     {
@@ -151,6 +154,193 @@ namespace BossFight.EditorTools
                 s[i] = (saw * 0.6f + lp * 0.45f) * env;
             }
             return Normalize(s, 0.8f);
+        }
+
+        // ---------- 戰鬥音效（T11） ----------
+
+        /// <summary>合成戰鬥音效，回傳「CombatFeedbackData 的欄位名稱 → 音效（變化版）」；落雷沿用 Sfx_Thunder。</summary>
+        public static Dictionary<string, AudioClip[]> BuildCombat()
+        {
+            DaoDunDogBuilder.EnsureFolder(Dir);
+            var thunder = AssetDatabase.LoadAssetAtPath<AudioClip>($"{Dir}/Sfx_Thunder.wav");
+            if (thunder == null) thunder = Save("Sfx_Thunder", Thunder());
+
+            var r = new Dictionary<string, AudioClip[]>
+            {
+                ["swing"] = Variants("Swing", 3, v => Whoosh(101 + v, 0.18f + 0.02f * v, 500f * (1f + 0.08f * v), 2600f * (1f - 0.06f * v), 0.45f, 0.6f)),
+                ["heavySwing"] = One("SwingHeavy", Whoosh(111, 0.38f, 250f, 1600f, 0.55f, 0.7f)),
+                ["hit"] = Variants("Hit", 3, v => Thud(121 + v, 0.16f, 180f * (1f + 0.07f * v), 70f, 0.8f, 22f, 0.85f)),
+                ["comboFinisherHit"] = One("HitFinisher", Thud(131, 0.26f, 160f, 55f, 1f, 14f, 0.9f)),
+                ["heavyHit"] = One("HitHeavy", Mix(0.95f, (Thud(141, 0.45f, 140f, 40f, 1.2f, 8f, 1f), 0f, 1f),
+                                                         (Metal(142, 0.3f, new[] { 900f, 1340f }, 18f, 0f, 1f), 0f, 0.25f))),
+                ["executionHit"] = One("Execution", Mix(0.98f, (Thud(151, 0.8f, 120f, 30f, 1.4f, 5f, 1f), 0f, 1f),
+                                                              (Metal(152, 0.9f, new[] { 660f, 990f, 1485f }, 4f, 0f, 1f), 0.02f, 0.35f))),
+                ["hitDeflected"] = One("Deflect", Metal(161, 0.25f, new[] { 2200f, 3300f, 4700f }, 25f, 0.4f, 0.5f)),
+                ["hurt"] = One("Hurt", Mix(0.9f, (Thud(171, 0.3f, 220f, 60f, 1.3f, 12f, 1f), 0f, 1f), (Tone(0.14f, 900f, 480f, 0f, 1f), 0.03f, 0.3f))),
+                ["block"] = One("Block", Mix(0.85f, (Metal(181, 0.4f, new[] { 520f, 1230f, 2110f, 3400f }, 12f, 0.8f, 1f), 0f, 1f),
+                                                   (Thud(182, 0.1f, 150f, 80f, 0.5f, 30f, 1f), 0f, 0.5f))),
+                ["guardBreak"] = One("GuardBreak", Mix(0.95f, (Metal(191, 0.7f, new[] { 400f, 950f, 1600f }, 6f, 1f, 1f), 0f, 0.8f),
+                                                             (Thud(192, 0.6f, 120f, 35f, 1.5f, 6f, 1f), 0f, 1f),
+                                                             (Whoosh(193, 0.4f, 3000f, 300f, 0.1f, 1f), 0.05f, 0.4f))),
+                ["parry"] = One("Parry", Mix(0.9f, (Metal(201, 1f, new[] { 1568f, 2349f, 3136f, 4699f }, 3.5f, 0.6f, 1f), 0f, 1f),
+                                                  (Whoosh(202, 0.15f, 2000f, 6000f, 0.2f, 1f), 0f, 0.3f))),
+                ["evade"] = One("Evade", Whoosh(211, 0.22f, 1200f, 4000f, 0.3f, 0.45f)),
+                ["roll"] = One("Roll", Mix(0.5f, (Whoosh(221, 0.32f, 200f, 900f, 0.4f, 1f), 0f, 1f), (Thud(222, 0.08f, 120f, 70f, 0.6f, 40f, 1f), 0.25f, 0.4f))),
+                ["jump"] = One("Jump", Thud(231, 0.12f, 140f, 260f, 0.6f, 25f, 0.45f)),
+                ["heal"] = One("Heal", Mix(0.6f, (Thud(241, 0.12f, 300f, 120f, 1.5f, 30f, 1f), 0.05f, 1f),
+                                                 (Thud(242, 0.12f, 280f, 110f, 1.5f, 30f, 1f), 0.4f, 0.9f),
+                                                 (Thud(243, 0.12f, 320f, 120f, 1.5f, 30f, 1f), 0.75f, 1f))),
+                ["telegraphBlockable"] = One("TelegraphWhite", Metal(251, 0.5f, new[] { 1760f, 2640f, 3520f }, 7f, 0f, 0.6f)),
+                ["telegraphUnblockable"] = One("TelegraphRed", Buzz(0.45f, 200f, 0.18f, 0.05f, 0.7f)),
+                ["pawSwipe"] = One("PawSwipe", Mix(0.6f, (Whoosh(261, 0.25f, 300f, 1800f, 0.5f, 1f), 0f, 1f), (Thud(262, 0.2f, 120f, 50f, 0.8f, 18f, 1f), 0.12f, 0.8f))),
+                ["pawFinisher"] = One("PawFinisher", Mix(0.85f, (Whoosh(271, 0.3f, 300f, 1800f, 0.5f, 1f), 0f, 0.8f), (Zap(272, 0.5f, 1f), 0.12f, 0.8f),
+                                                               (Thud(273, 0.35f, 110f, 40f, 1f, 10f, 1f), 0.12f, 1f))),
+                ["wallSlam"] = One("WallSlam", Mix(1f, (Thud(281, 1f, 90f, 28f, 1.6f, 4f, 1f), 0f, 1f), (Whoosh(282, 0.8f, 1200f, 150f, 0.05f, 1f), 0.02f, 0.5f))),
+                ["pounceLanding"] = One("PounceLanding", Thud(291, 0.5f, 110f, 35f, 1.2f, 8f, 0.85f)),
+                ["phantomLanding"] = One("PhantomLanding", Mix(0.55f, (Thud(301, 0.35f, 160f, 60f, 0.6f, 12f, 1f), 0f, 1f),
+                                                                    (Metal(302, 0.5f, new[] { 1200f, 1800f }, 6f, 0f, 1f), 0f, 0.3f))),
+                ["shockwave"] = One("Shockwave", Mix(0.85f, (Thud(311, 0.4f, 100f, 40f, 1f, 8f, 1f), 0f, 1f), (Whoosh(312, 0.8f, 1500f, 200f, 0.15f, 1f), 0f, 0.7f))),
+                ["lightning"] = new[] { thunder },
+                ["tornado"] = One("Tornado", Whoosh(321, 1.4f, 200f, 700f, 0.6f, 0.75f)),
+                ["grandSpinLanding"] = One("GrandSpinLanding", Mix(1f, (Thud(331, 1.6f, 70f, 22f, 2f, 2.5f, 1f), 0f, 1f),
+                                                                     (Whoosh(332, 1.2f, 2000f, 150f, 0.05f, 1f), 0f, 0.6f),
+                                                                     (Metal(333, 1.5f, new[] { 180f, 270f }, 2f, 0f, 1f), 0f, 0.2f))),
+                ["stunned"] = One("Stunned", Mix(0.8f, (Tone(0.8f, 900f, 400f, 8f, 1f), 0f, 1f), (Tone(0.08f, 2400f, 3000f, 0f, 1f), 0.15f, 0.4f),
+                                                      (Tone(0.08f, 2600f, 3200f, 0f, 1f), 0.45f, 0.4f))),
+                ["defeated"] = One("BossDefeated", Mix(1f, (Thud(341, 1.4f, 80f, 25f, 1.5f, 3f, 1f), 0f, 1f), (Tone(1.2f, 500f, 100f, 5f, 1f), 0.1f, 0.3f))),
+            };
+            Debug.Log($"[Audio] 戰鬥佔位音效已建立：{Dir}/Sfx_Combat_*");
+            return r;
+        }
+
+        static AudioClip[] One(string name, float[] samples) => new[] { Save("Sfx_Combat_" + name, samples) };
+
+        static AudioClip[] Variants(string name, int count, System.Func<int, float[]> make)
+        {
+            var clips = new AudioClip[count];
+            for (int v = 0; v < count; v++) clips[v] = Save($"Sfx_Combat_{name}_{v + 1}", make(v));
+            return clips;
+        }
+
+        // 一階低通的係數（截止頻率 f）
+        static float K(float f) => 1f - Mathf.Exp(-2f * Mathf.PI * Mathf.Max(1f, f) / Rate);
+
+        // 收尾 20 ms 淡出，避免爆音
+        static float Tail(float t, float dur) => Mathf.Clamp01((dur - t) / 0.02f);
+
+        // 呼的一聲：帶通雜訊，中心頻率 f0 → f1 滑動；在 peakAt（0..1）最大聲
+        static float[] Whoosh(int seed, float dur, float f0, float f1, float peakAt, float peak)
+        {
+            var rnd = new System.Random(seed);
+            var s = new float[Seconds(dur)];
+            float a = 0f, b = 0f;
+            for (int i = 0; i < s.Length; i++)
+            {
+                float t = i / (float)Rate, u = t / dur;
+                float f = Mathf.Lerp(f0, f1, u);
+                float n = Noise(rnd);
+                a += (n - a) * K(f * 1.5f);
+                b += (a - b) * K(f * 0.5f);
+                float env = u < peakAt ? Mathf.SmoothStep(0f, 1f, u / peakAt) : Mathf.Pow(1f - (u - peakAt) / (1f - peakAt), 2f);
+                s[i] = (a - b) * env * Tail(t, dur);
+            }
+            return Normalize(s, peak);
+        }
+
+        // 悶響：音高 f0 → f1 指數滑動的正弦，加一段低通雜訊的「啪」；decay 越大越短
+        static float[] Thud(int seed, float dur, float f0, float f1, float noise, float decay, float peak)
+        {
+            var rnd = new System.Random(seed);
+            var s = new float[Seconds(dur)];
+            float phase = 0f, lp = 0f;
+            for (int i = 0; i < s.Length; i++)
+            {
+                float t = i / (float)Rate, u = t / dur;
+                float f = f0 * Mathf.Pow(f1 / f0, u);
+                phase += f / Rate;
+                float tone = Mathf.Sin(2f * Mathf.PI * phase) * Mathf.Exp(-t * decay);
+                lp += (Noise(rnd) - lp) * K(2500f);
+                float crack = lp * noise * Mathf.Exp(-t * decay * 3f);
+                s[i] = (tone + crack) * Mathf.Clamp01(t / 0.002f) * Tail(t, dur);
+            }
+            return Normalize(s, peak);
+        }
+
+        // 金屬聲：幾個不成倍數的泛音各自衰減（高的衰減快），開頭一點雜訊的敲擊
+        static float[] Metal(int seed, float dur, float[] freqs, float decay, float noise, float peak)
+        {
+            var rnd = new System.Random(seed);
+            var s = new float[Seconds(dur)];
+            for (int i = 0; i < s.Length; i++)
+            {
+                float t = i / (float)Rate, v = 0f;
+                for (int k = 0; k < freqs.Length; k++)
+                    v += Mathf.Sin(2f * Mathf.PI * freqs[k] * t) * Mathf.Exp(-t * decay * (1f + 0.5f * k)) / (1f + 0.3f * k);
+                v += Noise(rnd) * noise * Mathf.Exp(-t * 200f);
+                s[i] = v * Mathf.Clamp01(t / 0.001f) * Tail(t, dur);
+            }
+            return Normalize(s, peak);
+        }
+
+        // 滑音：f0 → f1 的正弦，可加顫音（vibrato Hz）
+        static float[] Tone(float dur, float f0, float f1, float vibrato, float peak)
+        {
+            var s = new float[Seconds(dur)];
+            float phase = 0f;
+            for (int i = 0; i < s.Length; i++)
+            {
+                float t = i / (float)Rate, u = t / dur;
+                float f = Mathf.Lerp(f0, f1, u) * (1f + 0.06f * Mathf.Sin(2f * Mathf.PI * vibrato * t));
+                phase += f / Rate;
+                s[i] = Mathf.Sin(2f * Mathf.PI * phase) * Mathf.Clamp01(t / 0.01f) * (1f - u * 0.5f) * Tail(t, dur);
+            }
+            return Normalize(s, peak);
+        }
+
+        // 警告嗡嗡聲：兩個略為走音的方波脈衝（pulse 秒、間隔 gap 秒），低通後比較不刺耳
+        static float[] Buzz(float dur, float f, float pulse, float gap, float peak)
+        {
+            var s = new float[Seconds(dur)];
+            float lp = 0f;
+            for (int i = 0; i < s.Length; i++)
+            {
+                float t = i / (float)Rate;
+                float local = t % (pulse + gap);
+                float gate = local < pulse ? Mathf.Clamp01(local / 0.005f) * Mathf.Clamp01((pulse - local) / 0.01f) : 0f;
+                float sq = Mathf.Sign(Mathf.Sin(2f * Mathf.PI * f * t)) + 0.7f * Mathf.Sign(Mathf.Sin(2f * Mathf.PI * f * 1.51f * t));
+                lp += (sq - lp) * K(1800f);
+                s[i] = lp * gate * Tail(t, dur);
+            }
+            return Normalize(s, peak);
+        }
+
+        // 電流聲：雜訊被 60 Hz 方波斷斷續續地開關，加一點 120 Hz 嗡聲
+        static float[] Zap(int seed, float dur, float peak)
+        {
+            var rnd = new System.Random(seed);
+            var s = new float[Seconds(dur)];
+            for (int i = 0; i < s.Length; i++)
+            {
+                float t = i / (float)Rate;
+                float gate = Mathf.Sin(2f * Mathf.PI * 60f * t) > 0.2f ? 1f : 0.15f;
+                float v = Noise(rnd) * gate + 0.4f * Mathf.Sin(2f * Mathf.PI * 120f * t);
+                s[i] = v * Mathf.Exp(-t * 6f) * Tail(t, dur);
+            }
+            return Normalize(s, peak);
+        }
+
+        // 疊加幾段（樣本, 開始秒數, 音量），整體正規化到 peak
+        static float[] Mix(float peak, params (float[] samples, float at, float gain)[] parts)
+        {
+            int length = 0;
+            foreach (var p in parts) length = Mathf.Max(length, Seconds(p.at) + p.samples.Length);
+            var s = new float[length];
+            foreach (var p in parts)
+            {
+                int offset = Seconds(p.at);
+                for (int i = 0; i < p.samples.Length; i++) s[offset + i] += p.samples[i] * p.gain;
+            }
+            return Normalize(s, peak);
         }
 
         // ---------- 工具 ----------

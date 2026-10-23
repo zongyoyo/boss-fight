@@ -29,7 +29,7 @@ namespace BossFight.EditorTools
     /// 3. 把 Timeline 的每條軌道綁到場景物件（依軌道類型；同類型有好幾條的依軌道名稱），Cinemachine 片段依片段名稱接到同名的鏡頭。
     ///    所以在 Timeline 視窗調時間點、加減片段都沒關係，但不要改軌道與鏡頭片段的名稱。
     /// 4. BossController.startOnPlay 關掉（場景與 prefab），改由 BattleManager 在開場結束時開打；重建的魔法陣接到 Boss 的幻影分身與大迴旋。
-    /// 5. 最後重建轉階段演出（TransitionCutsceneBuilder）與戰鬥 UI（BattleUIBuilder），因為它們引用這裡重建的魔法陣、AudioManager、BattleManager 與開場。
+    /// 5. 最後重建轉階段演出（TransitionCutsceneBuilder）與戰鬥 UI（BattleUIBuilder），因為它們引用這裡重建的魔法陣、AudioManager、BattleManager 與開場；打擊回饋（CombatFeedbackBuilder）也重接到新的 AudioManager。
     /// Tools > Cutscene > Reset Intro Timeline 會刪掉 Timeline 重排一次（在 Timeline 視窗做的調整會不見）。
     /// 鏡頭位置、顏色、大小都是純視覺參數。
     /// </summary>
@@ -223,6 +223,8 @@ namespace BossFight.EditorTools
             TransitionCutsceneBuilder.Build();
             // 戰鬥 UI 引用這裡重建的 BattleManager 與開場（字卡），BattleManager 的 T9 欄位也在那邊接
             BattleUIBuilder.Build();
+            // 打擊回饋的音效經這裡重建的 AudioManager 播放
+            CombatFeedbackBuilder.Wire();
 
             Undo.CollapseUndoOperations(undoGroup);
             AssetDatabase.SaveAssets();

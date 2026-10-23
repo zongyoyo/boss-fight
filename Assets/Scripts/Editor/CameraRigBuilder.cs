@@ -15,6 +15,7 @@ namespace BossFight.EditorTools
     /// 加上自由視角與鎖定視角兩台 CinemachineCamera、鎖定用的 TargetGroup 與 CameraController，
     /// 接好玩家、PlayerStats 與場景裡所有 LockOnTarget，並把鏡頭接回 PlayerController。
     /// 選單 Tools > Camera > Build Camera Rig；DaoDunDogBuilder 重建角色後也會呼叫。重建時刪掉舊的 CameraRig 重做。
+    /// 最後呼叫 CombatFeedbackBuilder.Wire：兩台鏡頭加上鏡頭震動的 ImpulseListener、玩家的打擊回饋重接（T11）。
     /// 距離、高度、阻尼、混合時間都是純視覺參數。
     /// </summary>
     public static class CameraRigBuilder
@@ -102,6 +103,9 @@ namespace BossFight.EditorTools
             var rot = Quaternion.Euler(StartPitch, yaw, 0f);
             var pivot = player.transform.position + Vector3.up * PivotHeight;
             cam.transform.SetPositionAndRotation(pivot + rot * Vector3.back * FreeLookRadius, rot);
+
+            // 鏡頭震動的 ImpulseListener 與玩家的打擊回饋（DaoDunDogBuilder 重建角色後也會走到這裡）
+            CombatFeedbackBuilder.Wire();
 
             Undo.CollapseUndoOperations(undoGroup);
             EditorSceneManager.MarkSceneDirty(rig.scene);

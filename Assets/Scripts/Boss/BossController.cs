@@ -80,6 +80,43 @@ namespace BossFight.Boss
         }
     }
 
+    /// <summary>招式的衝擊時刻（打擊回饋的音效與鏡頭震動用）。</summary>
+    public enum BossImpactKind
+    {
+        /// <summary>貓掌拍下去（每一下）。</summary>
+        PawSwipe,
+        /// <summary>三連拍第三下（帶電）。</summary>
+        PawFinisher,
+        /// <summary>迴旋衝撞撞牆。</summary>
+        WallSlam,
+        /// <summary>扭屁股飛撲（或幻影分身的本體）落地。</summary>
+        PounceLanding,
+        /// <summary>幻影落地。</summary>
+        PhantomLanding,
+        /// <summary>放出一圈衝擊波。</summary>
+        Shockwave,
+        /// <summary>一道落雷劈下。</summary>
+        Lightning,
+        /// <summary>龍捲風成形。</summary>
+        Tornado,
+        /// <summary>大迴旋落地。</summary>
+        GrandSpinLanding,
+    }
+
+    /// <summary>一次招式的衝擊，OnMoveImpact 送出。</summary>
+    public readonly struct BossImpact
+    {
+        public readonly BossImpactKind kind;
+        /// <summary>發生的位置（世界座標）。</summary>
+        public readonly Vector3 position;
+
+        public BossImpact(BossImpactKind kind, Vector3 position)
+        {
+            this.kind = kind;
+            this.position = position;
+        }
+    }
+
     /// <summary>
     /// OIIA 貓的 AI 狀態機與選招，持有目前階段的 BossPhaseData。數值讀 BossStats／BossPhaseData／BossMoveData；
     /// 冷卻、開場序列進度這些執行期狀態存在元件自己身上。
@@ -96,7 +133,7 @@ namespace BossFight.Boss
     /// 頭暈（Stun）打斷目前的招式，時間到回到 Idle；失衡值的累積、受傷倍率與處決在同一個物件上的 BossStagger，
     /// 它在處決進行中設 HoldStun（時間到也先不結束），處決打到時呼叫 EndStun。
     /// 轉階段、倒下時收掉場上所有招式放出的 Hazard（ClearAllHazards）。
-    /// 招式的執行交給 BossMove；這裡只送事件，UI 與演出訂閱 OnStateChanged、OnMoveChosen、OnMoveTelegraph、OnPhaseChanged、OnMoveHit。
+    /// 招式的執行交給 BossMove；這裡只送事件，UI 與演出訂閱 OnStateChanged、OnMoveChosen、OnMoveTelegraph、OnPhaseChanged、OnMoveHit、OnMoveImpact。
     /// </summary>
     [RequireComponent(typeof(BossHealth))]
     [DisallowMultipleComponent]
@@ -126,6 +163,8 @@ namespace BossFight.Boss
         public event Action<BossPhaseData> OnPhaseChanged;
         /// <summary>招式的攻擊判定打到目標並結算完（命中火花、Debug 面板）。盾反的失衡值走 PlayerHealth.OnParry，不在這裡加。</summary>
         public event Action<BossMove, HitReport> OnMoveHit;
+        /// <summary>招式的衝擊時刻：拍下去、撞牆、落地、放出衝擊波、落雷劈下（BossImpactFeedback 的音效與鏡頭震動）。打不打到人都會送。</summary>
+        public event Action<BossImpact> OnMoveImpact;
 
         public BossState State { get; private set; }
         /// <summary>進入目前狀態後經過的秒數。</summary>
@@ -438,6 +477,9 @@ namespace BossFight.Boss
         }
 
         internal void NotifyMoveHit(BossMove move, in HitReport report) => OnMoveHit?.Invoke(move, report);
+
+        // 不限目前這一招：已經結束的招放出的落雷照樣會劈下來
+        internal void NotifyImpact(BossImpactKind kind, Vector3 position) => OnMoveImpact?.Invoke(new BossImpact(kind, position));
 
         // 只接受目前這一招的預兆（被打斷後還在跑的招不算）
         internal void NotifyTelegraph(BossMove move, bool canBlock, float duration)

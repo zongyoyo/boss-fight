@@ -34,6 +34,7 @@ namespace BossFight.Boss.Moves
         readonly TimedFx impactPrefab;
         readonly Color impactColor;
         readonly float landingCrouch;
+        readonly BossImpactKind landingImpact;
 
         ButtPounceData data;
         DamageInfo damage;
@@ -46,8 +47,9 @@ namespace BossFight.Boss.Moves
         public Transform Body => body;
 
         /// <param name="landingCrouch">落地後伏低的程度（0..1）。</param>
+        /// <param name="landingImpact">落地時送出的衝擊（BossController.OnMoveImpact）：本體 PounceLanding、幻影 PhantomLanding。</param>
         public PounceRunner(BossController boss, Transform body, OiiaCatPoser poser, Hitbox hitbox, GroundTelegraph circle,
-                            TimedFx impactPrefab, Color impactColor, float landingCrouch)
+                            TimedFx impactPrefab, Color impactColor, float landingCrouch, BossImpactKind landingImpact)
         {
             this.boss = boss;
             this.body = body;
@@ -57,6 +59,7 @@ namespace BossFight.Boss.Moves
             this.impactPrefab = impactPrefab;
             this.impactColor = impactColor;
             this.landingCrouch = landingCrouch;
+            this.landingImpact = landingImpact;
         }
 
         // 落點圈從伏低開始填，落地那一刻填滿
@@ -136,6 +139,7 @@ namespace BossFight.Boss.Moves
             circle.Hide();
             poser.SetCrouch(landingCrouch);
             TimedFx.Spawn(impactPrefab, land, Quaternion.identity, impactColor, data.landingRadius);
+            boss.NotifyImpact(landingImpact, land);
         }
 
         /// <summary>收掉：關判定、藏起落點圈、回到坐姿；在空中被打斷就直接落回地面。</summary>

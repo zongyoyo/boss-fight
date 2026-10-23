@@ -11082,6 +11082,7 @@ GameObject:
   - component: {fileID: 1245699766}
   - component: {fileID: 1245699765}
   - component: {fileID: 1245699764}
+  - component: {fileID: 1245699768}
   m_Layer: 0
   m_Name: CM LockOn
   m_TagString: Untagged
@@ -11278,6 +11279,30 @@ MonoBehaviour:
       BarrelClipping: 0.25
       Anamorphism: 0
   BlendHint: 0
+--- !u!114 &1245699768
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1245699762}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 00b2d199b96b516448144ab30fb26aed, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Cinemachine::Unity.Cinemachine.CinemachineImpulseListener
+  ApplyAfter: 2
+  ChannelMask: 1
+  Gain: 1
+  Use2DDistance: 0
+  UseCameraSpace: 1
+  SignalCombinationMode: 0
+  ReactionSettings:
+    m_SecondaryNoise: {fileID: 0}
+    AmplitudeGain: 1
+    FrequencyGain: 1
+    Duration: 1
+    m_NoiseOffsets: {x: 0, y: 0, z: 0}
 --- !u!1 &1264303640
 GameObject:
   m_ObjectHideFlags: 0
@@ -14708,6 +14733,7 @@ GameObject:
   - component: {fileID: 1711542656}
   - component: {fileID: 1711542655}
   - component: {fileID: 1711542654}
+  - component: {fileID: 1711542658}
   m_Layer: 0
   m_Name: CM FreeLook
   m_TagString: Untagged
@@ -14904,6 +14930,30 @@ MonoBehaviour:
       BarrelClipping: 0.25
       Anamorphism: 0
   BlendHint: 0
+--- !u!114 &1711542658
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1711542652}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 00b2d199b96b516448144ab30fb26aed, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Cinemachine::Unity.Cinemachine.CinemachineImpulseListener
+  ApplyAfter: 2
+  ChannelMask: 1
+  Gain: 1
+  Use2DDistance: 0
+  UseCameraSpace: 1
+  SignalCombinationMode: 0
+  ReactionSettings:
+    m_SecondaryNoise: {fileID: 0}
+    AmplitudeGain: 1
+    FrequencyGain: 1
+    Duration: 1
+    m_NoiseOffsets: {x: 0, y: 0, z: 0}
 --- !u!1 &1715305458
 GameObject:
   m_ObjectHideFlags: 0
@@ -18899,6 +18949,10 @@ PrefabInstance:
       propertyPath: 'executionTargets.Array.data[0]'
       value: 
       objectReference: {fileID: 8192183024484153735}
+    - target: {fileID: 4139779714640994684, guid: ba4551dbd87fc6645aa6a8c52c387733, type: 3}
+      propertyPath: audioManager
+      value: 
+      objectReference: {fileID: 1828171376}
     - target: {fileID: 8166751425164872580, guid: ba4551dbd87fc6645aa6a8c52c387733, type: 3}
       propertyPath: m_Name
       value: DaoDunDog
@@ -19013,6 +19067,10 @@ PrefabInstance:
       propertyPath: arenaCenter
       value: 
       objectReference: {fileID: 1693668273}
+    - target: {fileID: 8870404366982116199, guid: 17c8f5c951a27ec48873f12bb687c86f, type: 3}
+      propertyPath: audioManager
+      value: 
+      objectReference: {fileID: 1828171376}
     - target: {fileID: 9025145577014846774, guid: 17c8f5c951a27ec48873f12bb687c86f, type: 3}
       propertyPath: viewCamera
       value: 

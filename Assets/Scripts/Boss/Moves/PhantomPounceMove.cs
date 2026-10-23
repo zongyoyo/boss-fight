@@ -84,13 +84,14 @@ namespace BossFight.Boss.Moves
             {
                 if (p.phantom == null)
                 {
-                    p.runner = new PounceRunner(Boss, Boss.transform, poser, hitbox, p.circle, impactPrefab, impactColor, landingCrouch);
+                    p.runner = new PounceRunner(Boss, Boss.transform, poser, hitbox, p.circle, impactPrefab, impactColor, landingCrouch,
+                                                BossImpactKind.PounceLanding);
                     hitbox.Filter = NotOwnSide;
                 }
                 else
                 {
                     p.runner = new PounceRunner(Boss, p.phantom.transform, p.phantom.Poser, p.phantom.Hitbox, p.circle,
-                                                impactPrefab, phantomImpactColor, landingCrouch);
+                                                impactPrefab, phantomImpactColor, landingCrouch, BossImpactKind.PhantomLanding);
                     p.phantom.Hitbox.Filter = NotOwnSide;
                 }
             }

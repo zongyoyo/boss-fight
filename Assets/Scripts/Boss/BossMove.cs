@@ -99,6 +99,9 @@ namespace BossFight.Boss
         /// </summary>
         protected void Telegraph(bool canBlock, float duration) => Boss.NotifyTelegraph(this, canBlock, duration);
 
+        /// <summary>送出一次衝擊時刻（拍下去、撞牆、落地…），打擊回饋的音效與鏡頭震動用。</summary>
+        protected void Impact(BossImpactKind kind, Vector3 position) => Boss.NotifyImpact(kind, position);
+
         /// <summary>收掉這招放到場上、還沒跑完的 Hazard（被打斷時，或轉階段時由 BossController.ClearAllHazards 呼叫）。</summary>
         public void ClearHazards()
         {

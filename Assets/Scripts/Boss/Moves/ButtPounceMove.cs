@@ -41,7 +41,8 @@ namespace BossFight.Boss.Moves
         void Start()
         {
             // Boss 在 BossController.Awake 才綁定
-            runner = new PounceRunner(Boss, Boss.transform, poser, hitbox, circle, impactPrefab, impactColor, landingCrouch);
+            runner = new PounceRunner(Boss, Boss.transform, poser, hitbox, circle, impactPrefab, impactColor, landingCrouch,
+                                    BossImpactKind.PounceLanding);
         }
 
         void OnDestroy()

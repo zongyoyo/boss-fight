@@ -1,0 +1,162 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a226ca8f628e0d546aaeb2eb392f8152, type: 3}
+  m_Name: CombatFeedback
+  m_EditorClassIdentifier: Assembly-CSharp::BossFight.Core.CombatFeedbackData
+  shakeScale: 1
+  shakeDuration: 0.25
+  shakeDistance: 30
+  shakeSpread: 0.6
+  swing:
+    clips:
+    - {fileID: 8300000, guid: a0209ea27c04aa7488a75cba837da503, type: 3}
+    - {fileID: 8300000, guid: 898c2ed19fa6f6a47b45b158c68b44d9, type: 3}
+    - {fileID: 8300000, guid: 0b2c9a3b79d154d49a9243be402c284c, type: 3}
+    volume: 0.45
+    shake: 0
+  heavySwing:
+    clips:
+    - {fileID: 8300000, guid: 793690edac3a98547915eadb697b3ce3, type: 3}
+    volume: 0.6
+    shake: 0
+  hit:
+    clips:
+    - {fileID: 8300000, guid: 0c3f6a46d1ad4344e983e673dac538d4, type: 3}
+    - {fileID: 8300000, guid: 655b859dfbeb14a4887a5366b9497985, type: 3}
+    - {fileID: 8300000, guid: 2fe42b45c2b11ad45bf0fc58dd0d984f, type: 3}
+    volume: 0.7
+    shake: 0.12
+  comboFinisherHit:
+    clips:
+    - {fileID: 8300000, guid: 8f3e12c9701b95f439a3f00aa45357e7, type: 3}
+    volume: 0.85
+    shake: 0.22
+  heavyHit:
+    clips:
+    - {fileID: 8300000, guid: b57156cf4b563864ea483b653df270a5, type: 3}
+    volume: 1
+    shake: 0.4
+  executionHit:
+    clips:
+    - {fileID: 8300000, guid: 0e9a14c088236d242a0316278b28c752, type: 3}
+    volume: 1
+    shake: 0.75
+  hitDeflected:
+    clips:
+    - {fileID: 8300000, guid: 98510ff5382f57a42b3b6dda0b4c1b98, type: 3}
+    volume: 0.5
+    shake: 0
+  hurt:
+    clips:
+    - {fileID: 8300000, guid: d0984f0108c37fa488d5e87c94369a6d, type: 3}
+    volume: 0.9
+    shake: 0.45
+  block:
+    clips:
+    - {fileID: 8300000, guid: 5f22d42bb927ea4499bbfdbca69a06e8, type: 3}
+    volume: 0.8
+    shake: 0.15
+  guardBreak:
+    clips:
+    - {fileID: 8300000, guid: 19ab2b7b557f60c4cb271c4903bca171, type: 3}
+    volume: 1
+    shake: 0.45
+  parry:
+    clips:
+    - {fileID: 8300000, guid: 62117a306e2695047a9c8409f3dd4e21, type: 3}
+    volume: 1
+    shake: 0.3
+  evade:
+    clips:
+    - {fileID: 8300000, guid: cf18defd10a37704ea3d75cbcb7e1fa8, type: 3}
+    volume: 0.5
+    shake: 0
+  roll:
+    clips:
+    - {fileID: 8300000, guid: ad50be2153e9fd14f8dc33b46972aecb, type: 3}
+    volume: 0.4
+    shake: 0
+  jump:
+    clips:
+    - {fileID: 8300000, guid: 7e5d48068b8fb8d44bd68715d21f5c43, type: 3}
+    volume: 0.35
+    shake: 0
+  heal:
+    clips:
+    - {fileID: 8300000, guid: fbcd4d63d17709f44adfe22afe70e619, type: 3}
+    volume: 0.6
+    shake: 0
+  telegraphBlockable:
+    clips:
+    - {fileID: 8300000, guid: bc50ea6d0b8f51743a51e07a17d87267, type: 3}
+    volume: 0.6
+    shake: 0
+  telegraphUnblockable:
+    clips:
+    - {fileID: 8300000, guid: 52ab3ca15717f994e8af49337fbab5f8, type: 3}
+    volume: 0.75
+    shake: 0
+  pawSwipe:
+    clips:
+    - {fileID: 8300000, guid: 7e582e8b0bc5a8f41830d3703719f01b, type: 3}
+    volume: 0.6
+    shake: 0.08
+  pawFinisher:
+    clips:
+    - {fileID: 8300000, guid: 7ad1d8b3716315c459dd12d11577bc36, type: 3}
+    volume: 0.85
+    shake: 0.3
+  wallSlam:
+    clips:
+    - {fileID: 8300000, guid: 62768984de67b10448d07a35fb50983e, type: 3}
+    volume: 1
+    shake: 0.65
+  pounceLanding:
+    clips:
+    - {fileID: 8300000, guid: 4e8fa7c14bbd84a43bd0ac520abdef05, type: 3}
+    volume: 0.85
+    shake: 0.3
+  phantomLanding:
+    clips:
+    - {fileID: 8300000, guid: 7804a846e1cb7154d909e901f2d6949b, type: 3}
+    volume: 0.55
+    shake: 0.12
+  shockwave:
+    clips:
+    - {fileID: 8300000, guid: 38311df3904a31b4e854851b8437f2eb, type: 3}
+    volume: 0.85
+    shake: 0.25
+  lightning:
+    clips:
+    - {fileID: 8300000, guid: 0b635dd2516363a4385a1555281ecc86, type: 3}
+    volume: 0.55
+    shake: 0.2
+  tornado:
+    clips:
+    - {fileID: 8300000, guid: 9f39feef31297f848b917ba9e35ff3f1, type: 3}
+    volume: 0.75
+    shake: 0.15
+  grandSpinLanding:
+    clips:
+    - {fileID: 8300000, guid: 48fee8670043dab439b826060d5c8fbc, type: 3}
+    volume: 1
+    shake: 1
+  stunned:
+    clips:
+    - {fileID: 8300000, guid: 8a07af6525d38ba4fa98648a48016e42, type: 3}
+    volume: 0.8
+    shake: 0
+  defeated:
+    clips:
+    - {fileID: 8300000, guid: 0a88e62ef268f5a49a5d093ace607ab9, type: 3}
+    volume: 1
+    shake: 0.8

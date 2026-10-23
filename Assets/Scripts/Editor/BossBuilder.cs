@@ -24,7 +24,8 @@ namespace BossFight.EditorTools
     /// 例外：第一階段的開場序列是空的或有遺失的招式時，換成 迴旋衝撞 → 貓掌連拍 → 魔法陣落雷；狂暴的進場招式是空的時，填入 OIIA 大迴旋。
     /// 存成 Assets/Prefabs/OiiaCat.prefab，放在場地中心、面向南方的玩家出生點；刪掉 T1 的 FakeBoss，
     /// 並把玩家的鎖定清單與處決清單、PlayerDebugOverlay 的距離對象、
-    /// DebugTools 上的 BossDebugTools 接到新的 Boss；場景裡的魔法陣接到幻影分身與大迴旋（IntroCutsceneBuilder 重建魔法陣後也會再接一次）。
+    /// DebugTools 上的 BossDebugTools 接到新的 Boss；場景裡的魔法陣接到幻影分身與大迴旋（IntroCutsceneBuilder 重建魔法陣後也會再接一次）；
+    /// 最後重接 F12 平衡面板（BalancePanelBuilder）與打擊回饋（CombatFeedbackBuilder：BossImpactFeedback 的音效與鏡頭震動，T11）。
     /// 選單 Tools > Boss > Build Boss Placeholder；重建時沿用舊 Boss 的位置與朝向。尺寸、顏色都是純視覺參數。
     /// </summary>
     public static class BossBuilder
@@ -773,6 +774,7 @@ namespace BossFight.EditorTools
             tso.ApplyModifiedProperties();
 
             BalancePanelBuilder.Wire();
+            CombatFeedbackBuilder.Wire();
         }
 
         /// 把場景的魔法陣接到會用它的招式（幻影分身的閃爍、大迴旋的安全區）；IntroCutsceneBuilder 重建魔法陣後也會呼叫。circle 為 null 時清掉。

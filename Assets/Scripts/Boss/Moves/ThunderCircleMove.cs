@@ -50,8 +50,12 @@ namespace BossFight.Boss.Moves
             {
                 var strike = SpawnHazard(strikePrefab, p, Quaternion.identity);
                 strike.Begin(damage, thunder.circleRadius, thunder.warningTime, thunder.hitWindow, thunder.hitHeight);
+                strike.OnStrike += HandleStrike;
             }
         }
+
+        // 每道落雷劈下的那一刻；落雷物件跑完就銷毀，不用退訂
+        void HandleStrike(LightningStrike strike) => Impact(BossImpactKind.Lightning, strike.transform.position);
 
         public override bool TickActive(float dt)
         {

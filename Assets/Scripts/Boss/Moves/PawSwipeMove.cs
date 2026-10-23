@@ -141,6 +141,7 @@ namespace BossFight.Boss.Moves
             TimedFx.Spawn(slashPrefab, slashPos + Vector3.up * slashHeight, rot, finisher ? finisherSlashColor : slashColor, scale);
             if (finisher && paw.finisherElectric)
                 TimedFx.Spawn(boltPrefab, slashPos, Quaternion.Euler(0f, Random.Range(0f, 360f), 0f), boltColor, boltSize);
+            Impact(finisher ? BossImpactKind.PawFinisher : BossImpactKind.PawSwipe, slashPos);
         }
 
         public override void BeginRecovery()

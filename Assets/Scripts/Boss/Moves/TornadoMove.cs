@@ -49,6 +49,7 @@ namespace BossFight.Boss.Moves
             timer = 0f;
             poser.SetSpinImmediate(spinSpeed);
             vortex.Begin(CreateDamage(), tornado.tickInterval);
+            Impact(BossImpactKind.Tornado, OnGround(Boss.transform.position));
         }
 
         public override bool TickActive(float dt)

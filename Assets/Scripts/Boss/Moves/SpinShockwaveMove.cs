@@ -77,6 +77,7 @@ namespace BossFight.Boss.Moves
             }
             var ring = SpawnHazard(wavePrefab, center, Quaternion.identity);
             ring.Launch(CreateDamage(), wave.startRadius, endRadius, wave.expandSpeed, wave.bandWidth, wave.hitHeight);
+            Impact(BossImpactKind.Shockwave, center);
         }
 
         public override bool TickActive(float dt)

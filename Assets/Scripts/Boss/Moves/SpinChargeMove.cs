@@ -133,7 +133,11 @@ namespace BossFight.Boss.Moves
         {
             hitbox.Deactivate();
             Boss.SetBodyCollision(true);
-            if (wall) TimedFx.Spawn(impactPrefab, point, Quaternion.identity, impactColor, impactSize);
+            if (wall)
+            {
+                TimedFx.Spawn(impactPrefab, point, Quaternion.identity, impactColor, impactSize);
+                Impact(BossImpactKind.WallSlam, point);
+            }
             chargeIndex++;
             if (chargeIndex >= charge.chargeCount)
             {

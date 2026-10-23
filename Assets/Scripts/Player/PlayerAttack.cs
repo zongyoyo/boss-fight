@@ -8,7 +8,7 @@ namespace BossFight.Player
     /// 執行一刀：照 AttackSpec 在判定時間開關刀的 Hitbox，照踏步時間往前移動。
     /// 自己沒有 Update，由 PlayerController 呼叫 Begin（處決用 BeginExecution）→ 每幀 Tick → 結束或被取消時 Stop。
     /// 處決這一刀的 DamageInfo 標 isExecution（固定傷害，打到就結束目標的頭暈）。
-    /// 命中結果用 OnAttackHit 轉出去（Debug 顯示，之後的音效與打擊感）。
+    /// 揮出去用 OnSwing、命中結果用 OnAttackHit 轉出去（Debug 顯示、PlayerFeedback 的音效與震動）。
     /// </summary>
     [DisallowMultipleComponent]
     public class PlayerAttack : MonoBehaviour
@@ -20,6 +20,8 @@ namespace BossFight.Player
 
         /// <summary>出手：(連擊第幾段，從 0 起；是否為重擊)。處決也會送（0, false），看 IsExecution 分辨。</summary>
         public event Action<int, bool> OnAttackStarted;
+        /// <summary>刀的判定打開（揮出去的那一刻，打不打得到都會送；揮刀音效用）。</summary>
+        public event Action OnSwing;
         public event Action<HitReport> OnAttackHit;
 
         public bool IsAttacking { get; private set; }
@@ -28,6 +30,8 @@ namespace BossFight.Player
         public bool IsExecution { get; private set; }
         /// <summary>連擊第幾段（從 0 起）；重擊、處決為 0。</summary>
         public int ComboIndex { get; private set; }
+        /// <summary>這一刀是輕攻擊連擊的最後一段（第三段）。</summary>
+        public bool IsLastComboStep => IsAttacking && !IsHeavy && !IsExecution && ComboIndex >= stats.lightCombo.Length - 1;
         public AttackSpec Current => spec;
         public float Elapsed { get; private set; }
         /// <summary>動作進度 0..1。</summary>
@@ -85,6 +89,7 @@ namespace BossFight.Player
             {
                 windowOpened = true;
                 swordHitbox.Activate(new DamageInfo(spec.damage, false, false, spec.imbalance, isExecution: IsExecution));
+                OnSwing?.Invoke();
             }
             else if (swordHitbox.IsActive && prev >= spec.hitEnd)
             {

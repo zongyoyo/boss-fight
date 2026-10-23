@@ -20,22 +20,22 @@
 | 路徑 | 用途 |
 | --- | --- |
 | `Assets/Scripts/Battle` | 最上層的流程指揮：BattleManager（戰鬥流程狀態機 Intro → Phase1 → Transition → Phase2 → Ultimate → Berserk → Victory／Defeat），指揮 Boss、玩家與演出（播轉階段演出、結束時呼叫 `BossController.CompleteTransition`、換階段改音樂速度；勝利時慢動作與音樂淡出、送 `OnBattleResult`、`Retry` 重新載入場景）；BattleSettings（勝敗節奏） |
-| `Assets/Scripts/Core` | 跨系統共用（最底層，不引用其他系統）：BattleSession（這次執行的挑戰次數與「看過開場」）、事件、傷害系統（DamageInfo、Hitbox、Hurtbox、IDamageable）、畫面停頓（HitStop）、AudioManager（戰鬥音樂與變速、音效）、競技場（ArenaData、ArenaGenerator、天色 ArenaAtmosphere／AtmosphereData）、LockOnTarget、可處決目標（ExecutionTarget） |
-| `Assets/Scripts/Player` | PlayerController、PlayerAttack、PlayerHealth、PlayerStamina、PlayerStats 定義、DaoDunDogAnimator |
+| `Assets/Scripts/Core` | 跨系統共用（最底層，不引用其他系統）：BattleSession（這次執行的挑戰次數與「看過開場」）、事件、傷害系統（DamageInfo、Hitbox、Hurtbox、IDamageable）、畫面停頓（HitStop）、AudioManager（戰鬥音樂與變速、音效）、競技場（ArenaData、ArenaGenerator、天色 ArenaAtmosphere／AtmosphereData）、LockOnTarget、可處決目標（ExecutionTarget）、打擊回饋的資料與播放（CombatFeedbackData、FeedbackEmitter：音效＋Cinemachine Impulse 鏡頭震動；Core 只有這裡用到 Unity.Cinemachine） |
+| `Assets/Scripts/Player` | PlayerController、PlayerAttack、PlayerHealth、PlayerStamina、PlayerStats 定義、DaoDunDogAnimator、打擊回饋（PlayerFeedback：揮刀、命中、格擋、盾反、受擊等的音效與震動） |
 | `Assets/Scripts/Camera` | CameraController（Cinemachine 第三人稱與鎖定鏡頭；鎖定哪個目標由 PlayerController 決定，鏡頭訂閱 `OnLockTargetChanged`） |
-| `Assets/Scripts/Boss` | BossController 狀態機與選招、BossHealth、失衡值／頭暈／處決（BossStagger）、BossMove 基底類別、BossStats／BossMoveData／BossPhaseData 定義、預兆閃光（BossTelegraphFlash）、佔位模型的程序化姿勢（OiiaCatPoser）、命中火花（BossHitFeedback，Boss 打到玩家）、受擊反饋（BossDamageFeedback，玩家打到 Boss：火花、閃白、後仰、傷害數字）、頭暈星星（BossStunVisual）、強化階段外觀（BossPhaseVisual：紅色電光與殘影）、幻影分身的幻影（BossPhantom，一擊即碎） |
+| `Assets/Scripts/Boss` | BossController 狀態機與選招、BossHealth、失衡值／頭暈／處決（BossStagger）、BossMove 基底類別、BossStats／BossMoveData／BossPhaseData 定義、預兆閃光（BossTelegraphFlash）、佔位模型的程序化姿勢（OiiaCatPoser）、命中火花（BossHitFeedback，Boss 打到玩家）、受擊反饋（BossDamageFeedback，玩家打到 Boss：火花、閃白、後仰、傷害數字）、頭暈星星（BossStunVisual）、強化階段外觀（BossPhaseVisual：紅色電光與殘影）、幻影分身的幻影（BossPhantom，一擊即碎）、招式衝擊與預兆的音效與震動（BossImpactFeedback，訂閱 `OnMoveTelegraph`／`OnMoveImpact`） |
 | `Assets/Scripts/Boss/Moves` | 每招一個 BossMove 子類別；招式特有的數值寫成 BossMoveData 的子類別放在同一個資料夾；PounceRunner 是一次飛撲（扭屁股飛撲與幻影分身共用） |
 | `Assets/Scripts/Hazards` | 場上判定物件（Hazard 基底、衝擊波 ShockwaveRing、落雷 LightningStrike、龍捲風 TornadoVortex、大迴旋的全場判定 GrandSpinField 與安全區 SafeZone）、地面範圍提示（GroundTelegraph，URP Decal）、場地中央的魔法陣（MagicCircle，URP Decal，出現進度／脈動／顏色／半徑、幻影分身的閃爍、大迴旋安全區的符文熄滅）、一次性特效（TimedFx、傷害數字 DamageNumber）、佔位電光（ElectricArcs，Boss 身上與轉階段的場地邊緣共用） |
 | `Assets/Scripts/Cutscene` | CutsceneDirector（播一段演出的 Timeline、鎖輸入、長按跳過、字卡事件；開場與轉階段各一個物件）、CutsceneStage（轉階段時依玩家位置擺演出鏡頭）、IntroCutsceneSettings、Timeline 自訂 Track／Clip（CurveClip 加 CurveTrack／StormTrack／BossSpinTrack／MagicCircleTrack／ElectricArcsTrack、ActorWalk、ActorPush、BossActor、CameraMove、MusicCue、CutsceneEventMarker）、演出物件（ScreenFlash、IntroLightning、SmokePuffs、CameraShaker、ExpandingRing） |
 | `Assets/Scripts/UI` | 只訂閱事件（uGUI）：BattleUI（HUD 何時出現、Boss 血條滑入）、PlayerHudUI（左下血條、耐力、骨頭）、BossHudUI（下方置中 Boss 名稱、血條與刻度、失衡條）、LockOnMarkerUI、BattleResultUI（勝敗畫面與重試按鈕）、ResourceBar（量條與延遲扣血）、BattleUIData；開場的字卡（TitleCardUI）、跳過提示（SkipPromptUI） |
 | `Assets/Scripts/Debug` | Debug 快捷鍵 F1–F7 與右上角的 Boss 面板（BossDebugTools，F5 重新挑戰＝`BattleManager.Retry`、F6 Boss 血量歸零、F7 玩家血量歸零）、平衡面板（BalanceDebugPanel，F12：執行期覆寫 SO 數值、計時與統計，見下方「平衡面板」）、左上角的玩家狀態（PlayerDebugOverlay）、測試木樁（TrainingDummy） |
-| `Assets/Scripts/Editor` | 編輯器工具（ArenaBuilder、DaoDunDogBuilder、CameraRigBuilder、TrainingDummyBuilder、BossBuilder、HazardBuilder、IntroCutsceneBuilder、TransitionCutsceneBuilder、BattleUIBuilder、PlaceholderAudioBuilder、BalancePanelBuilder），不會進 build |
-| `Assets/ScriptableObjects` | 數值資產（`.asset`），依系統分子資料夾：`Arena/`（ArenaData、Atmosphere 天色）、`Player/`、`Boss/`（BossStats）、`Boss/Phases/`、`Boss/Moves/Phase1/`（第一階段 5 招）、`Boss/Moves/Phase2/`（第二階段 4 個強化招，和第一階段同一招共用類別；新招龍捲風、幻影分身與終極技大迴旋）、`Cutscene/`（IntroCutsceneSettings）、`Battle/`（BattleSettings）、`UI/`（BattleUIData：血條刻度、動畫時間、顏色、文字）、`Debug/`（測試木樁） |
+| `Assets/Scripts/Editor` | 編輯器工具（ArenaBuilder、DaoDunDogBuilder、CameraRigBuilder、TrainingDummyBuilder、BossBuilder、HazardBuilder、IntroCutsceneBuilder、TransitionCutsceneBuilder、BattleUIBuilder、PlaceholderAudioBuilder、BalancePanelBuilder、CombatFeedbackBuilder），不會進 build |
+| `Assets/ScriptableObjects` | 數值資產（`.asset`），依系統分子資料夾：`Arena/`（ArenaData、Atmosphere 天色）、`Player/`、`Boss/`（BossStats）、`Boss/Phases/`、`Boss/Moves/Phase1/`（第一階段 5 招）、`Boss/Moves/Phase2/`（第二階段 4 個強化招，和第一階段同一招共用類別；新招龍捲風、幻影分身與終極技大迴旋）、`Cutscene/`（IntroCutsceneSettings）、`Battle/`（BattleSettings）、`UI/`（BattleUIData：血條刻度、動畫時間、顏色、文字）、`Feedback/`（CombatFeedback：打擊回饋的音效、音量、鏡頭震動）、`Debug/`（測試木樁） |
 | `Assets/Timelines` | Timeline 資產：`Intro.playable`（開場 14.5 秒）、`Transition.playable`（轉階段 5.0 秒）；鏡頭與各效果的時間點都在這裡調 |
 | `Assets/Prefabs` | 玩家、Boss（`OiiaCat`、幻影 `OiiaCatPhantom`，BossBuilder 產生）、UI 的 prefab；`Prefabs/Hazards` 是地面提示、Hazard 與特效，由 HazardBuilder 產生，重建會覆寫 |
 | `Assets/Shaders` | 自製 shader（都是手寫 JSON 的 URP Decal Shader Graph，Custom Function 用 UV 畫圖）：`TelegraphDecal.shadergraph`（地面範圍提示：圓、環、長方形）、`MagicCircleDecal.shadergraph`（魔法陣：雙環、符文帶、倒五芒星，由中心描繪、外圈分段點亮；`_Holes` 加上 Size.y、Params.w 是大迴旋安全區的熄滅區） |
 | `Assets/Scenes` | `BossArena.unity`（`SampleScene` 是範本殘留） |
-| `Assets/Audio` | BGM 與音效；OIIA 音樂放 `Assets/Audio/oiia_bgm`，放進來後在場景 `AudioManager` 的 battleMusic 指定（重跑 IntroCutsceneBuilder 也會自動找路徑含 oiia_bgm 的音檔）；`Audio/Placeholder` 是 PlaceholderAudioBuilder 合成的佔位音效，重建會覆寫 |
+| `Assets/Audio` | BGM 與音效；OIIA 音樂放 `Assets/Audio/oiia_bgm`，放進來後在場景 `AudioManager` 的 battleMusic 指定（重跑 IntroCutsceneBuilder 也會自動找路徑含 oiia_bgm 的音檔）；`Audio/Placeholder` 是 PlaceholderAudioBuilder 合成的佔位音效（戰鬥音效是 `Sfx_Combat_*`），重建會覆寫 |
 | `Assets/Models` | 模型、網格、材質；`Models/Arena`、`Models/DaoDunDog`、`Models/TrainingDummy`、`Models/OiiaCat`、`Models/Hazards`、`Models/Cutscene` 由 Builder 自動產生，重建會覆寫網格 |
 | `Assets/Settings` | URP 與 Volume 設定（範本自帶）；`PC_Renderer` 加了 Decal Renderer Feature（T4，地面範圍提示用） |
 | `docs/` | 企劃書 |
@@ -118,6 +118,7 @@ ScriptableObject 的「類別」寫在 `Scripts/` 對應的系統資料夾，「
 - `BossPhaseData.contactDamage`（接觸傷害）只有數值，規則（可否格擋、判定間隔、哪些狀態有效）待企劃書確定後再實作。
 - 戰鬥 UI（T9）由 BattleUIBuilder（Tools > UI > Build Battle UI）建立 BattleUI Canvas 與 EventSystem（InputSystemUIInputModule 用內建的 DefaultInputActions，不動 Player map），並接好 BattleManager 的 T9 欄位；Build Intro 會重建 BattleManager，最後也會呼叫它。版面避開左上、右上的 Debug 面板；字型是內建 LegacyRuntime（uGUI Text），之後換 TextMeshPro 時一起換。勝敗畫面出現時 BattleManager 鎖住玩家與鏡頭輸入、`CameraController.SetCursorReleased(true)` 放開游標。Boss 倒地是 OiiaCatPoser.Fall 的佔位動作（往遠離最後一擊的方向倒 80°）。玩家倒下後 Boss 不停手、音樂照播，當作嘲諷（使用者決定；打到倒下的玩家是 Ignored，Hazard 照常放）。轉階段演出期間按 F7 讓玩家倒下的話，演出結束時會解除輸入鎖定（只有 Debug 會發生）。
 - 平衡面板（T10）：`DebugTools` 物件上的 BalanceDebugPanel（BalancePanelBuilder 接線；BattleUIBuilder、BossBuilder 結束時也會重接，選單 Tools > Debug > Wire Balance Panel）。Awake 時把 Boss、玩家、鏡頭底下元件引用的 BossStats／BossPhaseData／BossMoveData／PlayerStats 換成 `Instantiate` 的複本（含階段、開場序列、進場招式的引用），面板只改複本，所以不違反「執行期不寫 SO」；「存回 .asset」只在 Editor、按兩次才用 SerializedObject 寫回面板上那幾個欄位。開著時預設暫停（timeScale 0，LateUpdate 壓住 HitStop 的還原）、鎖玩家與鏡頭輸入、放開游標。改 Boss 血量上限時門檻照資產比例縮放、目前血量維持比例。新增可調欄位：在 `BuildKnobs` 加一行 `AddKnob`（只支援 float）。試玩流程與回報格式在 `docs/playtest-checklist.md`。
+- 打擊回饋（T11）：玩家的 PlayerFeedback、Boss 的 BossImpactFeedback 只訂閱同物件的事件，經同物件的 FeedbackEmitter 播 `CombatFeedbackData` 的 cue（音效經 AudioManager、震動用 CinemachineImpulseSource；自由視角與鎖定兩台鏡頭有 ImpulseListener，演出鏡頭沒有）。招式的衝擊時刻由招式呼叫 `BossMove.Impact(kind, position)`（PounceRunner 直接 `NotifyImpact`），新招要有聲音與震動時記得加。使用者決定不加新的畫面停頓（只有盾反 0.1 秒）；同一幀同一組 cue 只播一次（一波落雷同時劈下不疊加）；翻滾閃過的音效一次翻滾只響一次。CombatFeedbackBuilder（Tools > Feedback > Build Combat Feedback）合成音效、建資產並接線；CameraRigBuilder、BossBuilder、IntroCutsceneBuilder 結尾會重接。資產已存在時數值不動，音效只填空的或佔位的欄位。震動量測（相機離玩家約 4.6 m）：被打中約 0.15 m、處決約 0.18 m、大迴旋落地（9 m 外）約 0.5 m；太晃就調 `shakeScale`（0 = 關）。所有音效都是 2D、程序合成的佔位。
 - 測試木樁 `TrainingDummy` 已經在 T3 從場景移除（程式與 `TrainingDummyData.asset` 還在 `Scripts/Debug`、`ScriptableObjects/Debug`）。要練格擋或盾反時用 Tools > Debug > Build Training Dummy 重建，它會自己加進鎖定清單；正式 build 前要刪掉物件，否則會變成 Missing Script。
 
 ## 工作流程
@@ -147,6 +148,7 @@ ScriptableObject 的「類別」寫在 `Scripts/` 對應的系統資料夾，「
 | T8 | 龍捲風、幻影分身、終極技、狂暴 | HP 首次 ≤ 400 觸發大迴旋一次，落地頭暈 3 秒；之後進入狂暴（出招間隔 0.3 秒、冷卻 ×0.75、音樂 1.3 倍速）；龍捲風、幻影分身可用 |
 | T9 | 戰鬥 UI 與勝敗流程 | 玩家血條、耐力條、骨頭次數、Boss 血條（50% 與 20% 刻度）、失衡條都隨事件更新；BOSS FIGHT 字卡；勝利畫面；失敗可重試，重試後可跳過開場 |
 | T10 | 平衡測試與收尾 | F12 面板能即時調整數值；完整打通 3 次，通關時間 4–5 分鐘 |
+| T11 | 打擊回饋（音效、鏡頭震動、預兆音效） | 揮刀、命中（輕、第三段、重擊、處決分級）、格擋、破防、盾反、受擊、翻滾、跳躍、啃骨頭有音效；白光預兆「叮」、紅光預兆嗡嗡聲；Boss 撞牆、落地、衝擊波、落雷、龍捲風、大迴旋落地、頭暈、倒下有音效與鏡頭震動；盾反停頓與勝利慢動作照舊 |
 
 
 ## Skill 使用規則
