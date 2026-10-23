@@ -73,6 +73,8 @@ namespace BossFight.Core
         public FeedbackCue jump = new FeedbackCue(0.35f, 0f);
         [Tooltip("開始啃骨頭")]
         public FeedbackCue heal = new FeedbackCue(0.6f, 0f);
+        [Tooltip("累積湊滿、多了一根骨頭")]
+        public FeedbackCue boneEarned = new FeedbackCue(0.55f, 0f);
 
         [Header("Boss 預兆（白光可擋、紅光不可擋，用聽的也分得出來）")]
         public FeedbackCue telegraphBlockable = new FeedbackCue(0.6f, 0f);

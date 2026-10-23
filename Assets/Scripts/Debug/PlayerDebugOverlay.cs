@@ -26,6 +26,8 @@ namespace BossFight.DebugTools
         float staminaCurrent, staminaMax, regenRate;
         float healthCurrent, healthMax;
         int bonesLeft, bonesMax;
+        float boneProgress;
+        bool regenBoosted;
         LockOnTarget lockTarget;
         Vector3 rollStartPos;
         float rollStartTime, lastRollDistance, lastRollDuration, lastInvulnerableTime;
@@ -37,7 +39,11 @@ namespace BossFight.DebugTools
 
         void OnEnable()
         {
-            if (stamina != null) stamina.OnStaminaChanged += HandleStaminaChanged;
+            if (stamina != null)
+            {
+                stamina.OnStaminaChanged += HandleStaminaChanged;
+                stamina.OnRegenBoostChanged += HandleRegenBoostChanged;
+            }
             if (player != null) player.OnLockTargetChanged += HandleLockTargetChanged;
             if (player != null)
             {
@@ -48,6 +54,7 @@ namespace BossFight.DebugTools
             {
                 health.OnHealthChanged += HandleHealthChanged;
                 health.OnBonesChanged += HandleBonesChanged;
+                health.OnBoneProgressChanged += HandleBoneProgressChanged;
                 health.OnDamageTaken += HandleDamageTaken;
             }
             if (attack != null) attack.OnAttackHit += HandleAttackHit;
@@ -55,7 +62,11 @@ namespace BossFight.DebugTools
 
         void OnDisable()
         {
-            if (stamina != null) stamina.OnStaminaChanged -= HandleStaminaChanged;
+            if (stamina != null)
+            {
+                stamina.OnStaminaChanged -= HandleStaminaChanged;
+                stamina.OnRegenBoostChanged -= HandleRegenBoostChanged;
+            }
             if (player != null) player.OnLockTargetChanged -= HandleLockTargetChanged;
             if (player != null)
             {
@@ -66,6 +77,7 @@ namespace BossFight.DebugTools
             {
                 health.OnHealthChanged -= HandleHealthChanged;
                 health.OnBonesChanged -= HandleBonesChanged;
+                health.OnBoneProgressChanged -= HandleBoneProgressChanged;
                 health.OnDamageTaken -= HandleDamageTaken;
             }
             if (attack != null) attack.OnAttackHit -= HandleAttackHit;
@@ -100,6 +112,10 @@ namespace BossFight.DebugTools
             bonesLeft = left;
             bonesMax = max;
         }
+
+        void HandleBoneProgressChanged(float progress) => boneProgress = progress;
+
+        void HandleRegenBoostChanged(bool boosted) => regenBoosted = boosted;
 
         void HandleDamageTaken(PlayerDamageReport r)
         {
@@ -213,8 +229,8 @@ namespace BossFight.DebugTools
             }
 
             GUILayout.BeginArea(new Rect(10f, 10f, 620f, 330f), GUI.skin.box);
-            GUILayout.Label($"血量  {healthCurrent:0.0} / {healthMax:0}　骨頭 {bonesLeft} / {bonesMax}", style);
-            GUILayout.Label($"耐力  {staminaCurrent:0.0} / {staminaMax:0}　（回復 {regenRate:0.0}/s）", style);
+            GUILayout.Label($"血量  {healthCurrent:0.0} / {healthMax:0}　骨頭 {bonesLeft} / {bonesMax}（下一根 {boneProgress:P0}）", style);
+            GUILayout.Label($"耐力  {staminaCurrent:0.0} / {staminaMax:0}　（回復 {regenRate:0.0}/s{(regenBoosted ? "，舉盾加速" : "")}）", style);
             GUILayout.Label($"水平速度  {player.PlanarSpeed:0.00} m/s", style);
             GUILayout.Label($"狀態  {StateText()}", style);
             GUILayout.Label($"上次受擊  {lastDamageText}", style);

@@ -5,7 +5,8 @@ namespace BossFight.Player
 {
     /// <summary>
     /// 刀盾狗的耐力。上限與回復速度讀 PlayerStats；目前值存在元件自己身上。
-    /// 回復由 PlayerController 每幀呼叫 Regenerate（舉盾時回得比較慢）；格擋扣耐力由 PlayerHealth 呼叫 Drain。UI 訂閱 OnStaminaChanged。
+    /// 回復由 PlayerController 每幀呼叫 Regenerate：平常 staminaRegen；舉盾滿 blockRegenDelay 秒後加速成 staminaRegenBlocking（OnRegenBoostChanged 通知 UI）。
+    /// 格擋扣耐力由 PlayerHealth 呼叫 Drain。UI 訂閱 OnStaminaChanged。
     /// </summary>
     [DisallowMultipleComponent]
     public class PlayerStamina : MonoBehaviour
@@ -14,9 +15,13 @@ namespace BossFight.Player
 
         /// <summary>(目前值, 上限)。</summary>
         public event Action<float, float> OnStaminaChanged;
+        /// <summary>舉盾加速回復開始（true）或結束（false）。</summary>
+        public event Action<bool> OnRegenBoostChanged;
 
         public float Current { get; private set; }
         public float Max => stats.maxStamina;
+        /// <summary>正在舉盾加速回復。</summary>
+        public bool IsRegenBoosted { get; private set; }
 
         void Awake()
         {
@@ -37,6 +42,14 @@ namespace BossFight.Player
             return true;
         }
 
+        /// <summary>耐力至少有 amount 才成功並扣掉；不夠則失敗、不扣（翻滾用）。</summary>
+        public bool TrySpendFull(float amount)
+        {
+            if (Current < amount) return false;
+            Set(Current - amount);
+            return true;
+        }
+
         /// <summary>不管剩多少都扣（格擋用），最低扣到 0；回傳實際扣掉的量。</summary>
         public float Drain(float amount)
         {
@@ -45,9 +58,16 @@ namespace BossFight.Player
             return before - Current;
         }
 
-        public void Regenerate(float deltaTime, bool blocking)
+        /// <param name="blockHeldTime">這次舉盾已經舉了多久（秒）；沒舉盾時傳 blocking = false。</param>
+        public void Regenerate(float deltaTime, bool blocking, float blockHeldTime)
         {
-            float rate = blocking ? stats.staminaRegenBlocking : stats.staminaRegen;
+            bool boosted = blocking && blockHeldTime >= stats.blockRegenDelay;
+            if (boosted != IsRegenBoosted)
+            {
+                IsRegenBoosted = boosted;
+                OnRegenBoostChanged?.Invoke(boosted);
+            }
+            float rate = boosted ? stats.staminaRegenBlocking : stats.staminaRegen;
             Set(Current + rate * deltaTime);
         }
 

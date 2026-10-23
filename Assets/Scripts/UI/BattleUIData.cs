@@ -49,6 +49,8 @@ namespace BossFight.UI
         public Color staminaColor = new Color(0.35f, 0.85f, 0.4f);
         [Tooltip("耐力歸零閃爍的顏色")]
         public Color staminaEmptyColor = new Color(1f, 0.85f, 0.3f);
+        [Tooltip("舉盾加速回復中的耐力條")]
+        public Color staminaBoostColor = new Color(0.55f, 1f, 0.95f);
         public Color bossHealthColor = new Color(0.72f, 0.18f, 0.85f);
         [Tooltip("延遲扣血（淺色）")]
         public Color trailColor = new Color(1f, 0.9f, 0.65f);
@@ -59,6 +61,8 @@ namespace BossFight.UI
         public Color boneColor = new Color(0.98f, 0.93f, 0.82f);
         [Tooltip("用掉的骨頭")]
         public Color boneUsedColor = new Color(0.3f, 0.3f, 0.3f, 0.6f);
+        [Tooltip("骨頭下方的累積進度條（下一根骨頭）")]
+        public Color boneProgressColor = new Color(0.98f, 0.8f, 0.45f);
 
         [Header("文字")]
         [Tooltip("頭暈中顯示在失衡條上")]

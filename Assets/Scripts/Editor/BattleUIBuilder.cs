@@ -165,6 +165,8 @@ namespace BossFight.EditorTools
             icons.offsetMax = Vector2.zero;
             var template = BuildBone(icons, data);
             Place(template, new Vector2(0f, 0.5f), Vector2.zero, new Vector2(46f, 24f));
+            // 下一根骨頭的累積進度：骨頭圖示下方的細條，長度約是 3 根骨頭排開的寬度
+            var boneProgress = Bar("BoneProgress", bones, data, new Vector2(48f, -12f), new Vector2(158f, 10f), false, data.boneProgressColor);
 
             var hudUi = panel.gameObject.AddComponent<PlayerHudUI>();
             var so = new SerializedObject(hudUi);
@@ -175,6 +177,7 @@ namespace BossFight.EditorTools
             so.FindProperty("staminaBar").objectReferenceValue = staminaBar;
             so.FindProperty("boneTemplate").objectReferenceValue = template;
             so.FindProperty("healthText").objectReferenceValue = healthText;
+            so.FindProperty("boneProgressBar").objectReferenceValue = boneProgress;
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 

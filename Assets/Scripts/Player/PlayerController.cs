@@ -192,7 +192,7 @@ namespace BossFight.Player
             bool blocking = !InputLocked && Action == PlayerAction.None && IsGrounded && blockAction.IsPressed();
             if (blocking && !IsBlocking) blockStartTime = Time.time;
             IsBlocking = blocking;
-            stamina.Regenerate(dt, IsBlocking);
+            stamina.Regenerate(dt, IsBlocking, BlockHeldTime);
 
             Vector3 delta;
             switch (Action)
@@ -286,7 +286,7 @@ namespace BossFight.Player
                     if (executePressed) bufferedExecute = true;
                     if (!attack.CanCancel) break;
                     if (bufferedExecute && TryStartExecution()) break;
-                    if (bufferedRoll && stamina.Current > 0f)
+                    if (bufferedRoll && stamina.Current >= stats.rollStaminaCost)
                     {
                         attack.Stop();
                         SetAction(PlayerAction.None);
@@ -368,7 +368,8 @@ namespace BossFight.Player
 
         void TryStartRoll(Vector3 wishDir)
         {
-            if (!stamina.TrySpend(stats.rollStaminaCost)) return;
+            // 耐力要夠一次的消耗才能滾（翻滾中照常回復，用「> 0 就能滾」會一直滾下去）
+            if (!stamina.TrySpendFull(stats.rollStaminaCost)) return;
 
             // 沒有方向輸入時往角色面向翻滾
             Vector3 dir = wishDir.sqrMagnitude > 1e-4f ? Flat(wishDir) : Flat(transform.forward);

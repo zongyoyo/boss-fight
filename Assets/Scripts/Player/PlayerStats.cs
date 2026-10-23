@@ -63,17 +63,20 @@ namespace BossFight.Player
         [Min(0.05f)] public float rollDuration = 0.5f;
         [Tooltip("翻滾開始後的無敵時間（秒）")]
         [Min(0f)] public float rollInvulnerableTime = 0.3f;
-        [Tooltip("翻滾消耗的耐力；耐力大於 0 就能翻滾，最低扣到 0")]
+        [Tooltip("翻滾消耗的耐力；耐力不夠這個量就不能翻滾")]
         [Min(0f)] public float rollStaminaCost = 25f;
         [Tooltip("翻滾位移曲線：橫軸是時間比例 0..1，縱軸是已移動距離比例 0..1（終點須為 1）")]
         public AnimationCurve rollCurve = new AnimationCurve(new Keyframe(0f, 0f, 2f, 2f), new Keyframe(1f, 1f, 0f, 0f));
 
         [Header("耐力")]
-        [Min(1f)] public float maxStamina = 100f;
-        [Tooltip("每秒回復量")]
-        [Min(0f)] public float staminaRegen = 30f;
-        [Tooltip("舉盾時的每秒回復量")]
-        [Min(0f)] public float staminaRegenBlocking = 10f;
+        [Tooltip("耐力上限；75 = 滿耐力剛好翻滾 3 次")]
+        [Min(1f)] public float maxStamina = 75f;
+        [Tooltip("每秒回復量（舉盾不到 blockRegenDelay 秒時也是這個速度）")]
+        [Min(0f)] public float staminaRegen = 12f;
+        [Tooltip("舉盾滿 blockRegenDelay 秒後的每秒回復量（加速回復）")]
+        [Min(0f)] public float staminaRegenBlocking = 30f;
+        [Tooltip("舉盾要持續多久（秒）才開始加速回復")]
+        [Min(0f)] public float blockRegenDelay = 1f;
 
         [Header("血量")]
         [Min(1f)] public float maxHealth = 100f;
@@ -148,8 +151,14 @@ namespace BossFight.Player
         public bool executeInvulnerable = true;
 
         [Header("啃骨頭")]
-        [Tooltip("每場可以用的次數")]
+        [Tooltip("開場的骨頭數，也是持有上限")]
         [Min(0)] public int boneCount = 3;
+        [Tooltip("刀命中一次累積的骨頭（根）；處決那一刀改用 boneGainPerExecution。打到無敵的 Boss 不算")]
+        [Min(0f)] public float boneGainPerHit = 0.05f;
+        [Tooltip("處決命中累積的骨頭（根）")]
+        [Min(0f)] public float boneGainPerExecution = 0.3f;
+        [Tooltip("被打中、格擋、破防時累積的骨頭（根）；盾反與無敵中閃過不算")]
+        [Min(0f)] public float boneGainWhenHurt = 0.02f;
         [Tooltip("一根骨頭回復的血量")]
         [Min(0f)] public float boneHealAmount = 40f;
         [Tooltip("動作時間（秒）：期間逐步回血，不能移動、不可取消，被打也不會中斷；滿血時不能用")]

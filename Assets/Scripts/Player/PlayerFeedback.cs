@@ -4,7 +4,7 @@ using UnityEngine;
 namespace BossFight.Player
 {
     /// <summary>
-    /// 刀盾狗的打擊回饋（T11）：揮刀、命中（輕攻擊、第三段、重擊、處決分級）、被打中、格擋、破防、盾反、翻滾閃過、翻滾、跳躍、啃骨頭的音效與鏡頭震動。
+    /// 刀盾狗的打擊回饋（T11）：揮刀、命中（輕攻擊、第三段、重擊、處決分級）、被打中、格擋、破防、盾反、翻滾閃過、翻滾、跳躍、啃骨頭、湊滿一根骨頭的音效與鏡頭震動。
     /// 只訂閱同一物件上的 PlayerAttack、PlayerHealth、PlayerController 的事件；數值在 CombatFeedbackData，經 FeedbackEmitter 播放。
     /// 盾反的畫面停頓照舊由 PlayerHealth 處理（PlayerStats.parryHitStop），這裡不另外停頓。
     /// </summary>
@@ -40,7 +40,11 @@ namespace BossFight.Player
                 attack.OnSwing += HandleSwing;
                 attack.OnAttackHit += HandleAttackHit;
             }
-            if (health != null) health.OnDamageTaken += HandleDamageTaken;
+            if (health != null)
+            {
+                health.OnDamageTaken += HandleDamageTaken;
+                health.OnBoneEarned += HandleBoneEarned;
+            }
             if (controller != null)
             {
                 controller.OnRollStarted += HandleRollStarted;
@@ -56,7 +60,11 @@ namespace BossFight.Player
                 attack.OnSwing -= HandleSwing;
                 attack.OnAttackHit -= HandleAttackHit;
             }
-            if (health != null) health.OnDamageTaken -= HandleDamageTaken;
+            if (health != null)
+            {
+                health.OnDamageTaken -= HandleDamageTaken;
+                health.OnBoneEarned -= HandleBoneEarned;
+            }
             if (controller != null)
             {
                 controller.OnRollStarted -= HandleRollStarted;
@@ -115,6 +123,11 @@ namespace BossFight.Player
         void HandleJumped()
         {
             if (Data != null) emitter.Play(Data.jump, transform.position);
+        }
+
+        void HandleBoneEarned()
+        {
+            if (Data != null) emitter.Play(Data.boneEarned, Body);
         }
 
         void HandleActionChanged(PlayerAction action)

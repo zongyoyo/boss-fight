@@ -5,8 +5,10 @@ using UnityEngine.UI;
 namespace BossFight.UI
 {
     /// <summary>
-    /// 左下角的玩家 HUD：血條、耐力條、骨頭剩餘次數。只訂閱 PlayerHealth.OnHealthChanged／OnBonesChanged／OnGuardBreak 與 PlayerStamina.OnStaminaChanged。
-    /// 耐力歸零（翻滾、重擊把耐力用光，或舉盾被打到破防）時耐力條閃一下。骨頭依每場次數複製 boneTemplate，用掉的變暗。
+    /// 左下角的玩家 HUD：血條、耐力條、骨頭剩餘次數與累積進度。只訂閱 PlayerHealth.OnHealthChanged／OnBonesChanged／OnBoneProgressChanged／OnGuardBreak
+    /// 與 PlayerStamina.OnStaminaChanged／OnRegenBoostChanged。
+    /// 耐力歸零（翻滾、重擊把耐力用光，或舉盾被打到破防）時耐力條閃一下；舉盾加速回復時換成 staminaBoostColor。
+    /// 骨頭依上限複製 boneTemplate，沒有的變暗；下方的細條是下一根骨頭的累積進度。
     /// </summary>
     [DisallowMultipleComponent]
     public class PlayerHudUI : MonoBehaviour
@@ -22,10 +24,12 @@ namespace BossFight.UI
         [SerializeField] float boneSpacing = 56f;
         [Tooltip("血量數字，例如 72 / 100；留空時不顯示")]
         [SerializeField] Text healthText;
+        [Tooltip("下一根骨頭的累積進度；留空時不顯示")]
+        [SerializeField] ResourceBar boneProgressBar;
 
         Image[][] bones = new Image[0][];
         float staminaFlashUntil;
-        bool staminaWasEmpty;
+        bool staminaWasEmpty, staminaFull, regenBoosted;
 
         void OnEnable()
         {
@@ -33,9 +37,14 @@ namespace BossFight.UI
             {
                 health.OnHealthChanged += HandleHealthChanged;
                 health.OnBonesChanged += HandleBonesChanged;
+                health.OnBoneProgressChanged += HandleBoneProgressChanged;
                 health.OnGuardBreak += FlashStamina;
             }
-            if (stamina != null) stamina.OnStaminaChanged += HandleStaminaChanged;
+            if (stamina != null)
+            {
+                stamina.OnStaminaChanged += HandleStaminaChanged;
+                stamina.OnRegenBoostChanged += HandleRegenBoostChanged;
+            }
         }
 
         void OnDisable()
@@ -44,14 +53,20 @@ namespace BossFight.UI
             {
                 health.OnHealthChanged -= HandleHealthChanged;
                 health.OnBonesChanged -= HandleBonesChanged;
+                health.OnBoneProgressChanged -= HandleBoneProgressChanged;
                 health.OnGuardBreak -= FlashStamina;
             }
-            if (stamina != null) stamina.OnStaminaChanged -= HandleStaminaChanged;
+            if (stamina != null)
+            {
+                stamina.OnStaminaChanged -= HandleStaminaChanged;
+                stamina.OnRegenBoostChanged -= HandleRegenBoostChanged;
+            }
         }
 
         void Start()
         {
             if (healthBar.FillImage != null) healthBar.FillImage.color = data.playerHealthColor;
+            if (boneProgressBar != null && boneProgressBar.FillImage != null) boneProgressBar.FillImage.color = data.boneProgressColor;
         }
 
         void HandleHealthChanged(float current, float max)
@@ -66,6 +81,14 @@ namespace BossFight.UI
             bool empty = current <= 0f;
             if (empty && !staminaWasEmpty) FlashStamina();
             staminaWasEmpty = empty;
+            staminaFull = current >= max;
+        }
+
+        void HandleRegenBoostChanged(bool boosted) => regenBoosted = boosted;
+
+        void HandleBoneProgressChanged(float progress)
+        {
+            if (boneProgressBar != null) boneProgressBar.Set(progress);
         }
 
         void FlashStamina() => staminaFlashUntil = Time.unscaledTime + data.emptyFlashTime;
@@ -107,7 +130,8 @@ namespace BossFight.UI
             if (image == null) return;
             bool flashing = Time.unscaledTime < staminaFlashUntil &&
                             Mathf.Repeat(Time.unscaledTime * data.flashRate, 1f) < 0.5f;
-            image.color = flashing ? data.staminaEmptyColor : data.staminaColor;
+            // 加速回復只在還沒滿的時候顯示，滿了舉著盾也是一般顏色
+            image.color = flashing ? data.staminaEmptyColor : regenBoosted && !staminaFull ? data.staminaBoostColor : data.staminaColor;
         }
     }
 }

@@ -128,7 +128,7 @@ namespace BossFight.DebugTools
             public bool finished;
             public float phase1, transition, phase2, ultimate, berserk;
             public float damagePhase1, damagePhase2, damageTaken;
-            public int parries, stuns, executions, hitsTaken, bonesUsed;
+            public int parries, stuns, executions, hitsTaken, bonesUsed, bonesEarned;
             public int tunedCount;
 
             public float Phase2Total => phase2 + ultimate + berserk;
@@ -155,6 +155,8 @@ namespace BossFight.DebugTools
         readonly StringBuilder sb = new StringBuilder();
 
         RunRecord run;
+        // 上一次收到的剩餘骨頭；-1 = 還沒收到（開場的初始值不算用掉或得到）
+        int lastBonesLeft = -1;
         BattleState segmentState = BattleState.None;
         float segmentStart;
         bool lastAttackHeavy;
@@ -344,10 +346,14 @@ namespace BossFight.DebugTools
                 sections[4].Add(s);
                 AddKnob(s, "耐力上限", playerStats, nameof(PlayerStats.maxStamina), 50f, 200f, 5f);
                 AddKnob(s, "耐力回復 (/s)", playerStats, nameof(PlayerStats.staminaRegen), 0f, 100f, 1f);
-                AddKnob(s, "舉盾時回復 (/s)", playerStats, nameof(PlayerStats.staminaRegenBlocking), 0f, 50f, 1f);
+                AddKnob(s, "舉盾加速回復 (/s)", playerStats, nameof(PlayerStats.staminaRegenBlocking), 0f, 100f, 1f);
+                AddKnob(s, "舉盾加速延遲 (s)", playerStats, nameof(PlayerStats.blockRegenDelay), 0f, 3f, 0.1f);
                 AddKnob(s, "翻滾耗耐力", playerStats, nameof(PlayerStats.rollStaminaCost), 0f, 60f, 1f);
                 AddKnob(s, "重擊耗耐力", playerStats, nameof(PlayerStats.heavyStaminaCost), 0f, 60f, 1f);
                 AddKnob(s, "盾反失衡值", playerStats, nameof(PlayerStats.parryImbalance), 0f, 60f, 1f);
+                AddKnob(s, "命中累積骨頭（根）", playerStats, nameof(PlayerStats.boneGainPerHit), 0f, 0.5f, 0.01f);
+                AddKnob(s, "處決累積骨頭（根）", playerStats, nameof(PlayerStats.boneGainPerExecution), 0f, 1f, 0.05f);
+                AddKnob(s, "受擊累積骨頭（根）", playerStats, nameof(PlayerStats.boneGainWhenHurt), 0f, 0.2f, 0.01f);
             }
         }
 
@@ -595,7 +601,13 @@ namespace BossFight.DebugTools
 
         void HandleBonesChanged(int left, int max)
         {
-            if (run != null && !run.finished) run.bonesUsed = max - left;
+            // 骨頭會累積增加，用前後差算：少了是啃掉，多了是湊滿
+            if (lastBonesLeft >= 0 && run != null && !run.finished)
+            {
+                if (left < lastBonesLeft) run.bonesUsed += lastBonesLeft - left;
+                else run.bonesEarned += left - lastBonesLeft;
+            }
+            lastBonesLeft = left;
         }
 
         void HandleStunned(float duration)
@@ -629,7 +641,7 @@ namespace BossFight.DebugTools
             $"第 {r.attempt} 次 {r.result}｜總 {Clock(r.Total)}｜第一階段 {Clock(r.phase1)}（DPS {Dps(r.damagePhase1, r.phase1)}）" +
             $"｜轉階段 {Clock(r.transition)}｜第二階段 {Clock(r.Phase2Total)}（DPS {Dps(r.damagePhase2, r.Phase2Total)}；" +
             $"大迴旋 {Clock(r.ultimate)}、狂暴 {Clock(r.berserk)}）｜盾反 {r.parries}、頭暈 {r.stuns}、處決 {r.executions}" +
-            $"｜被打中 {r.hitsTaken} 次、受傷 {r.damageTaken:0}、骨頭 {r.bonesUsed}｜調整 {r.tunedCount} 項";
+            $"｜被打中 {r.hitsTaken} 次、受傷 {r.damageTaken:0}、骨頭 用 {r.bonesUsed}／得 {r.bonesEarned}｜調整 {r.tunedCount} 項";
 
         // ---------- 畫面 ----------
 
@@ -705,7 +717,7 @@ namespace BossFight.DebugTools
                 GUILayout.Label($"第二階段　{Clock(p2 + ul + be)}　造成 {run.damagePhase2:0}　DPS {Dps(run.damagePhase2, p2 + ul + be)}", label);
                 GUILayout.Label($"　　強化 {Clock(p2)}　大迴旋 {Clock(ul)}　狂暴 {Clock(be)}", label);
                 GUILayout.Label($"<b>總時間　　{Clock(p1 + tr + p2 + ul + be)}</b>", label);
-                GUILayout.Label($"盾反 {run.parries}　頭暈 {run.stuns}　處決 {run.executions}　被打中 {run.hitsTaken} 次　受傷 {run.damageTaken:0}　骨頭 {run.bonesUsed}", label);
+                GUILayout.Label($"盾反 {run.parries}　頭暈 {run.stuns}　處決 {run.executions}　被打中 {run.hitsTaken} 次　受傷 {run.damageTaken:0}　骨頭 用 {run.bonesUsed}／得 {run.bonesEarned}", label);
                 string max = stagger != null ? $" / {stagger.Max:0}" : "";
                 GUILayout.Label($"這次頭暈前：盾反 {stunParries}、輕攻擊 {stunLights}、重攻擊 {stunHeavies}　目前失衡 {(stagger != null ? stagger.Current : 0f):0.0}{max}", label);
             }

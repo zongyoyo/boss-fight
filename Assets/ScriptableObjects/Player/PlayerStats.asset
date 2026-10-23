@@ -47,9 +47,10 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
-  maxStamina: 100
-  staminaRegen: 30
-  staminaRegenBlocking: 10
+  maxStamina: 75
+  staminaRegen: 12
+  staminaRegenBlocking: 30
+  blockRegenDelay: 1
   maxHealth: 100
   hitInvulnerableTime: 0.5
   lightCombo:
@@ -123,6 +124,9 @@ MonoBehaviour:
     width: 2
   executeInvulnerable: 1
   boneCount: 3
+  boneGainPerHit: 0.05
+  boneGainPerExecution: 0.3
+  boneGainWhenHurt: 0.02
   boneHealAmount: 40
   boneDuration: 1
   lockOnRange: 20

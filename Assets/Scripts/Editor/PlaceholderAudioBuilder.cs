@@ -190,6 +190,8 @@ namespace BossFight.EditorTools
                 ["heal"] = One("Heal", Mix(0.6f, (Thud(241, 0.12f, 300f, 120f, 1.5f, 30f, 1f), 0.05f, 1f),
                                                  (Thud(242, 0.12f, 280f, 110f, 1.5f, 30f, 1f), 0.4f, 0.9f),
                                                  (Thud(243, 0.12f, 320f, 120f, 1.5f, 30f, 1f), 0.75f, 1f))),
+                ["boneEarned"] = One("BoneEarned", Mix(0.55f, (Metal(244, 0.25f, new[] { 1319f, 2637f }, 14f, 0f, 1f), 0f, 0.8f),
+                                                             (Metal(245, 0.45f, new[] { 1976f, 3951f }, 8f, 0f, 1f), 0.09f, 1f))),
                 ["telegraphBlockable"] = One("TelegraphWhite", Metal(251, 0.5f, new[] { 1760f, 2640f, 3520f }, 7f, 0f, 0.6f)),
                 ["telegraphUnblockable"] = One("TelegraphRed", Buzz(0.45f, 200f, 0.18f, 0.05f, 0.7f)),
                 ["pawSwipe"] = One("PawSwipe", Mix(0.6f, (Whoosh(261, 0.25f, 300f, 1800f, 0.5f, 1f), 0f, 1f), (Thud(262, 0.2f, 120f, 50f, 0.8f, 18f, 1f), 0.12f, 0.8f))),

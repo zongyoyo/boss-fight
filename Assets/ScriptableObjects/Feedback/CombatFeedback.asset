@@ -95,6 +95,11 @@ MonoBehaviour:
     - {fileID: 8300000, guid: fbcd4d63d17709f44adfe22afe70e619, type: 3}
     volume: 0.6
     shake: 0
+  boneEarned:
+    clips:
+    - {fileID: 8300000, guid: 12b67ea5f9a7e3d4fb06c5267f4c5277, type: 3}
+    volume: 0.55
+    shake: 0
   telegraphBlockable:
     clips:
     - {fileID: 8300000, guid: bc50ea6d0b8f51743a51e07a17d87267, type: 3}
