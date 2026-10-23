@@ -16,6 +16,7 @@ MonoBehaviour:
   healthThreshold: 400
   movePool: 2
   transitionTime: 0
+  entryMove: {fileID: 11400000, guid: d610c3cff4862fa4b8529311a623421f, type: 2}
   moveSpeed: 4.5
   moveIntervalMin: 0.3
   moveIntervalMax: 0.3

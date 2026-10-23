@@ -28,7 +28,8 @@ namespace BossFight.Hazards
 
         protected virtual void OnDisable() => hitbox.OnHit -= HandleHit;
 
-        void HandleHit(HitReport report) => OnHit?.Invoke(report);
+        /// <summary>判定打到目標並結算完；預設直接轉給 OnHit。</summary>
+        protected virtual void HandleHit(HitReport report) => OnHit?.Invoke(report);
 
         /// <summary>立刻收掉（招式被打斷、轉階段清場）。</summary>
         public void Despawn()

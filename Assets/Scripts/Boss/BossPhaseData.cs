@@ -20,6 +20,9 @@ namespace BossFight.Boss
         [Tooltip("進入這個階段要不要轉階段（> 0）：期間 Boss 無敵、不出招、打斷目前的招式、清掉場上的 Hazard；0 = 直接切換，目前的招照常打完。" +
                  "有轉階段演出時由演出結束呼叫 BossController.CompleteTransition；沒有演出（BossController.AutoCompleteTransition）時這個秒數到就自動結束")]
         [Min(0f)] public float transitionTime;
+        [Tooltip("進場招式：血量首次降到這個階段的門檻時先出這招一次（狂暴的 OIIA 大迴旋）——打斷目前的動作（頭暈也一樣）、清掉場上的 Hazard 後立刻出，" +
+                 "這招結束（它讓 Boss 頭暈的話，等頭暈結束）才套用這個階段。招式要掛在 Boss 的招式清單裡；留空 = 照 transitionTime 換階段")]
+        public BossMoveData entryMove;
 
         [Header("移動與節奏")]
         [Tooltip("走位的移動速度 (m/s)")]

@@ -62,12 +62,16 @@ namespace BossFight.Hazards
         }
 
         /// <summary>以 groundCenter 為中心的圓（innerRadius &gt; 0 時是環），填色從 0 開始。</summary>
-        public void ShowCircle(Vector3 groundCenter, float radius, bool blockable, float innerRadius = 0f)
+        public void ShowCircle(Vector3 groundCenter, float radius, bool blockable, float innerRadius = 0f) =>
+            ShowCircle(groundCenter, radius, blockable ? blockableColor : unblockableColor, innerRadius);
+
+        /// <summary>同上，但顏色另外指定（HDR，A 是整體不透明度），例如大迴旋的安全區。</summary>
+        public void ShowCircle(Vector3 groundCenter, float radius, Color tint, float innerRadius = 0f)
         {
             shape = 0f;
             inner = radius > 0f ? Mathf.Clamp01(innerRadius / radius) : 0f;
             Place(groundCenter, Vector3.forward, new Vector2(radius * 2f, radius * 2f), 0f);
-            Begin(blockable);
+            Begin(tint);
         }
 
         /// <summary>移動圓的位置與大小，不重設填色（跟著目標走的落點、擴散中的環）。</summary>
@@ -83,7 +87,7 @@ namespace BossFight.Hazards
             shape = 1f;
             inner = 0f;
             Place(groundStart, direction, new Vector2(width, length), length * 0.5f);
-            Begin(blockable);
+            Begin(blockable ? blockableColor : unblockableColor);
         }
 
         /// <summary>移動長方形，不重設填色（預兆期間跟著 Boss 轉）。</summary>
@@ -112,14 +116,14 @@ namespace BossFight.Hazards
             projector.enabled = false;
         }
 
-        void Begin(bool blockable)
+        void Begin(Color tint)
         {
             fill = 0f;
             flash = 0f;
             fading = false;
             fadeTimer = 0f;
             visible = true;
-            material.SetColor(ColorId, blockable ? blockableColor : unblockableColor);
+            material.SetColor(ColorId, tint);
             projector.fadeFactor = 1f;
             projector.enabled = true;
             Apply();

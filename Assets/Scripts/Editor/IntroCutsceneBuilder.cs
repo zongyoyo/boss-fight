@@ -28,7 +28,7 @@ namespace BossFight.EditorTools
     ///    8 台演出鏡頭、看向的目標、閃電、煙霧、白屏、Timeline 用的 AudioSource）、IntroUI（字卡、跳過提示）、BattleManager。
     /// 3. 把 Timeline 的每條軌道綁到場景物件（依軌道類型；同類型有好幾條的依軌道名稱），Cinemachine 片段依片段名稱接到同名的鏡頭。
     ///    所以在 Timeline 視窗調時間點、加減片段都沒關係，但不要改軌道與鏡頭片段的名稱。
-    /// 4. BossController.startOnPlay 關掉（場景與 prefab），改由 BattleManager 在開場結束時開打。
+    /// 4. BossController.startOnPlay 關掉（場景與 prefab），改由 BattleManager 在開場結束時開打；重建的魔法陣接到 Boss 的幻影分身與大迴旋。
     /// 5. 最後重建轉階段演出（TransitionCutsceneBuilder），因為它引用這裡重建的魔法陣、AudioManager 與 BattleManager。
     /// Tools > Cutscene > Reset Intro Timeline 會刪掉 Timeline 重排一次（在 Timeline 視窗做的調整會不見）。
     /// 鏡頭位置、顏色、大小都是純視覺參數。
@@ -197,6 +197,7 @@ namespace BossFight.EditorTools
             DaoDunDogBuilder.SetReference(battle, "audioManager", audio);
 
             DisableStartOnPlay(boss);
+            BossBuilder.WireMagicCircle(boss, circle); // 幻影分身、大迴旋引用重建後的魔法陣
 
             // ---------- Timeline ----------
             var timeline = AssetDatabase.LoadAssetAtPath<TimelineAsset>(TimelinePath);

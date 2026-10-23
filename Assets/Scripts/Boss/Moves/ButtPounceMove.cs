@@ -8,6 +8,7 @@ namespace BossFight.Boss.Moves
     /// 扭屁股飛撲（第一階段，中距離）：預兆伏低扭屁股（白光），地上的落點圈跟著玩家；起跳時鎖定落點，
     /// 拋物線飛 flightTime 秒，落地瞬間打一下圓柱判定，同時落點圈閃亮、出現衝擊環。落點圈在落地那一刻剛好填滿。
     /// 落點停在玩家前方 landShort 公尺，不會走出場地。可擋、可盾反。數值讀 ButtPounceData。
+    /// 飛撲本身（伏低、拋物線、落地判定）在 PounceRunner，第二階段的幻影分身也用它。
     /// </summary>
     [DisallowMultipleComponent]
     public class ButtPounceMove : BossMove
@@ -27,12 +28,7 @@ namespace BossFight.Boss.Moves
 
         ButtPounceData pounce;
         GroundTelegraph circle;
-        Vector3 start, land;
-        float timer, flight, hitTimer;
-        bool landed;
-
-        // 落點圈從預兆開始填，落地那一刻填滿
-        float LeadTime => TelegraphTime + pounce.flightTime;
+        PounceRunner runner;
 
         void Awake()
         {
@@ -40,6 +36,12 @@ namespace BossFight.Boss.Moves
             if (pounce == null) Debug.LogError($"[Boss] {name} 的資料不是 ButtPounceData。", this);
             circle = Instantiate(telegraphPrefab);
             circle.name = $"{name}_Telegraph";
+        }
+
+        void Start()
+        {
+            // Boss 在 BossController.Awake 才綁定
+            runner = new PounceRunner(Boss, Boss.transform, poser, hitbox, circle, impactPrefab, impactColor, landingCrouch);
         }
 
         void OnDestroy()
@@ -51,67 +53,17 @@ namespace BossFight.Boss.Moves
 
         void OnDisable() => hitbox.OnHit -= ReportHit;
 
-        public override void BeginTelegraph()
-        {
-            timer = 0f;
-            poser.SetCrouch(1f);
-            poser.SetWiggle(true);
-            land = LandingPoint();
-            circle.ShowCircle(land, pounce.landingRadius, Data.canBlock);
-        }
+        public override void BeginTelegraph() => runner.BeginWindup(pounce, TelegraphTime, Data.canBlock);
 
         public override void TickTelegraph(float dt)
         {
             base.TickTelegraph(dt);
-            timer += dt;
-            land = LandingPoint();
-            circle.MoveCircle(land, pounce.landingRadius);
-            circle.SetFill(timer / LeadTime);
+            runner.TickWindup(dt);
         }
 
-        public override void BeginActive()
-        {
-            start = OnGround(Boss.transform.position);
-            land = LandingPoint();
-            circle.MoveCircle(land, pounce.landingRadius);
-            flight = hitTimer = 0f;
-            landed = false;
-            Vector3 to = Flat(land - start);
-            if (to.sqrMagnitude > 1e-4f) Boss.transform.rotation = Quaternion.LookRotation(to);
-            poser.SetWiggle(false);
-            poser.SetCrouch(0f);
-        }
+        public override void BeginActive() => runner.Leap(CreateDamage());
 
-        public override bool TickActive(float dt)
-        {
-            if (!landed)
-            {
-                flight += dt;
-                float t = Mathf.Clamp01(flight / pounce.flightTime);
-                Boss.transform.position = Vector3.Lerp(start, land, t) + Vector3.up * (4f * pounce.leapHeight * t * (1f - t));
-                circle.SetFill((TelegraphTime + flight) / LeadTime);
-                if (t >= 1f) Land();
-                return false;
-            }
-
-            hitTimer += dt;
-            if (hitTimer < pounce.hitWindow) return false;
-            hitbox.Deactivate();
-            return true;
-        }
-
-        void Land()
-        {
-            landed = true;
-            Boss.transform.position = land;
-            hitbox.SetCylinder(new Vector3(0f, pounce.hitHeight * 0.5f, 0f), pounce.landingRadius, pounce.hitHeight);
-            hitbox.Activate(CreateDamage());
-            circle.SetFill(1f);
-            circle.Strike();
-            circle.Hide();
-            poser.SetCrouch(landingCrouch);
-            TimedFx.Spawn(impactPrefab, land, Quaternion.identity, impactColor, pounce.landingRadius);
-        }
+        public override bool TickActive(float dt) => runner.Tick(dt);
 
         public override void BeginRecovery()
         {
@@ -119,24 +71,6 @@ namespace BossFight.Boss.Moves
             poser.SetCrouch(recoveryCrouch);
         }
 
-        public override void End()
-        {
-            hitbox.Deactivate();
-            circle.HideImmediate();
-            poser.ResetPose();
-            // 在空中被打斷（頭暈、轉階段）就直接落回地面
-            Boss.transform.position = OnGround(Boss.transform.position);
-        }
-
-        // 玩家前方 landShort 公尺；玩家比這更近就原地跳
-        Vector3 LandingPoint()
-        {
-            Vector3 me = OnGround(Boss.transform.position);
-            if (Boss.Target == null) return me;
-            Vector3 to = Flat(Boss.Target.position - me);
-            float distance = to.magnitude;
-            if (distance < 1e-3f) return me;
-            return Boss.ClampToArena(me + to / distance * Mathf.Max(0f, distance - pounce.landShort));
-        }
+        public override void End() => runner.Stop();
     }
 }

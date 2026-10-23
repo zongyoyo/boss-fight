@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using BossFight.Core;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
@@ -11,6 +12,8 @@ namespace BossFight.Hazards
     /// 脈動（SetPulse）是隨節拍一下一下變亮再衰減，第 6 鏡音樂開始後打開，之後戰鬥中一直維持。
     /// 半徑讀 ArenaData.magicCircleRadius；轉階段的「由紫轉紅、擴大到場地邊緣」由 Timeline 的 MagicCircleTrack 推 SetColorBlend（0 紫 → 1 紅）
     /// 與 SetExpand（0 原本半徑 → 1 場地邊緣），第二階段維持紅色、全場大小。
+    /// 第二階段的招式：幻影分身召喚時 Flicker（法陣一明一暗閃爍）；OIIA 大迴旋用 SetDarkZones 讓安全區裡的符文熄滅（最多 MaxDarkZones 個圓，
+    /// SetDarkZoneStrength 0 = 沒熄滅、1 = 全暗），shader 的 _Holes 存圓心、Size.y 存半徑、Params.w 存熄滅程度。
     /// 每個實例用自己的材質複本。這裡的數字全是視覺參數。
     /// </summary>
     [DisallowMultipleComponent]
@@ -48,13 +51,31 @@ namespace BossFight.Hazards
         [Tooltip("每一下的衰減速度（越大越短促）")]
         [Min(0.1f)] [SerializeField] float pulseDecay = 6f;
 
+        [Header("閃爍（幻影分身）")]
+        [Tooltip("每秒閃幾下")]
+        [Min(0.1f)] [SerializeField] float flickerRate = 9f;
+        [Tooltip("暗的那一下剩下的亮度（倍率）")]
+        [Range(0f, 1f)] [SerializeField] float flickerLow = 0.15f;
+        [Tooltip("亮的那一下的亮度（倍率）")]
+        [Min(1f)] [SerializeField] float flickerHigh = 2.2f;
+
         static readonly int ColorId = Shader.PropertyToID("_Color");
         static readonly int ParamsId = Shader.PropertyToID("_Params");
         static readonly int StyleId = Shader.PropertyToID("_Style");
         static readonly int SizeId = Shader.PropertyToID("_Size");
+        static readonly int HolesId = Shader.PropertyToID("_Holes");
+
+        /// <summary>SetDarkZones 最多幾個圓（shader 的 _Holes 放得下的數量）。</summary>
+        public const int MaxDarkZones = 2;
+        // 沒用到的熄滅區放到很遠的地方
+        const float UnusedHoleOffset = 1e4f;
 
         Material material;
         float draw, lit, pulseWeight, pulseTime, radius, colorBlend;
+        float flickerTimer;
+        readonly Vector3[] darkZones = new Vector3[MaxDarkZones];
+        int darkZoneCount;
+        float darkZoneRadius, darkZoneStrength;
 
         /// <summary>目前半徑 (m)。</summary>
         public float Radius => radius;
@@ -119,6 +140,29 @@ namespace BossFight.Hazards
             SetRadius(Mathf.Lerp(arena.magicCircleRadius, edge, Mathf.Clamp01(t)));
         }
 
+        /// <summary>法陣一明一暗閃爍 duration 秒（幻影分身召喚），疊在脈動上。</summary>
+        public void Flicker(float duration) => flickerTimer = Mathf.Max(flickerTimer, duration);
+
+        /// <summary>
+        /// 這些位置（世界座標，只看水平）半徑 zoneRadius 內的符文熄滅，最多 MaxDarkZones 個；熄滅程度用 SetDarkZoneStrength 推（大迴旋的安全區）。
+        /// </summary>
+        public void SetDarkZones(IReadOnlyList<Vector3> centers, float zoneRadius)
+        {
+            darkZoneCount = centers != null ? Mathf.Min(centers.Count, MaxDarkZones) : 0;
+            for (int i = 0; i < darkZoneCount; i++) darkZones[i] = centers[i];
+            darkZoneRadius = Mathf.Max(0f, zoneRadius);
+        }
+
+        /// <summary>熄滅程度 0..1（0 = 符文照常亮）。</summary>
+        public void SetDarkZoneStrength(float t) => darkZoneStrength = Mathf.Clamp01(t);
+
+        /// <summary>收掉所有熄滅區。</summary>
+        public void ClearDarkZones()
+        {
+            darkZoneCount = 0;
+            darkZoneStrength = 0f;
+        }
+
         void ApplyColor() => material.SetColor(ColorId, Color.Lerp(color, phase2Color, colorBlend));
 
         public void SetRadius(float r)
@@ -130,7 +174,16 @@ namespace BossFight.Hazards
         void Update()
         {
             pulseTime += Time.deltaTime;
+            flickerTimer = Mathf.Max(0f, flickerTimer - Time.deltaTime);
             Apply();
+        }
+
+        // 熄滅區的圓心離法陣中心的位移（m，x 東、y 北，和 shader 的 UV 同方向）
+        Vector2 HoleOffset(int i)
+        {
+            if (i >= darkZoneCount) return new Vector2(UnusedHoleOffset, UnusedHoleOffset);
+            Vector3 d = darkZones[i] - transform.position;
+            return new Vector2(d.x, d.z);
         }
 
         void ApplySize()
@@ -150,8 +203,13 @@ namespace BossFight.Hazards
 
             float beat = Mathf.Repeat(pulseTime * pulseRate, 1f);
             float intensity = 1f + pulseWeight * pulseStrength * Mathf.Exp(-beat * pulseDecay);
-            material.SetVector(ParamsId, new Vector4(draw, lit, intensity, 0f));
+            if (flickerTimer > 0f) intensity *= Mathf.Repeat(flickerTimer * flickerRate, 1f) < 0.5f ? flickerLow : flickerHigh;
+            float dark = darkZoneCount > 0 ? darkZoneStrength : 0f;
+            material.SetVector(ParamsId, new Vector4(draw, lit, intensity, dark));
             material.SetVector(StyleId, new Vector4(lineWidth, 1f, emission, segments));
+            material.SetVector(SizeId, new Vector4(radius * 2f, darkZoneRadius, 0f, 0f));
+            Vector2 a = HoleOffset(0), b = HoleOffset(1);
+            material.SetVector(HolesId, new Vector4(a.x, a.y, b.x, b.y));
         }
     }
 }

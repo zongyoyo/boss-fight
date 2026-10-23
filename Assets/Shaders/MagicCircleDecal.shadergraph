@@ -14,6 +14,9 @@
         },
         {
             "m_Id": "10000000000000000000000000000004"
+        },
+        {
+            "m_Id": "10000000000000000000000000000005"
         }
     ],
     "m_Keywords": [],
@@ -59,6 +62,9 @@
         },
         {
             "m_Id": "3000000000000000000000000000000c"
+        },
+        {
+            "m_Id": "3000000000000000000000000000000d"
         }
     ],
     "m_GroupDatas": [],
@@ -175,6 +181,20 @@
                 },
                 "m_SlotId": 0
             }
+        },
+        {
+            "m_OutputSlot": {
+                "m_Node": {
+                    "m_Id": "3000000000000000000000000000000d"
+                },
+                "m_SlotId": 0
+            },
+            "m_InputSlot": {
+                "m_Node": {
+                    "m_Id": "3000000000000000000000000000000c"
+                },
+                "m_SlotId": 8
+            }
         }
     ],
     "m_VertexContext": {
@@ -256,7 +276,7 @@
     "m_customAttributes": [],
     "m_Value": {
         "r": 1.0,
-        "g": 0.15000000596046449,
+        "g": 0.15000000596046448,
         "b": 0.10000000149011612,
         "a": 1.0
     },
@@ -355,6 +375,36 @@
 }
 
 {
+    "m_SGVersion": 1,
+    "m_Type": "UnityEditor.ShaderGraph.Internal.Vector4ShaderProperty",
+    "m_ObjectId": "10000000000000000000000000000005",
+    "m_Guid": {
+        "m_GuidSerialized": "9c4e2a71-5d3b-4f60-b8e2-7a1c3d5e9f05"
+    },
+    "m_Name": "Holes",
+    "m_DefaultRefNameVersion": 1,
+    "m_RefNameGeneratedByDisplayName": "Holes",
+    "m_DefaultReferenceName": "_Holes",
+    "m_OverrideReferenceName": "",
+    "m_GeneratePropertyBlock": true,
+    "m_UseCustomSlotLabel": false,
+    "m_CustomSlotLabel": "",
+    "m_DismissedVersion": 0,
+    "m_Precision": 0,
+    "overrideHLSLDeclaration": false,
+    "hlslDeclarationOverride": 0,
+    "m_Hidden": false,
+    "m_PerRendererData": false,
+    "m_customAttributes": [],
+    "m_Value": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0,
+        "w": 0.0
+    }
+}
+
+{
     "m_SGVersion": 0,
     "m_Type": "UnityEditor.ShaderGraph.CategoryData",
     "m_ObjectId": "20000000000000000000000000000001",
@@ -371,6 +421,9 @@
         },
         {
             "m_Id": "10000000000000000000000000000004"
+        },
+        {
+            "m_Id": "10000000000000000000000000000005"
         }
     ]
 }
@@ -1034,6 +1087,67 @@
 }
 
 {
+    "m_SGVersion": 0,
+    "m_Type": "UnityEditor.ShaderGraph.PropertyNode",
+    "m_ObjectId": "3000000000000000000000000000000d",
+    "m_Group": {
+        "m_Id": ""
+    },
+    "m_Name": "Property",
+    "m_DrawState": {
+        "m_Expanded": true,
+        "m_Position": {
+            "serializedVersion": "2",
+            "x": -700.0,
+            "y": 500.0,
+            "width": 120.0,
+            "height": 36.0
+        }
+    },
+    "m_Slots": [
+        {
+            "m_Id": "4000000000000000000000000000000d"
+        }
+    ],
+    "synonyms": [],
+    "m_Precision": 0,
+    "m_PreviewExpanded": true,
+    "m_DismissedVersion": 0,
+    "m_PreviewMode": 0,
+    "m_CustomColors": {
+        "m_SerializableColors": []
+    },
+    "m_Property": {
+        "m_Id": "10000000000000000000000000000005"
+    }
+}
+
+{
+    "m_SGVersion": 0,
+    "m_Type": "UnityEditor.ShaderGraph.Vector4MaterialSlot",
+    "m_ObjectId": "4000000000000000000000000000000d",
+    "m_Id": 0,
+    "m_DisplayName": "Holes",
+    "m_SlotType": 1,
+    "m_Hidden": false,
+    "m_ShaderOutputName": "Out",
+    "m_StageCapability": 3,
+    "m_Value": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0,
+        "w": 0.0
+    },
+    "m_DefaultValue": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0,
+        "w": 0.0
+    },
+    "m_Labels": []
+}
+
+{
     "m_SGVersion": 1,
     "m_Type": "UnityEditor.ShaderGraph.CustomFunctionNode",
     "m_ObjectId": "3000000000000000000000000000000c",
@@ -1068,6 +1182,9 @@
             "m_Id": "41000000000000000000000000000004"
         },
         {
+            "m_Id": "41000000000000000000000000000008"
+        },
+        {
             "m_Id": "41000000000000000000000000000005"
         },
         {
@@ -1092,7 +1209,7 @@
     "m_FunctionName": "MagicCircleShape",
     "m_FunctionSource": "",
     "m_FunctionSourceUsePragmas": true,
-    "m_FunctionBody": "// Params: x 由中心往外描繪 0..1、y 外圈逐段點亮 0..1、z 亮度倍率（脈動）\n// Style: x 線寬 (m)、y 不透明度、z 發光強度、w 外圈段數\n// Size: x 直徑 (m)\n// UV 的 U 朝東、V 朝北；角度 0 = 北、順時針\nfloat tau = 6.2831853;\nfloat diameter = max(Size.x, 0.001);\nfloat2 p = (UV - 0.5) * 2.0;\nfloat r = length(p);\nfloat m2n = 2.0 / diameter;\nfloat aa = 0.025 * m2n;\nfloat lw = max(Style.x, 0.005) * m2n;\nfloat a01 = frac(atan2(p.x, p.y) / tau + 1.0);\n\n// ---- 外圈：雙環 + 刻度（逐段點亮）----\nfloat outer = 1.0 - smoothstep(lw * 0.9, lw * 0.9 + aa, abs(r - 0.972));\nouter = max(outer, 1.0 - smoothstep(lw * 0.45, lw * 0.45 + aa, abs(r - 0.925)));\nfloat tickD = abs(frac(a01 * 72.0) - 0.5) * tau * r / 72.0;\nfloat ticks = (1.0 - smoothstep(lw * 0.35, lw * 0.35 + aa, tickD)) * step(0.928, r) * step(r, 0.968);\nouter = max(outer, ticks);\n\n// ---- 符文帶（0.80–0.90）：每格一個由幾筆組成的符文 ----\nfloat bandIn = 0.805;\nfloat bandH = 0.09;\nfloat N = 30.0;\nfloat cellF = a01 * N;\nfloat cell = floor(cellF);\nfloat h = frac(sin(cell * 12.9898 + 4.1) * 43758.5453);\nfloat2 q = float2((frac(cellF) - 0.5) * tau * r / N, r - bandIn) / bandH;\nfloat4 S[6] = {\n    float4(-0.28, 0.50, 0.28, 0.50),\n    float4(0.00, 0.85, 0.30, 0.55),\n    float4(0.00, 0.15, -0.30, 0.45),\n    float4(-0.22, 0.85, 0.22, 0.85),\n    float4(-0.26, 0.70, 0.00, 0.42),\n    float4(0.26, 0.70, 0.00, 0.42)\n};\nfloat bits = floor(h * 64.0);\nfloat2 sa = q - float2(0.0, 0.15);\nfloat2 sb = float2(0.0, 0.70);\nfloat gd = length(sa - sb * saturate(dot(sa, sb) / dot(sb, sb)));\nfor (int i = 0; i \u003c 6; i++)\n{\n    float on = fmod(floor(bits / exp2((float)i)), 2.0);\n    float2 a = S[i].xy;\n    float2 ba = S[i].zw - a;\n    float2 pa = q - a;\n    float dd = length(pa - ba * saturate(dot(pa, ba) / dot(ba, ba)));\n    gd = min(gd, lerp(10.0, dd, on));\n}\nfloat runes = (1.0 - smoothstep(lw * 0.5 / bandH, (lw * 0.5 + aa) / bandH, gd)) * step(bandIn, r) * step(r, bandIn + bandH);\n\n// ---- 內部：環、倒五芒星（尖端朝南）、星尖小圈、內圈、中心 ----\nfloat inner = 1.0 - smoothstep(lw * 0.8, lw * 0.8 + aa, abs(r - 0.785));\ninner = max(inner, 1.0 - smoothstep(lw * 0.4, lw * 0.4 + aa, abs(r - 0.745)));\nfloat starD = 10.0;\nfloat dotsD = 10.0;\nfor (int k = 0; k \u003c 5; k++)\n{\n    float t0 = (0.5 + k / 5.0) * tau;\n    float t1 = (0.5 + (k + 2) / 5.0) * tau;\n    float2 a = 0.70 * float2(sin(t0), cos(t0));\n    float2 b = 0.70 * float2(sin(t1), cos(t1));\n    float2 pa = p - a;\n    float2 ba = b - a;\n    starD = min(starD, length(pa - ba * saturate(dot(pa, ba) / dot(ba, ba))));\n    dotsD = min(dotsD, abs(length(p - a) - 0.055));\n}\ninner = max(inner, 1.0 - smoothstep(lw * 0.6, lw * 0.6 + aa, starD));\ninner = max(inner, 1.0 - smoothstep(lw * 0.5, lw * 0.5 + aa, dotsD));\ninner = max(inner, 1.0 - smoothstep(lw * 0.7, lw * 0.7 + aa, abs(r - 0.40)));\ninner = max(inner, 1.0 - smoothstep(lw * 0.35, lw * 0.35 + aa, abs(r - 0.36)));\ninner = max(inner, 1.0 - smoothstep(lw * 0.6, lw * 0.6 + aa, abs(r - 0.15)));\ninner = max(inner, 1.0 - smoothstep(0.045, 0.045 + aa, r));\ninner = max(inner, runes);\n\n// ---- 出現：由中心往外描繪，前緣發亮；外圈逐段點亮 ----\nfloat drawP = saturate(Params.x);\nfloat frontR = drawP * 0.93;\nfloat shown = 1.0 - smoothstep(frontR - 0.015, frontR, r);\nfloat front = (1.0 - smoothstep(0.0, 0.05, abs(r - frontR))) * step(0.001, drawP) * step(drawP, 0.999);\nfloat segCount = max(Style.w, 1.0);\nfloat segLit = saturate(saturate(Params.y) * segCount - floor(a01 * segCount));\n\nfloat lines = max(inner * shown, outer * segLit);\nfloat fill = (1.0 - smoothstep(0.96, 0.975, r)) * 0.10 * max(shown * drawP, segLit);\nfloat intensity = max(Params.z, 0.0);\nAlpha = saturate(max(max(lines, fill), front * 0.35 * shown) * Tint.a * Style.y);\nBaseColor = saturate(Tint.rgb);\nEmission = Tint.rgb * Style.z * intensity * (lines * (1.0 + front * 2.0) + fill * 0.5 + front * 0.6 * shown);"
+    "m_FunctionBody": "// Params: x 由中心往外描繪 0..1、y 外圈逐段點亮 0..1、z 亮度倍率（脈動）\n// Style: x 線寬 (m)、y 不透明度、z 發光強度、w 外圈段數\n// Size: x 直徑 (m)\n// UV 的 U 朝東、V 朝北；角度 0 = 北、順時針\nfloat tau = 6.2831853;\nfloat diameter = max(Size.x, 0.001);\nfloat2 p = (UV - 0.5) * 2.0;\nfloat r = length(p);\nfloat m2n = 2.0 / diameter;\nfloat aa = 0.025 * m2n;\nfloat lw = max(Style.x, 0.005) * m2n;\nfloat a01 = frac(atan2(p.x, p.y) / tau + 1.0);\n\n// ---- 外圈：雙環 + 刻度（逐段點亮）----\nfloat outer = 1.0 - smoothstep(lw * 0.9, lw * 0.9 + aa, abs(r - 0.972));\nouter = max(outer, 1.0 - smoothstep(lw * 0.45, lw * 0.45 + aa, abs(r - 0.925)));\nfloat tickD = abs(frac(a01 * 72.0) - 0.5) * tau * r / 72.0;\nfloat ticks = (1.0 - smoothstep(lw * 0.35, lw * 0.35 + aa, tickD)) * step(0.928, r) * step(r, 0.968);\nouter = max(outer, ticks);\n\n// ---- 符文帶（0.80–0.90）：每格一個由幾筆組成的符文 ----\nfloat bandIn = 0.805;\nfloat bandH = 0.09;\nfloat N = 30.0;\nfloat cellF = a01 * N;\nfloat cell = floor(cellF);\nfloat h = frac(sin(cell * 12.9898 + 4.1) * 43758.5453);\nfloat2 q = float2((frac(cellF) - 0.5) * tau * r / N, r - bandIn) / bandH;\nfloat4 S[6] = {\n    float4(-0.28, 0.50, 0.28, 0.50),\n    float4(0.00, 0.85, 0.30, 0.55),\n    float4(0.00, 0.15, -0.30, 0.45),\n    float4(-0.22, 0.85, 0.22, 0.85),\n    float4(-0.26, 0.70, 0.00, 0.42),\n    float4(0.26, 0.70, 0.00, 0.42)\n};\nfloat bits = floor(h * 64.0);\nfloat2 sa = q - float2(0.0, 0.15);\nfloat2 sb = float2(0.0, 0.70);\nfloat gd = length(sa - sb * saturate(dot(sa, sb) / dot(sb, sb)));\nfor (int i = 0; i < 6; i++)\n{\n    float on = fmod(floor(bits / exp2((float)i)), 2.0);\n    float2 a = S[i].xy;\n    float2 ba = S[i].zw - a;\n    float2 pa = q - a;\n    float dd = length(pa - ba * saturate(dot(pa, ba) / dot(ba, ba)));\n    gd = min(gd, lerp(10.0, dd, on));\n}\nfloat runes = (1.0 - smoothstep(lw * 0.5 / bandH, (lw * 0.5 + aa) / bandH, gd)) * step(bandIn, r) * step(r, bandIn + bandH);\n\n// ---- 內部：環、倒五芒星（尖端朝南）、星尖小圈、內圈、中心 ----\nfloat inner = 1.0 - smoothstep(lw * 0.8, lw * 0.8 + aa, abs(r - 0.785));\ninner = max(inner, 1.0 - smoothstep(lw * 0.4, lw * 0.4 + aa, abs(r - 0.745)));\nfloat starD = 10.0;\nfloat dotsD = 10.0;\nfor (int k = 0; k < 5; k++)\n{\n    float t0 = (0.5 + k / 5.0) * tau;\n    float t1 = (0.5 + (k + 2) / 5.0) * tau;\n    float2 a = 0.70 * float2(sin(t0), cos(t0));\n    float2 b = 0.70 * float2(sin(t1), cos(t1));\n    float2 pa = p - a;\n    float2 ba = b - a;\n    starD = min(starD, length(pa - ba * saturate(dot(pa, ba) / dot(ba, ba))));\n    dotsD = min(dotsD, abs(length(p - a) - 0.055));\n}\ninner = max(inner, 1.0 - smoothstep(lw * 0.6, lw * 0.6 + aa, starD));\ninner = max(inner, 1.0 - smoothstep(lw * 0.5, lw * 0.5 + aa, dotsD));\ninner = max(inner, 1.0 - smoothstep(lw * 0.7, lw * 0.7 + aa, abs(r - 0.40)));\ninner = max(inner, 1.0 - smoothstep(lw * 0.35, lw * 0.35 + aa, abs(r - 0.36)));\ninner = max(inner, 1.0 - smoothstep(lw * 0.6, lw * 0.6 + aa, abs(r - 0.15)));\ninner = max(inner, 1.0 - smoothstep(0.045, 0.045 + aa, r));\ninner = max(inner, runes);\n\n// ---- 出現：由中心往外描繪，前緣發亮；外圈逐段點亮 ----\nfloat drawP = saturate(Params.x);\nfloat frontR = drawP * 0.93;\nfloat shown = 1.0 - smoothstep(frontR - 0.015, frontR, r);\nfloat front = (1.0 - smoothstep(0.0, 0.05, abs(r - frontR))) * step(0.001, drawP) * step(drawP, 0.999);\nfloat segCount = max(Style.w, 1.0);\nfloat segLit = saturate(saturate(Params.y) * segCount - floor(a01 * segCount));\n\nfloat lines = max(inner * shown, outer * segLit);\nfloat fill = (1.0 - smoothstep(0.96, 0.975, r)) * 0.10 * max(shown * drawP, segLit);\n// ---- 熄滅區（大迴旋的安全區）：Holes.xy、Holes.zw 是兩個圓心離法陣中心的位移（m，東、北），Size.y 是半徑 (m)，Params.w 是熄滅程度 0..1 ----\nfloat holeR = max(Size.y, 0.0) * m2n;\nfloat holeD = min(length(p - Holes.xy * m2n), length(p - Holes.zw * m2n));\nfloat hole = (1.0 - smoothstep(holeR - aa * 2.0, holeR, holeD)) * saturate(Params.w) * step(0.0001, holeR);\nlines *= 1.0 - hole;\nfill *= 1.0 - hole;\nfront *= 1.0 - hole;\n\nfloat intensity = max(Params.z, 0.0);\nAlpha = saturate(max(max(lines, fill), front * 0.35 * shown) * Tint.a * Style.y);\nBaseColor = saturate(Tint.rgb);\nEmission = Tint.rgb * Style.z * intensity * (lines * (1.0 + front * 2.0) + fill * 0.5 + front * 0.6 * shown);"
 }
 
 {
@@ -1200,6 +1317,31 @@
     "m_SlotType": 0,
     "m_Hidden": false,
     "m_ShaderOutputName": "Size",
+    "m_StageCapability": 3,
+    "m_Value": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0,
+        "w": 0.0
+    },
+    "m_DefaultValue": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0,
+        "w": 0.0
+    },
+    "m_Labels": []
+}
+
+{
+    "m_SGVersion": 0,
+    "m_Type": "UnityEditor.ShaderGraph.Vector4MaterialSlot",
+    "m_ObjectId": "41000000000000000000000000000008",
+    "m_Id": 8,
+    "m_DisplayName": "Holes",
+    "m_SlotType": 0,
+    "m_Hidden": false,
+    "m_ShaderOutputName": "Holes",
     "m_StageCapability": 3,
     "m_Value": {
         "x": 0.0,

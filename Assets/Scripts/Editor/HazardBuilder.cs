@@ -13,7 +13,7 @@ namespace BossFight.EditorTools
     /// 2. 材質（只在不存在時建立）：TelegraphDecal（Shaders/TelegraphDecal.shadergraph）、Fx_Additive（Particles/Unlit 加算、雙面）。
     /// 3. 特效網格（每次重建覆寫）：環牆、地面衝擊環、爪痕、閃電柱。
     /// 4. Prefab（每次重建覆寫）：GroundTelegraph、ShockwaveRing、LightningStrike、Fx_ClawSlash、Fx_ImpactRing、Fx_Bolt、Fx_HitSpark、
-    ///    Fx_DamageNumber（Boss 受擊跳的數字，TextMesh + 內建字型）。
+    ///    Fx_DamageNumber（Boss 受擊跳的數字，TextMesh + 內建字型）；T8 加上 TornadoVortex（龍捲風）、SafeZone 與 GrandSpinField（大迴旋）。
     /// 選單 Tools > Boss > Build Hazards；BossBuilder 建 Boss 時也會先呼叫這裡。尺寸、顏色、時間都是純視覺參數。
     /// </summary>
     public static class HazardBuilder
@@ -36,6 +36,8 @@ namespace BossFight.EditorTools
             public TimedFx bolt;
             public TimedFx hitSpark;
             public DamageNumber damageNumber;
+            public TornadoVortex tornado;
+            public GrandSpinField grandSpin;
         }
 
         [MenuItem("Tools/Boss/Build Hazards")]
@@ -78,6 +80,8 @@ namespace BossFight.EditorTools
             result.shockwave = BuildShockwave(result.telegraph, ringWall, fxMat, hurtLayer);
             result.lightning = BuildLightning(result.telegraph, result.bolt, result.impactRing, hurtLayer);
             result.damageNumber = BuildDamageNumber();
+            result.tornado = BuildTornado(result.telegraph, ringWall, fxMat, hurtLayer);
+            result.grandSpin = BuildGrandSpin(result.telegraph, BuildSafeZone(result.telegraph), hurtLayer);
 
             AssetDatabase.SaveAssets();
             Debug.Log($"[Hazard] 地面提示、Hazard 與特效已建立：{PrefabDir}");
@@ -262,6 +266,79 @@ namespace BossFight.EditorTools
             so.FindProperty("impactPrefab").objectReferenceValue = impact;
             so.ApplyModifiedPropertiesWithoutUndo();
             return SavePrefab(go, "LightningStrike").GetComponent<LightningStrike>();
+        }
+
+        /// 龍捲風：地上的紅圈，加上幾層由下往上越來越大的環牆（和衝擊波同一個網格、同一個加算材質），TornadoVortex 讓它們各自旋轉。
+        static TornadoVortex BuildTornado(GroundTelegraph telegraphPrefab, Mesh ringWall, Material fxMat, int hurtLayer)
+        {
+            const int layerCount = 5;
+            var go = new GameObject("TornadoVortex");
+            var hitbox = AddHitbox(go, hurtLayer);
+
+            var circle = (GroundTelegraph)PrefabUtility.InstantiatePrefab(telegraphPrefab);
+            circle.name = "Circle";
+            circle.transform.SetParent(go.transform, false);
+
+            var layers = new Transform[layerCount];
+            var renderers = new Renderer[layerCount];
+            for (int i = 0; i < layerCount; i++)
+            {
+                var layer = new GameObject($"Layer{i + 1}");
+                layer.transform.SetParent(go.transform, false);
+                layer.AddComponent<MeshFilter>().sharedMesh = ringWall;
+                var renderer = layer.AddComponent<MeshRenderer>();
+                renderer.sharedMaterial = fxMat;
+                renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                renderer.receiveShadows = false;
+                layers[i] = layer.transform;
+                renderers[i] = renderer;
+            }
+
+            var vortex = go.AddComponent<TornadoVortex>();
+            var so = new SerializedObject(vortex);
+            so.FindProperty("hitbox").objectReferenceValue = hitbox;
+            so.FindProperty("circle").objectReferenceValue = circle;
+            SetArray(so.FindProperty("layers"), layers);
+            SetArray(so.FindProperty("layerRenderers"), renderers);
+            so.ApplyModifiedPropertiesWithoutUndo();
+            return SavePrefab(go, "TornadoVortex").GetComponent<TornadoVortex>();
+        }
+
+        /// 大迴旋的安全區：只有一個地上的圓圈，顏色在 SafeZone 上指定。
+        static SafeZone BuildSafeZone(GroundTelegraph telegraphPrefab)
+        {
+            var go = new GameObject("SafeZone");
+            var circle = (GroundTelegraph)PrefabUtility.InstantiatePrefab(telegraphPrefab);
+            circle.name = "Circle";
+            circle.transform.SetParent(go.transform, false);
+            var zone = go.AddComponent<SafeZone>();
+            DaoDunDogBuilder.SetReference(zone, "circle", circle);
+            return SavePrefab(go, "SafeZone").GetComponent<SafeZone>();
+        }
+
+        /// 大迴旋的全場判定：Hitbox、落地時整片閃紅光的地面提示；安全區執行時生成在底下。
+        static GrandSpinField BuildGrandSpin(GroundTelegraph telegraphPrefab, SafeZone zonePrefab, int hurtLayer)
+        {
+            var go = new GameObject("GrandSpinField");
+            var hitbox = AddHitbox(go, hurtLayer);
+
+            var flash = (GroundTelegraph)PrefabUtility.InstantiatePrefab(telegraphPrefab);
+            flash.name = "Flash";
+            flash.transform.SetParent(go.transform, false);
+
+            var field = go.AddComponent<GrandSpinField>();
+            var so = new SerializedObject(field);
+            so.FindProperty("hitbox").objectReferenceValue = hitbox;
+            so.FindProperty("flash").objectReferenceValue = flash;
+            so.FindProperty("zonePrefab").objectReferenceValue = zonePrefab;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            return SavePrefab(go, "GrandSpinField").GetComponent<GrandSpinField>();
+        }
+
+        static void SetArray<T>(SerializedProperty list, T[] values) where T : Object
+        {
+            list.arraySize = values.Length;
+            for (int i = 0; i < values.Length; i++) list.GetArrayElementAtIndex(i).objectReferenceValue = values[i];
         }
 
         /// 傷害數字：粗體白字，加一層往右下、往後偏一點的黑色陰影；字型用 Unity 內建的 LegacyRuntime.ttf。

@@ -39,6 +39,11 @@ namespace BossFight.Core
 
         public bool IsActive { get; private set; }
 
+        /// <summary>
+        /// 額外的命中條件：回傳 false 的 Hurtbox Collider 不算打到（例如大迴旋排除站在安全區裡的目標、幻影不打到 Boss 本體）。null = 不篩選。
+        /// </summary>
+        public Func<Collider, bool> Filter { get; set; }
+
         readonly HashSet<IDamageable> alreadyHit = new HashSet<IDamageable>();
         readonly Collider[] overlaps = new Collider[16];
         DamageInfo info;
@@ -102,6 +107,7 @@ namespace BossFight.Core
                 if (hurtbox == null || hurtbox.Owner == null) continue;
                 if (hurtbox.transform.IsChildOf(from)) continue;
                 if (shape == Shape.Cylinder && !InCylinder(overlaps[i])) continue;
+                if (Filter != null && !Filter(overlaps[i])) continue;
                 if (!alreadyHit.Add(hurtbox.Owner)) continue;
 
                 var sent = info.WithSource(from.position, from.gameObject);

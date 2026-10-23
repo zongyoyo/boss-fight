@@ -165,6 +165,9 @@ namespace BossFight.DebugTools
                 case MoveChoiceSource.Timeout:
                     source = "走位逾時，直接出";
                     break;
+                case MoveChoiceSource.PhaseEntry:
+                    source = $"進場招式（之後進入{(boss.PendingPhase != null ? boss.PendingPhase.displayName : "下一階段")}）";
+                    break;
                 default:
                     source = $"隨機（候選 {choice.candidateCount}）";
                     break;

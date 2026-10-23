@@ -40,6 +40,8 @@ namespace BossFight.Boss
         Random,
         /// <summary>走位逾時（BossPhaseData.repositionTimeout）：沒走進距離範圍，直接出正在走向的那一招。</summary>
         Timeout,
+        /// <summary>下一階段的進場招式（BossPhaseData.entryMove，例如血量首次 ≤ 400 的 OIIA 大迴旋）。</summary>
+        PhaseEntry,
     }
 
     /// <summary>選招的結果，OnMoveChosen 送出。</summary>
@@ -88,6 +90,8 @@ namespace BossFight.Boss
     /// 開場序列跳過這一招，一般選招直接出正在走向的那一招。
     /// 冷卻從招式結束（或被打斷）開始算，乘上當下階段的冷卻倍率。
     /// 血量降到下一個階段的門檻時換階段：有 transitionTime 的進入 Transition（無敵、打斷招式、清掉 Hazard），結束後才套用；沒有的直接套用。
+    /// 下一階段有進場招式（BossPhaseData.entryMove，狂暴的 OIIA 大迴旋）時：打斷目前的動作（頭暈也一樣）、清掉 Hazard，立刻出那一招（MoveChoiceSource.PhaseEntry），
+    /// 那一招結束、回到 Idle 時（它讓 Boss 頭暈的話是頭暈結束時）才套用新階段；PendingPhase 在這段期間也是新階段。
     /// 轉階段的結束：有轉階段演出時由 BattleManager 關掉 AutoCompleteTransition，演出結束時呼叫 CompleteTransition；沒有演出時 transitionTime 秒後自動結束。
     /// 頭暈（Stun）打斷目前的招式，時間到回到 Idle；失衡值的累積、受傷倍率與處決在同一個物件上的 BossStagger，
     /// 它在處決進行中設 HoldStun（時間到也先不結束），處決打到時呼叫 EndStun。
@@ -145,7 +149,7 @@ namespace BossFight.Boss
         public int OpeningIndex { get; private set; }
         /// <summary>這次 Idle 要等的秒數。</summary>
         public float IdleDuration { get; private set; }
-        /// <summary>轉階段中，結束後要套用的階段；其他時候為 null。</summary>
+        /// <summary>轉階段中（或進場招式到它造成的頭暈結束前），結束後要套用的階段；其他時候為 null。</summary>
         public BossPhaseData PendingPhase => pendingPhase >= 0 ? stats.phases[pendingPhase] : null;
         /// <summary>
         /// 轉階段 transitionTime 秒後自動結束（預設）。有轉階段演出時由 BattleManager 關掉，改由演出結束時呼叫 CompleteTransition。
@@ -467,7 +471,7 @@ namespace BossFight.Boss
 
         void HandleHealthChanged(float current, float max)
         {
-            if (State == BossState.Transition || State == BossState.Defeated || current <= 0f) return;
+            if (pendingPhase >= 0 || State == BossState.Transition || State == BossState.Defeated || current <= 0f) return;
             var next = NextPhase;
             if (next != null && current <= next.healthThreshold) BeginTransition(PhaseIndex + 1);
         }
@@ -475,6 +479,16 @@ namespace BossFight.Boss
         void BeginTransition(int phaseIndex)
         {
             var next = stats.phases[phaseIndex];
+            if (next.entryMove != null)
+            {
+                var entry = FindMove(next.entryMove);
+                if (entry != null)
+                {
+                    BeginPhaseEntry(phaseIndex, entry);
+                    return;
+                }
+                Debug.LogError($"[Boss] {next.displayName}的進場招式 {next.entryMove.displayName} 不在 Boss 的招式清單裡，直接換階段。", this);
+            }
             if (next.transitionTime <= 0f)
             {
                 // 沒有轉階段時間（狂暴）：直接換數值，目前的招照常打完；一次跨過好幾個門檻就繼續往下換
@@ -489,6 +503,15 @@ namespace BossFight.Boss
             health.Invulnerable = true;
             TimedStateDuration = next.transitionTime;
             SetState(BossState.Transition);
+        }
+
+        // 進場招式：打斷目前的動作（頭暈中也一樣，BossStagger 會當成被打斷）、清場，立刻出；新階段等這招結束回到 Idle 時才套用（EnterIdle）
+        void BeginPhaseEntry(int phaseIndex, BossMove entry)
+        {
+            InterruptMove();
+            ClearAllHazards();
+            pendingPhase = phaseIndex;
+            StartMove(new BossMoveChoice(entry, MoveChoiceSource.PhaseEntry, 0, DistanceToTarget));
         }
 
         /// <summary>結束轉階段：套用新階段、解除無敵、回到 Idle。由轉階段演出結束時呼叫（沒有演出時由 transitionTime 計時呼叫）。不在轉階段中時無效。</summary>
@@ -518,12 +541,28 @@ namespace BossFight.Boss
             SetState(BossState.Defeated);
         }
 
+        // 招式要求的無敵（BossMove.SetInvulnerable，大迴旋浮空期間）
+        internal void SetMoveInvulnerable(bool on)
+        {
+            if (State == BossState.Transition || State == BossState.Defeated) return;
+            health.Invulnerable = on;
+        }
+
         // ---------- 狀態、移動 ----------
 
         void EnterIdle()
         {
+            // 進場招式（與它造成的頭暈）結束：現在才套用新階段（轉階段的套用在 CompleteTransition）
+            bool entryDone = pendingPhase >= 0 && State != BossState.Transition;
+            if (entryDone)
+            {
+                int index = pendingPhase;
+                pendingPhase = -1;
+                ApplyPhase(index);
+            }
             IdleDuration = Phase.RandomInterval();
             SetState(BossState.Idle);
+            if (entryDone) HandleHealthChanged(health.Current, health.Max); // 一次跨過好幾個門檻就繼續往下換
         }
 
         void SetState(BossState next)

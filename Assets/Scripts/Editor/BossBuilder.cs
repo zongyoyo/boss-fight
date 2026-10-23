@@ -17,19 +17,21 @@ namespace BossFight.EditorTools
     /// LockOnTarget、實心碰撞（kinematic Rigidbody）與 Hurtbox，
     /// 失衡值與處決（BossStagger、ExecutionTarget）、頭暈時頭上轉的星星（BossStunVisual，T5），
     /// 強化階段的外觀（BossPhaseVisual：身上的紅色電光 ElectricAura、殘影，T7），
-    /// 以及 Moves 底下的招式：第一階段 5 招（T4），和第二階段 4 個強化招（T7，沿用第一階段的招式類別、換成 Phase2 的資料）。
+    /// 以及 Moves 底下的招式：第一階段 5 招（T4），和第二階段 4 個強化招（T7，沿用第一階段的招式類別、換成 Phase2 的資料），
+    /// 第二階段新招 OIIA 龍捲風、幻影分身（幻影 prefab Assets/Prefabs/OiiaCatPhantom.prefab、本體的發光項圈）與終極技 OIIA 大迴旋（T8，狂暴的進場招式）。
     /// 地面提示、Hazard 與特效的 prefab 由 HazardBuilder 建立後接到招式上。
     /// 數值資產（BossStats、第一階段／第二階段／狂暴、招式）只在不存在時建立並填入企劃書的數值，之後在 Inspector 改的值不會被覆蓋；
-    /// 唯一例外是第一階段的開場序列是空的或有遺失的招式時，換成 迴旋衝撞 → 貓掌連拍 → 魔法陣落雷。
+    /// 例外：第一階段的開場序列是空的或有遺失的招式時，換成 迴旋衝撞 → 貓掌連拍 → 魔法陣落雷；狂暴的進場招式是空的時，填入 OIIA 大迴旋。
     /// 存成 Assets/Prefabs/OiiaCat.prefab，放在場地中心、面向南方的玩家出生點；刪掉 T1 的 FakeBoss，
     /// 並把玩家的鎖定清單與處決清單、PlayerDebugOverlay 的距離對象、
-    /// DebugTools 上的 BossDebugTools 接到新的 Boss。
+    /// DebugTools 上的 BossDebugTools 接到新的 Boss；場景裡的魔法陣接到幻影分身與大迴旋（IntroCutsceneBuilder 重建魔法陣後也會再接一次）。
     /// 選單 Tools > Boss > Build Boss Placeholder；重建時沿用舊 Boss 的位置與朝向。尺寸、顏色都是純視覺參數。
     /// </summary>
     public static class BossBuilder
     {
         const string RootName = "OiiaCat";
         const string PrefabPath = "Assets/Prefabs/OiiaCat.prefab";
+        const string PhantomPrefabPath = "Assets/Prefabs/OiiaCatPhantom.prefab";
         const string MatDir = "Assets/Models/OiiaCat/Materials";
         const string BossDir = "Assets/ScriptableObjects/Boss";
         const string PhaseDir = BossDir + "/Phases";
@@ -47,6 +49,8 @@ namespace BossFight.EditorTools
         const float StarHeight = 2.95f; // 頭頂（膠囊頂端 2.5 m、耳尖約 2.6 m）再高一點
         const float StarRadius = 0.55f;
         const float StarSize = 0.2f;
+        const float CollarHeight = 1.45f;
+        const float CollarThickness = 0.14f;
 
         /// 第一階段 5 招的數值資產。
         struct Phase1Moves
@@ -60,13 +64,16 @@ namespace BossFight.EditorTools
             public BossMoveData[] All => new BossMoveData[] { paw, charge, shockwave, thunder, pounce };
         }
 
-        /// 第二階段 4 個強化招的數值資產（類別和第一階段同一招一樣）。
+        /// 第二階段的數值資產：4 個強化招（類別和第一階段同一招一樣）、2 個新招與終極技。
         struct Phase2Moves
         {
             public PawSwipeData paw;
             public SpinChargeData charge;
             public SpinShockwaveData shockwave;
             public ThunderCircleData thunder;
+            public TornadoData tornado;
+            public PhantomPounceData phantom;
+            public GrandSpinData grandSpin;
         }
 
         [MenuItem("Tools/Boss/Build Boss Placeholder")]
@@ -91,7 +98,7 @@ namespace BossFight.EditorTools
             if (hazards.telegraph == null) return null;
             var phase1 = GetPhase1Moves();
             var phase2 = GetPhase2Moves();
-            var stats = GetStats(phase1);
+            var stats = GetStats(phase1, phase2);
 
             Undo.SetCurrentGroupName("Build Boss Placeholder");
             int undoGroup = Undo.GetCurrentGroup();
@@ -120,7 +127,7 @@ namespace BossFight.EditorTools
             Undo.CollapseUndoOperations(undoGroup);
             AssetDatabase.SaveAssets();
             EditorSceneManager.MarkSceneDirty(root.scene);
-            Debug.Log($"[Boss] OIIA 貓佔位已建立：{PrefabPath}，位置 {pos}，第一階段 5 招、第二階段 4 招");
+            Debug.Log($"[Boss] OIIA 貓佔位已建立：{PrefabPath}，位置 {pos}，第一階段 5 招、第二階段 6 招與終極技");
             return root;
         }
 
@@ -270,11 +277,56 @@ namespace BossFight.EditorTools
                 d.waveCount = 2;
                 d.waveInterval = 1f;
             });
+
+            // T8 新招與終極技；企劃書沒寫的距離、冷卻與判定大小是 T8 計畫確認過的預設值
+            m.tornado = GetOrCreate<TornadoData>($"{Phase2MoveDir}/Tornado.asset", d =>
+            {
+                SetMove(d, "OIIA 龍捲風", 0f, Mathf.Infinity, 12f, 1f, 2.5f, 10f, false, false, 2);
+                d.duration = 5f;
+                d.chaseSpeed = 4f;
+                d.tickInterval = 0.5f;
+                d.hitRadius = 1.8f;
+                d.hitHeight = 4f;
+                d.endImbalance = 40f;
+            });
+            // 取代扭屁股飛撲：距離、冷卻和飛撲本身的數值照第一階段的飛撲
+            m.phantom = GetOrCreate<PhantomPounceData>($"{Phase2MoveDir}/PhantomPounce.asset", d =>
+            {
+                SetMove(d, "幻影分身", 3f, 6f, 5f, 1f, 1.5f, 20f, true, true, 2);
+                d.flightTime = 0.5f;
+                d.leapHeight = 2f;
+                d.landShort = 1.2f;
+                d.landingRadius = 2f;
+                d.hitHeight = 2f;
+                d.hitWindow = 0.1f;
+                d.phantomCount = 2;
+                d.spawnDistance = 3f;
+                d.pounceWindup = 0.6f;
+                d.pounceInterval = 0.8f;
+                d.realPouncesLast = true;
+            });
+            // 權重 0：不會被隨機選到，只由狂暴的進場招式（或 F3）出
+            m.grandSpin = GetOrCreate<GrandSpinData>($"{Phase2MoveDir}/GrandSpin.asset", d =>
+            {
+                SetMove(d, "OIIA 大迴旋", 0f, Mathf.Infinity, 0f, 1f, 0f, 60f, false, false, 2);
+                d.weight = 0f;
+                d.floatHeight = 4f;
+                d.countdownTime = 4f;
+                d.fallTime = 0.25f;
+                d.hitHeight = 6f;
+                d.hitWindow = 0.1f;
+                d.landingStunTime = 3f;
+                d.safeZoneCount = 2;
+                d.safeZoneRadius = 2f;
+                d.safeZoneMinRadius = 4f;
+                d.safeZoneMaxRadius = 8.5f;
+                d.safeZoneMinSpacing = 8f;
+            });
             return m;
         }
 
         // 企劃書「Boss 數值」表格；第一階段的開場序列是 迴旋衝撞 → 貓掌連拍 → 魔法陣落雷
-        static BossStats GetStats(Phase1Moves moves)
+        static BossStats GetStats(Phase1Moves moves, Phase2Moves phase2Moves)
         {
             var opening = new BossMoveData[] { moves.charge, moves.paw, moves.thunder };
             var phase1 = GetOrCreate<BossPhaseData>($"{PhaseDir}/Phase1.asset", p =>
@@ -298,6 +350,13 @@ namespace BossFight.EditorTools
                 p => SetPhase(p, "第二階段", 1000f, 2, 5f, 4f, 0.5f, 0.8f, 1f, 120f, 2.5f, 8f, 1.2f, true));
             var berserk = GetOrCreate<BossPhaseData>($"{PhaseDir}/Berserk.asset",
                 p => SetPhase(p, "狂暴", 400f, 2, 0f, 4.5f, 0.3f, 0.3f, 0.75f, 120f, 2.5f, 8f, 1.3f, true));
+            // 企劃書：血量首次降到 400 先放一次大迴旋，放完才進入狂暴
+            if (berserk.entryMove == null)
+            {
+                berserk.entryMove = phase2Moves.grandSpin;
+                EditorUtility.SetDirty(berserk);
+                Debug.Log("[Boss] 狂暴的進場招式設為 OIIA 大迴旋");
+            }
 
             return GetOrCreate<BossStats>($"{BossDir}/BossStats.asset", s =>
             {
@@ -431,6 +490,16 @@ namespace BossFight.EditorTools
                                                  ("wavePrefab", hazards.shockwave)));
             moves.Add(AddMove<ThunderCircleMove>(movesRoot, phase2.thunder, root.transform, hurtLayer, false, poser, null,
                                                  ("strikePrefab", hazards.lightning)));
+            // 第二階段新招與終極技（T8）；魔法陣、倒數數字面向的鏡頭是場景物件，在 WireScene 接
+            var collar = BuildCollar(model);
+            moves.Add(AddMove<TornadoMove>(movesRoot, phase2.tornado, root.transform, hurtLayer, false, poser, null,
+                                           ("vortexPrefab", hazards.tornado)));
+            moves.Add(AddMove<PhantomPounceMove>(movesRoot, phase2.phantom, root.transform, hurtLayer, true, poser, hazards.telegraph,
+                                                 ("impactPrefab", hazards.impactRing), ("phantomPrefab", BuildPhantomPrefab(hazards, hurtLayer)),
+                                                 ("collar", collar)));
+            moves.Add(AddMove<GrandSpinMove>(movesRoot, phase2.grandSpin, root.transform, hurtLayer, false, poser, null,
+                                             ("fieldPrefab", hazards.grandSpin), ("impactPrefab", hazards.impactRing),
+                                             ("countdownPrefab", hazards.damageNumber)));
 
             var controller = root.AddComponent<BossController>();
             var cso = new SerializedObject(controller);
@@ -527,6 +596,80 @@ namespace BossFight.EditorTools
             return mat;
         }
 
+        /// 幻影分身的本體標記：脖子上一圈發光的金色項圈（扁圓柱，比身體粗一點），放在 Model 底下；平常隱藏，由招式打開。
+        static GameObject BuildCollar(Transform model)
+        {
+            var mat = GetMat("OiiaCat_Collar", new Color(1f, 0.8f, 0.25f), 0.6f, new Color(3f, 2.2f, 0.5f));
+            float diameter = (BodyRadius + 0.05f) * 2f;
+            var collar = DaoDunDogBuilder.Prim(PrimitiveType.Cylinder, model, "Collar", new Vector3(0f, CollarHeight, 0f),
+                                               new Vector3(diameter, CollarThickness * 0.5f, diameter), mat);
+            collar.GetComponent<MeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            collar.SetActive(false);
+            return collar;
+        }
+
+        /// 幻影分身的幻影（佔位）：本體的身體、耳朵、爪子，全部換成半透明的殘影材質；OiiaCatPoser 做伏低與飛撲姿勢，
+        /// 自己的 Hurtbox（一擊即碎）與落地的 Hitbox（攻擊方是幻影自己）。存成 Assets/Prefabs/OiiaCatPhantom.prefab（每次重建覆寫）。
+        static BossPhantom BuildPhantomPrefab(HazardBuilder.Result hazards, int hurtLayer)
+        {
+            var ghost = GetGhostMaterial();
+            var root = new GameObject("OiiaCatPhantom");
+            var model = DaoDunDogBuilder.Node(root.transform, "Model", Vector3.zero);
+            var renderers = new List<Renderer>
+            {
+                DaoDunDogBuilder.Prim(PrimitiveType.Capsule, model, "Body", new Vector3(0f, BodyHeight * 0.5f, 0f),
+                                      new Vector3(BodyRadius * 2f, BodyHeight * 0.5f, BodyRadius * 2f), ghost).GetComponent<Renderer>(),
+            };
+            for (int side = -1; side <= 1; side += 2)
+            {
+                renderers.Add(DaoDunDogBuilder.Prim(PrimitiveType.Cube, model, side < 0 ? "EarL" : "EarR", new Vector3(0.4f * side, 2.42f, 0.05f),
+                                                    new Vector3(0.36f, 0.36f, 0.14f), ghost, Quaternion.Euler(0f, 0f, 45f)).GetComponent<Renderer>());
+            }
+            var poser = root.AddComponent<OiiaCatPoser>();
+            var paws = new Transform[2];
+            for (int side = -1; side <= 1; side += 2)
+            {
+                var rest = poser.pawRest;
+                var paw = DaoDunDogBuilder.Prim(PrimitiveType.Sphere, model, side < 0 ? "PawL" : "PawR",
+                                                new Vector3(rest.x * side, rest.y, rest.z), Vector3.one * PawSize, ghost);
+                renderers.Add(paw.GetComponent<Renderer>());
+                paws[side < 0 ? 0 : 1] = paw.transform;
+            }
+            foreach (var r in renderers) r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            poser.model = model;
+            poser.pawL = paws[0];
+            poser.pawR = paws[1];
+
+            var hitbox = HazardBuilder.AddHitbox(root, hurtLayer);
+            DaoDunDogBuilder.SetReference(hitbox, "attacker", root.transform);
+
+            var hurt = DaoDunDogBuilder.Node(root.transform, "Hurtbox", Vector3.zero);
+            hurt.gameObject.layer = hurtLayer;
+            var hurtCol = hurt.gameObject.AddComponent<CapsuleCollider>();
+            hurtCol.isTrigger = true;
+            hurtCol.center = new Vector3(0f, BodyHeight * 0.5f, 0f);
+            hurtCol.height = BodyHeight + HurtboxPadding * 2f;
+            hurtCol.radius = BodyRadius + HurtboxPadding;
+            var hurtbox = hurt.gameObject.AddComponent<Hurtbox>();
+
+            var phantom = root.AddComponent<BossPhantom>();
+            DaoDunDogBuilder.SetReference(hurtbox, "owner", phantom);
+            var so = new SerializedObject(phantom);
+            so.FindProperty("poser").objectReferenceValue = poser;
+            so.FindProperty("hitbox").objectReferenceValue = hitbox;
+            so.FindProperty("hurtCollider").objectReferenceValue = hurtCol;
+            so.FindProperty("model").objectReferenceValue = model.gameObject;
+            so.FindProperty("shatterPrefab").objectReferenceValue = hazards.hitSpark;
+            var list = so.FindProperty("renderers");
+            list.arraySize = renderers.Count;
+            for (int i = 0; i < renderers.Count; i++) list.GetArrayElementAtIndex(i).objectReferenceValue = renderers[i];
+            so.ApplyModifiedPropertiesWithoutUndo();
+
+            var prefab = PrefabUtility.SaveAsPrefabAsset(root, PhantomPrefabPath);
+            Object.DestroyImmediate(root);
+            return prefab.GetComponent<BossPhantom>();
+        }
+
         /// 頭暈時頭上轉的星星（佔位）：一圈發光的小方塊，放在 Model 底下跟著身體一起晃；平常隱藏。
         static Transform BuildStunStars(Transform model)
         {
@@ -585,6 +728,13 @@ namespace BossFight.EditorTools
             fso.FindProperty("viewCamera").objectReferenceValue = mainCamera != null ? mainCamera.transform : null;
             fso.ApplyModifiedProperties();
             if (mainCamera == null) Debug.LogWarning("[Boss] 場景裡沒有 Main Camera，BossDamageFeedback 的 viewCamera 要手動指定（傷害數字會不面向鏡頭）。");
+            foreach (var spin in root.GetComponentsInChildren<GrandSpinMove>(true))
+            {
+                var sso = new SerializedObject(spin);
+                sso.FindProperty("viewCamera").objectReferenceValue = mainCamera != null ? mainCamera.transform : null;
+                sso.ApplyModifiedProperties();
+            }
+            WireMagicCircle(controller, Object.FindAnyObjectByType<MagicCircle>());
 
             if (player != null)
             {
@@ -621,6 +771,21 @@ namespace BossFight.EditorTools
             tso.FindProperty("stagger").objectReferenceValue = root.GetComponent<BossStagger>();
             tso.FindProperty("playerHealth").objectReferenceValue = player != null ? player.GetComponent<PlayerHealth>() : null;
             tso.ApplyModifiedProperties();
+        }
+
+        /// 把場景的魔法陣接到會用它的招式（幻影分身的閃爍、大迴旋的安全區）；IntroCutsceneBuilder 重建魔法陣後也會呼叫。circle 為 null 時清掉。
+        internal static void WireMagicCircle(BossController boss, MagicCircle circle)
+        {
+            if (boss == null) return;
+            foreach (var move in boss.GetComponentsInChildren<BossMove>(true))
+            {
+                var so = new SerializedObject(move);
+                var prop = so.FindProperty("magicCircle");
+                if (prop == null) continue;
+                prop.objectReferenceValue = circle;
+                so.ApplyModifiedProperties();
+            }
+            if (circle == null) Debug.LogWarning("[Boss] 場景裡沒有 MagicCircle（先跑 Tools > Cutscene > Build Intro），幻影分身不會閃法陣、大迴旋的安全區不會熄滅符文。");
         }
 
         // 清掉清單裡已經失效的項目（被刪掉的舊 Boss），再加上新的

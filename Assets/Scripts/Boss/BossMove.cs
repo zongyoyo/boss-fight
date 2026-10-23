@@ -79,6 +79,9 @@ namespace BossFight.Boss
             if (Boss.Stagger != null) Boss.Stagger.AddImbalance(amount);
         }
 
+        /// <summary>Boss 無敵（攻擊都當成閃過），例如大迴旋浮空期間；招式結束或被打斷時要關掉。</summary>
+        protected void SetInvulnerable(bool on) => Boss.SetMoveInvulnerable(on);
+
         /// <summary>生成一個 Hazard：攻擊方設為 Boss，命中轉成 ReportHit，被打斷時會一起收掉。</summary>
         protected T SpawnHazard<T>(T prefab, Vector3 position, Quaternion rotation) where T : Hazard
         {
