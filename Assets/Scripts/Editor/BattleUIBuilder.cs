@@ -22,7 +22,7 @@ namespace BossFight.EditorTools
     /// 2. BattleUI Canvas（每次重建）：左下玩家 HUD（血條、耐力條、骨頭）、下方置中 Boss 名稱／血條（50%、20% 刻度）／失衡條、鎖定標記、勝敗畫面。
     ///    參考解析度 1920×1080；左上、右上留給 Debug 面板（PlayerDebugOverlay、BossDebugTools）。開場字卡與跳過提示是 IntroUI（IntroCutsceneBuilder），排在這個 Canvas 上面。
     /// 3. EventSystem（InputSystemUIInputModule，沒有才建）：勝敗畫面的按鈕用滑鼠、Enter、手把 A 都能按。
-    /// 4. 接好 BattleManager 的 T9 欄位（settings、bossHealth、playerHealth、player、cameraController）與 BossDebugTools.battle。
+    /// 4. 接好 BattleManager 的 T9 欄位（settings、bossHealth、playerHealth、player、cameraController）與 BossDebugTools.battle，並重新接上 F12 平衡面板（BalancePanelBuilder）。
     /// Tools > Cutscene > Build Intro 會重建 BattleManager，最後也會呼叫這裡。
     /// </summary>
     public static class BattleUIBuilder
@@ -124,6 +124,8 @@ namespace BossFight.EditorTools
             so.FindProperty("bossGroup").objectReferenceValue = bossRoot.GetComponent<CanvasGroup>();
             so.FindProperty("bossPanel").objectReferenceValue = bossPanel;
             so.ApplyModifiedPropertiesWithoutUndo();
+
+            BalancePanelBuilder.Wire();
 
             Undo.CollapseUndoOperations(undoGroup);
             AssetDatabase.SaveAssets();

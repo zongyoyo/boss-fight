@@ -287,7 +287,7 @@ MonoBehaviour:
     m_FontStyle: 1
     m_BestFit: 0
     m_MinSize: 10
-    m_MaxSize: 40
+    m_MaxSize: 150
     m_Alignment: 4
     m_AlignByGeometry: 0
     m_RichText: 1
@@ -6290,6 +6290,7 @@ GameObject:
   - component: {fileID: 709609762}
   - component: {fileID: 709609761}
   - component: {fileID: 709609763}
+  - component: {fileID: 709609764}
   m_Layer: 0
   m_Name: DebugTools
   m_TagString: Untagged
@@ -6353,6 +6354,30 @@ MonoBehaviour:
   historySize: 8
   toastTime: 2
   panelWidth: 470
+--- !u!114 &709609764
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 709609760}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4adee2b7834da2b46acbb3a13e7ba84a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BossFight.DebugTools.BalanceDebugPanel
+  battle: {fileID: 303177463}
+  boss: {fileID: 8192183024484153737}
+  bossHealth: {fileID: 8192183024484153733}
+  stagger: {fileID: 8192183024484153738}
+  player: {fileID: 130495869}
+  playerHealth: {fileID: 97214449695436130}
+  playerAttack: {fileID: 97214449695436129}
+  cameraController: {fileID: 977434113}
+  panelVisible: 0
+  pauseWhileOpen: 1
+  showTimer: 1
+  panelWidth: 640
 --- !u!1 &739687508
 GameObject:
   m_ObjectHideFlags: 0
@@ -16711,7 +16736,7 @@ MonoBehaviour:
     m_FontStyle: 1
     m_BestFit: 0
     m_MinSize: 10
-    m_MaxSize: 40
+    m_MaxSize: 54
     m_Alignment: 4
     m_AlignByGeometry: 0
     m_RichText: 1

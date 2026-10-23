@@ -771,6 +771,8 @@ namespace BossFight.EditorTools
             tso.FindProperty("stagger").objectReferenceValue = root.GetComponent<BossStagger>();
             tso.FindProperty("playerHealth").objectReferenceValue = player != null ? player.GetComponent<PlayerHealth>() : null;
             tso.ApplyModifiedProperties();
+
+            BalancePanelBuilder.Wire();
         }
 
         /// 把場景的魔法陣接到會用它的招式（幻影分身的閃爍、大迴旋的安全區）；IntroCutsceneBuilder 重建魔法陣後也會呼叫。circle 為 null 時清掉。
