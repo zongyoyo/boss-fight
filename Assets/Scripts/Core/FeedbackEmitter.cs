@@ -20,6 +20,9 @@ namespace BossFight.Core
 
         public CombatFeedbackData Data => data;
 
+        /// <summary>播音效的 AudioManager；生成的角色由 PlayerSpawner 設定（prefab 不能引用場景物件）。</summary>
+        public void SetAudioManager(AudioManager value) => audioManager = value;
+
         // 同一幀同一組回饋只播一次：一波落雷 3–5 道同時劈下，聲音與震動不疊成好幾倍
         AudioClip[] lastClips;
         int lastFrame = -1;

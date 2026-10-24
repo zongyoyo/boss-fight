@@ -28,6 +28,7 @@ namespace BossFight.EditorTools
     ///    8 台演出鏡頭、看向的目標、閃電、煙霧、白屏、Timeline 用的 AudioSource）、IntroUI（字卡、跳過提示）、BattleManager。
     /// 3. 把 Timeline 的每條軌道綁到場景物件（依軌道類型；同類型有好幾條的依軌道名稱），Cinemachine 片段依片段名稱接到同名的鏡頭。
     ///    所以在 Timeline 視窗調時間點、加減片段都沒關係，但不要改軌道與鏡頭片段的名稱。
+    ///    玩家的走位軌道綁 PlayerSpawner 底下的預覽模型（EditorOnly）；執行時 PlayerSpawner 把生成的角色交給 CutsceneDirector（BindPlayer），由它改綁。
     /// 4. BossController.startOnPlay 關掉（場景與 prefab），改由 BattleManager 在開場結束時開打；重建的魔法陣接到 Boss 的幻影分身與大迴旋。
     /// 5. 最後重建轉階段演出（TransitionCutsceneBuilder）與戰鬥 UI（BattleUIBuilder），因為它們引用這裡重建的魔法陣、AudioManager、BattleManager 與開場；打擊回饋（CombatFeedbackBuilder）也重接到新的 AudioManager。
     /// Tools > Cutscene > Reset Intro Timeline 會刪掉 Timeline 重排一次（在 Timeline 視窗做的調整會不見）。
@@ -106,7 +107,8 @@ namespace BossFight.EditorTools
 
         public static GameObject Build()
         {
-            var player = Object.FindAnyObjectByType<PlayerController>();
+            var preview = PlayerSpawnerBuilder.Preview(); // 軌道綁 PlayerSpawner 底下的預覽模型，進 Play 時 CutsceneDirector.BindPlayer 改綁生成的角色
+            var player = preview != null ? preview.Controller : null;
             var cameraController = Object.FindAnyObjectByType<CameraController>();
             var boss = Object.FindAnyObjectByType<BossController>();
             var brain = Object.FindAnyObjectByType<CinemachineBrain>();
@@ -118,7 +120,7 @@ namespace BossFight.EditorTools
             }
             if (player == null || cameraController == null || boss == null || brain == null || arena == null || sun == null)
             {
-                Debug.LogError("[Cutscene] 需要場景裡的 PlayerController、CameraController、BossController、CinemachineBrain、Directional Light，" +
+                Debug.LogError("[Cutscene] 需要場景裡的 PlayerSpawner（含預覽模型）、CameraController、BossController、CinemachineBrain、Directional Light，" +
                                $"以及 {ArenaDataPath}。請先建好競技場、刀盾狗、鏡頭與 Boss。");
                 return null;
             }
@@ -173,7 +175,6 @@ namespace BossFight.EditorTools
             director.timeUpdateMode = DirectorUpdateMode.GameTime;
             var cutscene = root.AddComponent<CutsceneDirector>();
             DaoDunDogBuilder.SetReference(cutscene, "settings", settings);
-            DaoDunDogBuilder.SetReference(cutscene, "player", player);
             DaoDunDogBuilder.SetReference(cutscene, "cameraController", cameraController);
             DaoDunDogBuilder.SetReference(cutscene, "faceTarget", boss.transform);
 

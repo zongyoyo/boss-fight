@@ -4,7 +4,6 @@ using BossFight.Boss.Moves;
 using BossFight.Core;
 using BossFight.DebugTools;
 using BossFight.Hazards;
-using BossFight.Player;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -540,7 +539,7 @@ namespace BossFight.EditorTools
             dso.FindProperty("numberPrefab").objectReferenceValue = hazards.damageNumber;
             dso.ApplyModifiedPropertiesWithoutUndo();
 
-            // 失衡值、頭暈與處決（T5）；玩家的 PlayerHealth 是場景物件，在 WireScene 接
+            // 失衡值、頭暈與處決（T5）；處決清單由 PlayerSpawner 交給生成的角色
             root.AddComponent<ExecutionTarget>();
             var stagger = root.AddComponent<BossStagger>();
             DaoDunDogBuilder.SetReference(stagger, "stats", stats);
@@ -712,17 +711,15 @@ namespace BossFight.EditorTools
             return move;
         }
 
-        // 場景裡的引用：玩家、場地中心、玩家的鎖定清單與處決清單、Debug 工具
+        // 場景裡的引用：場地中心、Debug 工具；玩家（BossController.SetTarget）與玩家的鎖定、處決清單由 PlayerSpawner 執行時設定（最後跑 PlayerSpawnerBuilder.Wire）
         static void WireScene(GameObject root)
         {
             var controller = root.GetComponent<BossController>();
-            var player = Object.FindAnyObjectByType<PlayerController>();
             var arenaGen = Object.FindAnyObjectByType<ArenaGenerator>();
             var cso = new SerializedObject(controller);
-            cso.FindProperty("target").objectReferenceValue = player != null ? player.transform : null;
             cso.FindProperty("arenaCenter").objectReferenceValue = arenaGen != null ? arenaGen.transform : null;
             cso.ApplyModifiedProperties();
-            if (player == null) Debug.LogWarning("[Boss] 場景裡沒有 PlayerController，BossController 的 target 要手動指定，玩家的鎖定、處決清單也要手動加。");
+            if (PlayerSpawnerBuilder.Find() == null) Debug.LogWarning("[Boss] 場景裡沒有 PlayerSpawner（Tools > Player > Build DaoDun Dog），Boss 不會有目標。");
 
             var mainCamera = Camera.main;
             var fso = new SerializedObject(root.GetComponent<BossDamageFeedback>());
@@ -736,14 +733,6 @@ namespace BossFight.EditorTools
                 sso.ApplyModifiedProperties();
             }
             WireMagicCircle(controller, Object.FindAnyObjectByType<MagicCircle>());
-
-            if (player != null)
-            {
-                var pso = new SerializedObject(player);
-                AddToList(pso.FindProperty("executionTargets"), root.GetComponent<ExecutionTarget>());
-                AddToList(pso.FindProperty("lockTargets"), root.GetComponent<LockOnTarget>());
-                pso.ApplyModifiedProperties();
-            }
 
             var overlay = Object.FindAnyObjectByType<PlayerDebugOverlay>();
             GameObject debugGo;
@@ -770,9 +759,9 @@ namespace BossFight.EditorTools
             tso.FindProperty("boss").objectReferenceValue = controller;
             tso.FindProperty("bossHealth").objectReferenceValue = root.GetComponent<BossHealth>();
             tso.FindProperty("stagger").objectReferenceValue = root.GetComponent<BossStagger>();
-            tso.FindProperty("playerHealth").objectReferenceValue = player != null ? player.GetComponent<PlayerHealth>() : null;
             tso.ApplyModifiedProperties();
 
+            PlayerSpawnerBuilder.Wire(); // Boss、鎖定與處決目標、BossDebugTools 接到 spawner
             BalancePanelBuilder.Wire();
             CombatFeedbackBuilder.Wire();
             PauseMenuBuilder.Wire(); // 開發者模式開關的 Debug 工具清單
@@ -791,17 +780,6 @@ namespace BossFight.EditorTools
                 so.ApplyModifiedProperties();
             }
             if (circle == null) Debug.LogWarning("[Boss] 場景裡沒有 MagicCircle（先跑 Tools > Cutscene > Build Intro），幻影分身不會閃法陣、大迴旋的安全區不會熄滅符文。");
-        }
-
-        // 清掉清單裡已經失效的項目（被刪掉的舊 Boss），再加上新的
-        static void AddToList(SerializedProperty list, Object value)
-        {
-            for (int i = list.arraySize - 1; i >= 0; i--)
-            {
-                if (list.GetArrayElementAtIndex(i).objectReferenceValue == null) list.DeleteArrayElementAtIndex(i);
-            }
-            list.arraySize++;
-            list.GetArrayElementAtIndex(list.arraySize - 1).objectReferenceValue = value;
         }
 
         /// 有 Emission 的 URP Lit 材質（預兆閃光用 MaterialPropertyBlock 改 _EmissionColor；星星自己發光）；只在不存在時建立。

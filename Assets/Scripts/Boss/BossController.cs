@@ -144,14 +144,15 @@ namespace BossFight.Boss
         [SerializeField] ArenaData arena;
         [Tooltip("場地中心；留空用世界原點")]
         [SerializeField] Transform arenaCenter;
-        [Tooltip("玩家：選招的距離與轉向都以它為準")]
-        [SerializeField] Transform target;
         [Tooltip("本體的碰撞膠囊，用它的半徑讓 Boss 不會走進牆裡")]
         [SerializeField] CapsuleCollider body;
         [Tooltip("Boss 會用的招式（Moves 底下的 BossMove）；用哪些由 BossMoveData.phase 與階段的招式池決定")]
         [SerializeField] List<BossMove> moves = new List<BossMove>();
         [Tooltip("進 Play 模式就開打（場景裡沒有 BattleManager 時測試用）。平常關掉，由 BattleManager 在開場動畫結束時呼叫 StartBattle")]
         [SerializeField] bool startOnPlay;
+
+        // 玩家：選招的距離與轉向都以它為準；PlayerSpawner 生成角色後用 SetTarget 設定（Boss 不引用 Player）
+        Transform target;
 
         /// <summary>狀態改變；參數是新的狀態。</summary>
         public event Action<BossState> OnStateChanged;
@@ -204,6 +205,8 @@ namespace BossFight.Boss
         public BossStagger Stagger { get; private set; }
         public IReadOnlyList<BossMove> Moves => moves;
         public Transform Target => target;
+        /// <summary>設定玩家（PlayerSpawner 生成或換角色時呼叫）。</summary>
+        public void SetTarget(Transform value) => target = value;
         /// <summary>競技場數值（半徑、外牆 Layer）；招式的撞牆、落點也讀這一份。</summary>
         public ArenaData Arena => arena;
         /// <summary>場地中心的世界座標。</summary>

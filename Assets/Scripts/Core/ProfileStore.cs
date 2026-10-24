@@ -22,7 +22,7 @@ namespace BossFight.Core
     /// 存檔：Application.persistentDataPath/save.json（JsonUtility）。有變動就存，離開遊戲（Application.quitting）再存一次。
     /// 讀檔失敗（壞檔、不是 JSON）時把壞檔改名成 save.bak.json（覆蓋舊的備份），開新檔並在 Console 警告。
     /// 第一次讀到時才載入；進 Play 模式時清掉載入狀態，關掉 Domain Reload 時也會重新從檔案讀。
-    /// 另外放「這次要在哪個出生點出現」（SetArrival／TakeArrival）：只活在這次執行，不寫進檔案；SceneFlow 換場景前設、新場景的 SceneFlow 取走。
+    /// 另外放「這次要在哪個出生點出現」（SetArrival／TakeArrival）：只活在這次執行，不寫進檔案；SceneFlow 換場景前設、新場景的 PlayerSpawner 先看（PeekArrival，決定生成位置）、SceneFlow 再取走（決定要不要淡入）。
     /// 這是 CLAUDE.md「不用 static」規則的第二個例外（第一個是 BattleSession）：存檔要跨場景、跨執行，只放純資料，不放任何元件引用。
     /// 玩家設定（音量、改鍵、難度）照舊由 GameOptions 存 PlayerPrefs，跟這裡分開。
     /// </summary>
@@ -132,6 +132,13 @@ namespace BossFight.Core
         {
             hasArrival = true;
             arrival = id ?? string.Empty;
+        }
+
+        /// <summary>看這次的出生點但不取走（PlayerSpawner 生成角色用）；回傳 false = 不是換場景進來的。</summary>
+        public static bool PeekArrival(out string id)
+        {
+            id = arrival;
+            return hasArrival;
         }
 
         /// <summary>新場景取走出生點；回傳 false = 不是換場景進來的（直接進 Play、重試）。取走後清掉。</summary>

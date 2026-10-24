@@ -1616,9 +1616,9 @@ GameObject:
   - component: {fileID: 9060212885600375809}
   - component: {fileID: 5359222579852415663}
   - component: {fileID: 1804688899150798330}
-  - component: {fileID: 7166129922359050110}
-  - component: {fileID: 8870404366982116199}
-  - component: {fileID: 5056006851323634949}
+  - component: {fileID: 356513314845674040}
+  - component: {fileID: 5356878221984717941}
+  - component: {fileID: 8555083470483592435}
   m_Layer: 0
   m_Name: OiiaCat
   m_TagString: Untagged
@@ -1759,7 +1759,6 @@ MonoBehaviour:
   stats: {fileID: 11400000, guid: 74db1dcce1b438944ac95c1c5d0b4454, type: 2}
   arena: {fileID: 11400000, guid: 75744be836b08814294348f944b7efec, type: 2}
   arenaCenter: {fileID: 0}
-  target: {fileID: 0}
   body: {fileID: 8334619865011727123}
   moves:
   - {fileID: 2195769570719348670}
@@ -1951,7 +1950,7 @@ MonoBehaviour:
   interval: 0.06
   lifetime: 0.3
   minSpeed: 2.5
---- !u!114 &7166129922359050110
+--- !u!114 &356513314845674040
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -2004,7 +2003,7 @@ MonoBehaviour:
     DissipationDistance: 30
     PropagationSpeed: 343
   DefaultVelocity: {x: 0, y: -1, z: 0}
---- !u!114 &8870404366982116199
+--- !u!114 &5356878221984717941
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -2018,8 +2017,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Core.FeedbackEmitter
   data: {fileID: 11400000, guid: 5ce1160a8fc48e94385d90b94cdaa96b, type: 2}
   audioManager: {fileID: 0}
-  impulse: {fileID: 7166129922359050110}
---- !u!114 &5056006851323634949
+  impulse: {fileID: 356513314845674040}
+--- !u!114 &8555083470483592435
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}

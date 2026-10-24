@@ -6,14 +6,13 @@ namespace BossFight.UI
 {
     /// <summary>
     /// 鎖定標記：鎖定時在目標的 LockOnTarget.AimPoint 上顯示一個小菱形，出現時從大縮回、之後輕輕呼吸。
-    /// 鎖定哪個目標只訂閱 PlayerController.OnLockTargetChanged；位置每幀用 viewCamera 把 AimPoint 投到畫面上（目標在鏡頭後方時隱藏）。
+    /// 鎖定哪個目標只訂閱 PlayerController.OnLockTargetChanged（玩家由 PlayerSpawner 交給 BindPlayer）；位置每幀用 viewCamera 把 AimPoint 投到畫面上（目標在鏡頭後方時隱藏）。
     /// 處決標記（ExecutionMarkerUI.OnShownChanged）出現時先藏起來，兩個標記不疊在一起。
     /// </summary>
     [DisallowMultipleComponent]
-    public class LockOnMarkerUI : MonoBehaviour
+    public class LockOnMarkerUI : MonoBehaviour, IPlayerBinding
     {
         [SerializeField] BattleUIData data;
-        [SerializeField] PlayerController player;
         [Tooltip("投影用的鏡頭（Main Camera）")]
         [SerializeField] Camera viewCamera;
         [Tooltip("標記（父物件是全螢幕的 RectTransform）")]
@@ -25,6 +24,17 @@ namespace BossFight.UI
         RectTransform area;
         float shownTime;
         bool hiddenByExecution;
+        PlayerController player; // PlayerSpawner 交給 BindPlayer
+        bool subscribed;
+
+        /// <summary>PlayerSpawner 生成（或換）角色時呼叫；已經訂閱就先退訂舊角色。</summary>
+        public void BindPlayer(PlayerRig rig)
+        {
+            if (subscribed && player != null) player.OnLockTargetChanged -= HandleLockTargetChanged;
+            player = rig != null ? rig.Controller : null;
+            target = null;
+            if (subscribed && player != null) player.OnLockTargetChanged += HandleLockTargetChanged;
+        }
 
         void Awake()
         {
@@ -36,12 +46,14 @@ namespace BossFight.UI
         {
             if (player != null) player.OnLockTargetChanged += HandleLockTargetChanged;
             if (executionMarker != null) executionMarker.OnShownChanged += HandleExecutionMarker;
+            subscribed = true;
         }
 
         void OnDisable()
         {
             if (player != null) player.OnLockTargetChanged -= HandleLockTargetChanged;
             if (executionMarker != null) executionMarker.OnShownChanged -= HandleExecutionMarker;
+            subscribed = false;
         }
 
         void HandleExecutionMarker(bool shown)

@@ -14,8 +14,8 @@ namespace BossFight.EditorTools
     /// Tools > Feedback > Build Combat Feedback（T11 打擊回饋）：
     /// 1. 合成戰鬥佔位音效（PlaceholderAudioBuilder.BuildCombat），建立或更新 Assets/ScriptableObjects/Feedback/CombatFeedback.asset；
     ///    資產已經存在時數值不動，音效只填空的或還是佔位音效（Assets/Audio/Placeholder）的欄位，換成正式音效後重建不會蓋掉。
-    /// 2. 玩家（DaoDunDog.prefab）與 Boss（OiiaCat.prefab）加上 CinemachineImpulseSource、FeedbackEmitter 與 PlayerFeedback／BossImpactFeedback；
-    ///    場景裡的實例另外接 AudioManager（場景物件，prefab 不能引用）。
+    /// 2. 玩家（Characters/DaoDunDog.prefab）與 Boss（OiiaCat.prefab）加上 CinemachineImpulseSource、FeedbackEmitter 與 PlayerFeedback／BossImpactFeedback；
+    ///    Boss 的場景實例另外接 AudioManager（場景物件，prefab 不能引用）；玩家是執行時生成的，AudioManager 由 PlayerSpawner 填（這裡最後跑 PlayerSpawnerBuilder.Wire）。
     /// 3. 自由視角與鎖定視角兩台 CinemachineCamera 加上 CinemachineImpulseListener（鏡頭震動）。
     /// CameraRigBuilder（DaoDunDogBuilder 也會跑）、BossBuilder、IntroCutsceneBuilder（重建 AudioManager）結束時呼叫 Wire 重接，
     /// 重建角色、Boss、鏡頭或 AudioManager 後引用不會斷。
@@ -24,7 +24,7 @@ namespace BossFight.EditorTools
     {
         const string DataDir = "Assets/ScriptableObjects/Feedback";
         const string DataPath = DataDir + "/CombatFeedback.asset";
-        const string PlayerPrefabPath = "Assets/Prefabs/DaoDunDog.prefab";
+        const string PlayerPrefabPath = DaoDunDogBuilder.PrefabPath;
         const string BossPrefabPath = "Assets/Prefabs/OiiaCat.prefab";
 
         [MenuItem("Tools/Feedback/Build Combat Feedback")]
@@ -96,13 +96,12 @@ namespace BossFight.EditorTools
             SetupPrefab<BossImpactFeedback>(BossPrefabPath, data);
 
             var audio = Object.FindAnyObjectByType<AudioManager>();
-            var player = Object.FindAnyObjectByType<PlayerController>();
             var boss = Object.FindAnyObjectByType<BossController>();
-            if (player != null) WireInstance<PlayerFeedback>(player.gameObject, data, audio);
             if (boss != null) WireInstance<BossImpactFeedback>(boss.gameObject, data, audio);
             int listeners = AddListeners();
+            var spawner = PlayerSpawnerBuilder.Wire(); // 生成的角色的 AudioManager
 
-            string missing = (player == null ? " 玩家" : "") + (boss == null ? " Boss" : "") + (audio == null ? " AudioManager（先跑 Build Intro）" : "") +
+            string missing = (spawner == null ? " PlayerSpawner" : "") + (boss == null ? " Boss" : "") + (audio == null ? " AudioManager（先跑 Build Intro）" : "") +
                              (listeners == 0 ? " 鏡頭（先跑 Build Camera Rig）" : "");
             Debug.Log($"[Feedback] 打擊回饋已接上：鏡頭震動 {listeners} 台" + (missing.Length > 0 ? $"；缺少：{missing}" : ""));
         }
@@ -119,6 +118,7 @@ namespace BossFight.EditorTools
             try
             {
                 Setup<TFeedback>(root, data, false);
+                if (root.GetComponent<PlayerController>() != null) DaoDunDogBuilder.WireRig(root); // PlayerRig 也接上剛加的回饋元件
                 PrefabUtility.SaveAsPrefabAsset(root, path);
             }
             finally

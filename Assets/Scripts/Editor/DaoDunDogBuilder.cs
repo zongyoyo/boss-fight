@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using BossFight.Core;
-using BossFight.DebugTools;
 using BossFight.Player;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -12,9 +11,10 @@ namespace BossFight.EditorTools
     /// 用基本形體拼出刀盾狗（照公仔造型）：蛋形身體、頭身一體，上面橘、肚子和下巴奶油色；
     /// 長狗吻 + 黑鼻子 + 壞笑、半瞇杏仁眼、貼在頭側的小圓耳、短手、青蛙腳。
     /// 右手短刀，左手金邊黑底的鳶形盾（中間金色太陽紋），嘴裡藏著啃骨頭時才出現的骨頭。
-    /// 存成 Assets/Prefabs/DaoDunDog.prefab（掛好 PlayerController、PlayerStamina、PlayerHealth、PlayerAttack、HitStop 與 PlayerStats，
-    /// 以及 Hurtbox 與刀的 Hitbox），放到場景的 PlayerSpawn，再用 CameraRigBuilder 建立 Cinemachine 鏡頭，並接回 PlayerDebugOverlay。
-    /// 選單 Tools > Player > Build DaoDun Dog；重建時沿用場景中舊角色的位置。
+    /// 存成 Assets/Prefabs/Characters/DaoDunDog.prefab（掛好 PlayerRig、PlayerController、PlayerStamina、PlayerHealth、PlayerAttack、HitStop 與 PlayerStats，
+    /// 以及 Hurtbox 與刀的 Hitbox；T18 以前在 Assets/Prefabs，第一次跑時用 AssetDatabase.MoveAsset 搬過去、保留 GUID）。
+    /// 場景裡不放角色，改放 PlayerSpawner（PlayerSpawnerBuilder，底下有 EditorOnly 的預覽模型），再用 CameraRigBuilder 建立 Cinemachine 鏡頭。
+    /// 選單 Tools > Player > Build DaoDun Dog；重建時沿用場景中舊 spawner（或 T17 以前的舊角色）的位置，都沒有時放在 PlayerSpawn。
     /// 只想補上攻防用的元件、不重建角色與鏡頭：Tools > Player > Add Combat Parts（可重複執行）。
     /// 尺寸以 +Z 為前方、腳底 y = 0，總高約 1.4 m。
     /// </summary>
@@ -23,8 +23,9 @@ namespace BossFight.EditorTools
         const string ModelDir = "Assets/Models/DaoDunDog";
         const string MatDir = ModelDir + "/Materials";
         const string MeshDir = ModelDir + "/Meshes";
-        const string PrefabDir = "Assets/Prefabs";
-        const string PrefabPath = PrefabDir + "/DaoDunDog.prefab";
+        const string PrefabDir = "Assets/Prefabs/Characters";
+        public const string PrefabPath = PrefabDir + "/DaoDunDog.prefab";
+        const string LegacyPrefabPath = "Assets/Prefabs/DaoDunDog.prefab"; // T17 以前的位置
         const string StatsPath = "Assets/ScriptableObjects/Player/PlayerStats.asset";
         internal const string HurtboxLayer = "Hurtbox";
 
@@ -70,6 +71,7 @@ namespace BossFight.EditorTools
             EnsureFolder(MatDir);
             EnsureFolder(MeshDir);
             EnsureFolder(PrefabDir);
+            MoveLegacyPrefab();
 
             var fur = new Color(0.98f, 0.6f, 0.3f);
             var m = new Mats
@@ -89,15 +91,20 @@ namespace BossFight.EditorTools
             Undo.SetCurrentGroupName("Build DaoDun Dog");
             int undoGroup = Undo.GetCurrentGroup();
 
-            // 位置：沿用場景中舊的角色，否則放在 PlayerSpawn
+            // 位置：沿用場景中舊的 spawner 或舊的角色（PlayerSpawnerBuilder.Build 會刪掉它們），否則放在 PlayerSpawn
             Vector3 pos = Vector3.zero;
             Quaternion rot = Quaternion.identity;
+            var oldSpawner = PlayerSpawnerBuilder.Find();
             var old = Object.FindAnyObjectByType<PlayerController>();
-            if (old != null)
+            if (oldSpawner != null)
+            {
+                pos = oldSpawner.transform.position;
+                rot = oldSpawner.transform.rotation;
+            }
+            else if (old != null)
             {
                 pos = old.transform.position;
                 rot = old.transform.rotation;
-                Undo.DestroyObjectImmediate(old.gameObject);
             }
             else
             {
@@ -110,24 +117,35 @@ namespace BossFight.EditorTools
             }
 
             var root = BuildModel(m, meshes);
-            PrefabUtility.SaveAsPrefabAssetAndConnect(root, PrefabPath, InteractionMode.AutomatedAction);
-            Undo.RegisterCreatedObjectUndo(root, "Build DaoDun Dog");
-            root.transform.SetPositionAndRotation(pos, rot);
+            PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
+            Object.DestroyImmediate(root);
 
-            CameraRigBuilder.Build(root.GetComponent<PlayerController>());
-            WireDebugOverlay();
+            var spawner = PlayerSpawnerBuilder.Build(pos, rot);
+            var preview = PlayerSpawnerBuilder.Preview();
+            if (preview != null) CameraRigBuilder.Build(preview.Controller);
 
             Undo.CollapseUndoOperations(undoGroup);
             AssetDatabase.SaveAssets();
-            EditorSceneManager.MarkSceneDirty(root.scene);
+            if (spawner != null) EditorSceneManager.MarkSceneDirty(spawner.gameObject.scene);
 
-            Debug.Log($"[Player] 刀盾狗已建立：{PrefabPath}，位置 {pos}");
-            return root;
+            Debug.Log($"[Player] 刀盾狗已建立：{PrefabPath}，PlayerSpawner 位置 {pos}");
+            return spawner != null ? spawner.gameObject : null;
+        }
+
+        // T17 以前 prefab 在 Assets/Prefabs：搬到 Characters，保留 GUID（場景與其他資產的引用不會斷）
+        static void MoveLegacyPrefab()
+        {
+            if (AssetDatabase.LoadAssetAtPath<GameObject>(LegacyPrefabPath) == null || AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath) != null) return;
+            string error = AssetDatabase.MoveAsset(LegacyPrefabPath, PrefabPath);
+            if (!string.IsNullOrEmpty(error)) Debug.LogError($"[Player] 搬移 {LegacyPrefabPath} → {PrefabPath} 失敗：{error}");
+            else Debug.Log($"[Player] 已把 {LegacyPrefabPath} 搬到 {PrefabPath}（GUID 不變）");
         }
 
         [MenuItem("Tools/Player/Add Combat Parts")]
         public static void AddCombatPartsToPrefab()
         {
+            EnsureFolder(PrefabDir);
+            MoveLegacyPrefab();
             if (LayerMask.NameToLayer(HurtboxLayer) < 0)
             {
                 Debug.LogError($"[Player] 找不到 Layer「{HurtboxLayer}」，請先在 Project Settings > Tags and Layers 加上。");
@@ -144,7 +162,6 @@ namespace BossFight.EditorTools
             {
                 PrefabUtility.UnloadPrefabContents(root);
             }
-            WireDebugOverlay();
             AssetDatabase.SaveAssets();
             Debug.Log($"[Player] 已補上攻防元件：{PrefabPath}");
         }
@@ -192,6 +209,28 @@ namespace BossFight.EditorTools
             anim.attack = attack;
             anim.health = health;
             EditorUtility.SetDirty(anim);
+            WireRig(root);
+        }
+
+        /// <summary>
+        /// 根物件的 PlayerRig：接好身上的玩家元件、鏡頭跟隨點（根物件）與臉部錨點（頭）。可以重複執行；
+        /// CombatFeedbackBuilder 加上 PlayerFeedback／FeedbackEmitter 後也會再呼叫一次。
+        /// </summary>
+        internal static void WireRig(GameObject root)
+        {
+            var rig = GetOrAdd<PlayerRig>(root);
+            var anim = root.GetComponent<DaoDunDogAnimator>();
+            var so = new SerializedObject(rig);
+            so.FindProperty("controller").objectReferenceValue = root.GetComponent<PlayerController>();
+            so.FindProperty("health").objectReferenceValue = root.GetComponent<PlayerHealth>();
+            so.FindProperty("stamina").objectReferenceValue = root.GetComponent<PlayerStamina>();
+            so.FindProperty("attack").objectReferenceValue = root.GetComponent<PlayerAttack>();
+            so.FindProperty("feedback").objectReferenceValue = root.GetComponent<PlayerFeedback>();
+            so.FindProperty("feedbackEmitter").objectReferenceValue = root.GetComponent<FeedbackEmitter>();
+            so.FindProperty("animator").objectReferenceValue = anim;
+            so.FindProperty("cameraTarget").objectReferenceValue = root.transform;
+            so.FindProperty("faceAnchor").objectReferenceValue = anim != null ? anim.head : null;
+            so.ApplyModifiedPropertiesWithoutUndo();
         }
 
         /// 站著不動時每幀只往下推一幀的重力量，高幀率下會小於預設的 minMoveDistance（0.001 m），
@@ -199,22 +238,6 @@ namespace BossFight.EditorTools
         static void ConfigureGrounding(CharacterController cc)
         {
             if (cc != null) cc.minMoveDistance = 0f;
-        }
-
-        /// 場景裡的 PlayerDebugOverlay 接上玩家；重建角色後舊的引用會斷。
-        static void WireDebugOverlay()
-        {
-            var overlay = Object.FindAnyObjectByType<PlayerDebugOverlay>();
-            var player = Object.FindAnyObjectByType<PlayerController>();
-            if (overlay == null || player == null) return;
-
-            var so = new SerializedObject(overlay);
-            so.FindProperty("player").objectReferenceValue = player;
-            so.FindProperty("stamina").objectReferenceValue = player.GetComponent<PlayerStamina>();
-            so.FindProperty("health").objectReferenceValue = player.GetComponent<PlayerHealth>();
-            so.FindProperty("attack").objectReferenceValue = player.GetComponent<PlayerAttack>();
-            so.ApplyModifiedProperties();
-            EditorSceneManager.MarkSceneDirty(overlay.gameObject.scene);
         }
 
         // ---------- 模型 ----------

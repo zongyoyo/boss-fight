@@ -13,12 +13,8 @@ namespace BossFight.DebugTools
     /// 量到的時間以影格為單位，會比設定值多出不到一幀。
     /// </summary>
     [DisallowMultipleComponent]
-    public class PlayerDebugOverlay : MonoBehaviour
+    public class PlayerDebugOverlay : MonoBehaviour, IPlayerBinding
     {
-        [SerializeField] PlayerController player;
-        [SerializeField] PlayerStamina stamina;
-        [SerializeField] PlayerHealth health;
-        [SerializeField] PlayerAttack attack;
         [Tooltip("顯示和這個物件的水平距離（Boss）")]
         [SerializeField] Transform distanceReference;
         [SerializeField] bool visible = true;
@@ -36,9 +32,30 @@ namespace BossFight.DebugTools
         string lastDamageText = "—", lastAttackText = "—";
         int hitCount, blockCount, parryCount, guardBreakCount, evadeCount;
         GUIStyle style;
+        // PlayerSpawner 交給 BindPlayer
+        PlayerController player;
+        PlayerStamina stamina;
+        PlayerHealth health;
+        PlayerAttack attack;
+        bool subscribed;
+
+        /// <summary>PlayerSpawner 生成（或換）角色時呼叫；已經訂閱就先退訂舊角色。</summary>
+        public void BindPlayer(PlayerRig rig)
+        {
+            bool wasSubscribed = subscribed;
+            if (wasSubscribed) OnDisable();
+            player = rig != null ? rig.Controller : null;
+            stamina = rig != null ? rig.Stamina : null;
+            health = rig != null ? rig.Health : null;
+            attack = rig != null ? rig.Attack : null;
+            lockTarget = null;
+            measuringInvulnerable = false;
+            if (wasSubscribed) OnEnable();
+        }
 
         void OnEnable()
         {
+            subscribed = true;
             if (stamina != null)
             {
                 stamina.OnStaminaChanged += HandleStaminaChanged;
@@ -62,6 +79,7 @@ namespace BossFight.DebugTools
 
         void OnDisable()
         {
+            subscribed = false;
             if (stamina != null)
             {
                 stamina.OnStaminaChanged -= HandleStaminaChanged;
@@ -85,7 +103,7 @@ namespace BossFight.DebugTools
 
         void LateUpdate()
         {
-            if (measuringInvulnerable && !player.IsInvulnerable)
+            if (measuringInvulnerable && player != null && !player.IsInvulnerable)
             {
                 lastInvulnerableTime = Time.time - rollStartTime;
                 measuringInvulnerable = false;

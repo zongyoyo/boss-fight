@@ -309,6 +309,7 @@ namespace BossFight.EditorTools
             }
 
             SceneFlowBuilder.Build();
+            PlayerSpawnerBuilder.Wire(); // 選單相關的接收者（BattleManager 等）與 AudioManager 重接
 
             EditorSceneManager.MarkSceneDirty(options.gameObject.scene);
             string missing = (audio == null ? " AudioManager" : "") + (battle == null ? " BattleManager" : "") +

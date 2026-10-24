@@ -30,23 +30,22 @@ namespace BossFight.DebugTools
     /// 這是 CLAUDE.md「唯一的 static 例外」之外的 Debug 例外，沒有 Debug 程式的 build（見 CLAUDE.md 的 BOSSFIGHT_DEV_TOOLS）不會有。
     /// </para>
     /// <para>
+    /// 玩家由 PlayerSpawner 交給 BindPlayer（T18）；spawner 比這裡早跑，Awake 時已經有玩家。Awake 之後才換角色時，對新角色再換一次複本。
+    /// </para>
+    /// <para>
     /// 面板開著時（預設）暫停遊戲（timeScale 0）、鎖住玩家與鏡頭的輸入、放開游標；關掉時還原（開場、轉階段演出中或勝敗畫面時維持鎖定，交給原本的流程解除）。
     /// 計時用遊戲時間（暫停不算）：第一階段＝開場結束到轉階段開始、轉階段、第二階段＝轉階段結束到勝負（另列大迴旋與狂暴），
     /// 總時間＝開場結束到分出勝負（和勝利畫面的通關時間相同）。每場結束時在 Console 寫一行結算。
     /// </para>
     /// </summary>
-    [DefaultExecutionOrder(-1000)]
+    [DefaultExecutionOrder(-999)] // PlayerSpawner（-1000）生成玩家之後、其他元件之前換成複本
     [DisallowMultipleComponent]
-    public class BalanceDebugPanel : MonoBehaviour
+    public class BalanceDebugPanel : MonoBehaviour, IPlayerBinding
     {
         [SerializeField] BattleManager battle;
         [SerializeField] BossController boss;
         [SerializeField] BossHealth bossHealth;
         [SerializeField] BossStagger stagger;
-        [SerializeField] PlayerController player;
-        [SerializeField] PlayerHealth playerHealth;
-        [Tooltip("分辨輕攻擊、重攻擊（頭暈前的失衡來源統計）")]
-        [SerializeField] PlayerAttack playerAttack;
         [Tooltip("面板開著時鎖住視角、放開游標")]
         [SerializeField] CameraController cameraController;
         [Tooltip("一開始就打開面板（F12 切換）")]
@@ -167,10 +166,34 @@ namespace BossFight.DebugTools
         int stunParries, stunLights, stunHeavies;
         float stunCountStart;
 
+        // 玩家（PlayerSpawner 交給 BindPlayer）；PlayerAttack 分辨輕攻擊、重攻擊（頭暈前的失衡來源統計）
+        PlayerController player;
+        PlayerHealth playerHealth;
+        PlayerAttack playerAttack;
+        bool subscribed, awoken;
+
+        /// <summary>PlayerSpawner 生成（或換）角色時呼叫；已經訂閱就先退訂舊角色，Awake 之後才換人時把新角色的 SO 引用也換成複本。</summary>
+        public void BindPlayer(PlayerRig rig)
+        {
+            if (subscribed) UnsubscribePlayer();
+            player = rig != null ? rig.Controller : null;
+            playerHealth = rig != null ? rig.Health : null;
+            playerAttack = rig != null ? rig.Attack : null;
+            if (awoken && player != null)
+            {
+                foreach (var component in player.GetComponentsInChildren<MonoBehaviour>(true))
+                {
+                    if (component != null) Remap(component);
+                }
+            }
+            if (subscribed) SubscribePlayer();
+        }
+
         // ---------- 複本 ----------
 
         void Awake()
         {
+            awoken = true;
             int swapped = 0;
             foreach (var root in Roots())
             {
@@ -515,6 +538,12 @@ namespace BossFight.DebugTools
                 stagger.OnStunned += HandleStunned;
                 stagger.OnStunEnded += HandleStunEnded;
             }
+            SubscribePlayer();
+            subscribed = true;
+        }
+
+        void SubscribePlayer()
+        {
             if (playerHealth != null)
             {
                 playerHealth.OnParry += HandleParry;
@@ -522,6 +551,17 @@ namespace BossFight.DebugTools
                 playerHealth.OnBonesChanged += HandleBonesChanged;
             }
             if (playerAttack != null) playerAttack.OnAttackStarted += HandleAttackStarted;
+        }
+
+        void UnsubscribePlayer()
+        {
+            if (playerHealth != null)
+            {
+                playerHealth.OnParry -= HandleParry;
+                playerHealth.OnDamageTaken -= HandlePlayerDamaged;
+                playerHealth.OnBonesChanged -= HandleBonesChanged;
+            }
+            if (playerAttack != null) playerAttack.OnAttackStarted -= HandleAttackStarted;
         }
 
         void Unsubscribe()
@@ -533,13 +573,8 @@ namespace BossFight.DebugTools
                 stagger.OnStunned -= HandleStunned;
                 stagger.OnStunEnded -= HandleStunEnded;
             }
-            if (playerHealth != null)
-            {
-                playerHealth.OnParry -= HandleParry;
-                playerHealth.OnDamageTaken -= HandlePlayerDamaged;
-                playerHealth.OnBonesChanged -= HandleBonesChanged;
-            }
-            if (playerAttack != null) playerAttack.OnAttackStarted -= HandleAttackStarted;
+            UnsubscribePlayer();
+            subscribed = false;
         }
 
         void HandleBattleState(BattleState next)

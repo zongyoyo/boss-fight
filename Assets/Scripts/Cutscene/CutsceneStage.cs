@@ -9,13 +9,12 @@ namespace BossFight.Cutscene
     /// - 玩家轉向場地中心（再次對視）。
     /// - openingShot（第 1 步的全景鏡頭）擺在玩家與 Boss 連線的側面、場地內。
     /// 之後每幀把 playerAnchor 放在玩家腳下、朝向和自己一樣（狗臉特寫掛在它底下），midpoint 放在玩家與 Boss 中間（全景鏡頭看這裡）。
-    /// 這裡的數字全是視覺參數。
+    /// 玩家由 PlayerSpawner 生成後交給 BindPlayer（T18）。這裡的數字全是視覺參數。
     /// </summary>
     [DefaultExecutionOrder(-100)] // 在 Cinemachine 算鏡頭之前擺好
     [DisallowMultipleComponent]
-    public class CutsceneStage : MonoBehaviour
+    public class CutsceneStage : MonoBehaviour, IPlayerBinding
     {
-        [SerializeField] PlayerController player;
         [Tooltip("Boss（midpoint 與第 1 步的鏡頭用）")]
         [SerializeField] Transform boss;
         [Tooltip("場地中心")]
@@ -35,9 +34,15 @@ namespace BossFight.Cutscene
         [Tooltip("midpoint 的高度 (m)")]
         [SerializeField] float midpointHeight = 1.1f;
 
+        PlayerController player;
+
+        /// <summary>PlayerSpawner 生成（或換）角色時呼叫。</summary>
+        public void BindPlayer(PlayerRig rig) => player = rig != null ? rig.Controller : null;
+
         /// <summary>依目前玩家位置擺好舞台，並讓玩家面向場地中心。</summary>
         public void Align()
         {
+            if (player == null) return;
             Vector3 center = arenaCenter != null ? arenaCenter.position : Vector3.zero;
             Vector3 p = player.transform.position;
             Vector3 fwd = Flat(center - p);

@@ -9,14 +9,13 @@ namespace BossFight.UI
     /// 與 PlayerStamina.OnStaminaChanged／OnRegenBoostChanged。
     /// 耐力歸零（翻滾、重擊把耐力用光，或舉盾被打到破防）時耐力條閃一下；舉盾加速回復時換成 staminaBoostColor。
     /// 骨頭依上限複製 boneTemplate，沒有的變暗；下方的細條是下一根骨頭的累積進度。
+    /// 玩家由 PlayerSpawner 生成後交給 BindPlayer（T18）。
     /// 骨頭左邊的按鍵提示是 Player/Heal 目前裝置（InputHintDevice）的按鍵，換裝置、改鍵後跟著變。
     /// </summary>
     [DisallowMultipleComponent]
-    public class PlayerHudUI : MonoBehaviour
+    public class PlayerHudUI : MonoBehaviour, IPlayerBinding
     {
         [SerializeField] BattleUIData data;
-        [SerializeField] PlayerHealth health;
-        [SerializeField] PlayerStamina stamina;
         [SerializeField] ResourceBar healthBar;
         [SerializeField] ResourceBar staminaBar;
         [Tooltip("一根骨頭的圖示（底下的 Image 都會跟著變色）；依每場次數複製，排在同一個父物件裡（父物件只放骨頭，其他子物件會被清掉）")]
@@ -37,8 +36,34 @@ namespace BossFight.UI
         Image[][] bones = new Image[0][];
         float staminaFlashUntil;
         bool staminaWasEmpty, staminaFull, regenBoosted;
+        PlayerHealth health;   // PlayerSpawner 交給 BindPlayer
+        PlayerStamina stamina;
+        bool subscribed;
+
+        /// <summary>PlayerSpawner 生成（或換）角色時呼叫；已經訂閱就先退訂舊角色（新角色的初始值在它的 Start 送出）。</summary>
+        public void BindPlayer(PlayerRig rig)
+        {
+            if (subscribed) UnsubscribePlayer();
+            health = rig != null ? rig.Health : null;
+            stamina = rig != null ? rig.Stamina : null;
+            if (subscribed) SubscribePlayer();
+        }
 
         void OnEnable()
+        {
+            SubscribePlayer();
+            if (hintDevice != null) hintDevice.OnDeviceChanged += HandleDeviceChanged;
+            subscribed = true;
+        }
+
+        void OnDisable()
+        {
+            UnsubscribePlayer();
+            if (hintDevice != null) hintDevice.OnDeviceChanged -= HandleDeviceChanged;
+            subscribed = false;
+        }
+
+        void SubscribePlayer()
         {
             if (health != null)
             {
@@ -52,10 +77,9 @@ namespace BossFight.UI
                 stamina.OnStaminaChanged += HandleStaminaChanged;
                 stamina.OnRegenBoostChanged += HandleRegenBoostChanged;
             }
-            if (hintDevice != null) hintDevice.OnDeviceChanged += HandleDeviceChanged;
         }
 
-        void OnDisable()
+        void UnsubscribePlayer()
         {
             if (health != null)
             {
@@ -69,7 +93,6 @@ namespace BossFight.UI
                 stamina.OnStaminaChanged -= HandleStaminaChanged;
                 stamina.OnRegenBoostChanged -= HandleRegenBoostChanged;
             }
-            if (hintDevice != null) hintDevice.OnDeviceChanged -= HandleDeviceChanged;
         }
 
         void Start()

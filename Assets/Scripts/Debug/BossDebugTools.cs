@@ -23,12 +23,11 @@ namespace BossFight.DebugTools
     /// 選招、換階段、失衡值增加、頭暈、處決與按鍵都會在 Console 寫一行。狀態每幀讀 BossController／BossHealth／BossStagger，選招、命中、受傷、頭暈訂閱事件。
     /// </summary>
     [DisallowMultipleComponent]
-    public class BossDebugTools : MonoBehaviour
+    public class BossDebugTools : MonoBehaviour, IPlayerBinding
     {
         [SerializeField] BossController boss;
         [SerializeField] BossHealth bossHealth;
         [SerializeField] BossStagger stagger;
-        [SerializeField] PlayerHealth playerHealth;
         [Tooltip("F5 重新挑戰；留空時直接重新載入場景")]
         [SerializeField] BattleManager battle;
         [Tooltip("一開始就顯示 Boss 面板（F4 切換）")]
@@ -52,6 +51,10 @@ namespace BossFight.DebugTools
         float toastUntil;
         GUIStyle style, toastStyle;
         readonly StringBuilder sb = new StringBuilder();
+        PlayerHealth playerHealth; // F2 無敵、F7 倒下；PlayerSpawner 交給 BindPlayer
+
+        /// <summary>PlayerSpawner 生成（或換）角色時呼叫（只讀寫狀態、不訂閱事件）。</summary>
+        public void BindPlayer(PlayerRig rig) => playerHealth = rig != null ? rig.Health : null;
 
         void OnEnable()
         {

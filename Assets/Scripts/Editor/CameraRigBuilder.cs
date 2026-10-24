@@ -1,6 +1,4 @@
-using System.Linq;
 using BossFight.Cameras;
-using BossFight.Core;
 using BossFight.Player;
 using Unity.Cinemachine;
 using Unity.Cinemachine.TargetTracking;
@@ -13,7 +11,8 @@ namespace BossFight.EditorTools
     /// <summary>
     /// 建立 Cinemachine 3 鏡頭：Main Camera 掛 CinemachineBrain（並拿掉舊的手寫鏡頭），
     /// 加上自由視角與鎖定視角兩台 CinemachineCamera、鎖定用的 TargetGroup 與 CameraController，
-    /// 接好玩家、PlayerStats 與場景裡所有 LockOnTarget，並把鏡頭接回 PlayerController。
+    /// 接好 PlayerStats；Follow 與鎖定群組先綁 PlayerSpawner 底下的預覽模型（編輯模式預覽用，進 Play 時 CameraController.BindPlayer 改成生成的角色），
+    /// 最後跑 PlayerSpawnerBuilder.Wire（Main Camera、鎖定清單與 CameraController 接到 spawner）。
     /// 選單 Tools > Camera > Build Camera Rig；DaoDunDogBuilder 重建角色後也會呼叫。重建時刪掉舊的 CameraRig 重做。
     /// 最後呼叫 CombatFeedbackBuilder.Wire：兩台鏡頭加上鏡頭震動的 ImpulseListener、玩家的打擊回饋重接（T11）。
     /// 距離、高度、阻尼、混合時間都是純視覺參數。
@@ -36,15 +35,16 @@ namespace BossFight.EditorTools
         [MenuItem("Tools/Camera/Build Camera Rig")]
         public static void BuildFromMenu()
         {
-            var player = Object.FindAnyObjectByType<PlayerController>();
-            if (player == null)
+            var preview = PlayerSpawnerBuilder.Preview();
+            if (preview == null)
             {
-                Debug.LogError("[Camera] 場景裡沒有 PlayerController，請先用 Tools > Player > Build DaoDun Dog 建立角色。");
+                Debug.LogError("[Camera] 場景裡沒有 PlayerSpawner（或它沒有預覽模型），請先用 Tools > Player > Build DaoDun Dog 建立。");
                 return;
             }
-            Selection.activeGameObject = Build(player).gameObject;
+            Selection.activeGameObject = Build(preview.Controller).gameObject;
         }
 
+        /// <summary>player 是 PlayerSpawner 底下的預覽模型。</summary>
         public static CameraController Build(PlayerController player)
         {
             Undo.SetCurrentGroupName("Build Camera Rig");
@@ -79,7 +79,6 @@ namespace BossFight.EditorTools
             var controller = rig.AddComponent<CameraController>();
             var so = new SerializedObject(controller);
             so.FindProperty("stats").objectReferenceValue = stats;
-            so.FindProperty("player").objectReferenceValue = player;
             so.FindProperty("freeLookCamera").objectReferenceValue = free;
             so.FindProperty("freeLookOrbit").objectReferenceValue = freeOrbit;
             so.FindProperty("lockOnCamera").objectReferenceValue = lockOn;
@@ -87,16 +86,8 @@ namespace BossFight.EditorTools
             so.FindProperty("lockOnGroup").objectReferenceValue = group;
             so.ApplyModifiedPropertiesWithoutUndo();
 
-            // 玩家：移動方向以 Main Camera 為準；鎖定由玩家決定，鎖定清單放場景裡所有的 LockOnTarget
-            var pso = new SerializedObject(player);
-            pso.FindProperty("cameraTransform").objectReferenceValue = cam.transform;
-            var targets = Object.FindObjectsByType<LockOnTarget>(FindObjectsInactive.Include, FindObjectsSortMode.None)
-                                .OrderBy(t => t.name).ToArray();
-            var list = pso.FindProperty("lockTargets");
-            list.arraySize = targets.Length;
-            for (int i = 0; i < targets.Length; i++)
-                list.GetArrayElementAtIndex(i).objectReferenceValue = targets[i];
-            pso.ApplyModifiedProperties();
+            // 玩家的 Main Camera、鎖定清單（場景裡所有的 LockOnTarget）與 CameraController 由 spawner 交給生成的角色
+            PlayerSpawnerBuilder.Wire();
 
             // 先把 Main Camera 擺到自由視角的位置，編輯模式下的 Game 視圖也看得到角色
             Undo.RecordObject(cam.transform, "Build Camera Rig");
@@ -109,7 +100,7 @@ namespace BossFight.EditorTools
 
             Undo.CollapseUndoOperations(undoGroup);
             EditorSceneManager.MarkSceneDirty(rig.scene);
-            Debug.Log($"[Camera] 鏡頭已建立：{RigName}，鎖定目標 {targets.Length} 個");
+            Debug.Log($"[Camera] 鏡頭已建立：{RigName}");
             return controller;
         }
 

@@ -2,7 +2,6 @@ using BossFight.Battle;
 using BossFight.Boss;
 using BossFight.Cameras;
 using BossFight.DebugTools;
-using BossFight.Player;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -10,7 +9,7 @@ using UnityEngine;
 namespace BossFight.EditorTools
 {
     /// <summary>
-    /// Tools > Debug > Wire Balance Panel：在 DebugTools 物件（BossDebugTools 所在）加上 F12 平衡面板（T10），接好 BattleManager、Boss、玩家與鏡頭。
+    /// Tools > Debug > Wire Balance Panel：在 DebugTools 物件（BossDebugTools 所在）加上 F12 平衡面板（T10），接好 BattleManager、Boss 與鏡頭（玩家由 PlayerSpawner 執行時交給面板，這裡最後跑 PlayerSpawnerBuilder.Wire）。
     /// BattleUIBuilder（Build Intro 最後會跑）與 BossBuilder 結束時也會呼叫，重建 BattleManager 或 Boss 後引用不會斷。
     /// </summary>
     public static class BalancePanelBuilder
@@ -32,7 +31,6 @@ namespace BossFight.EditorTools
             }
             var battle = Object.FindAnyObjectByType<BattleManager>();
             var boss = Object.FindAnyObjectByType<BossController>();
-            var player = Object.FindAnyObjectByType<PlayerController>();
             var cameraController = Object.FindAnyObjectByType<CameraController>();
 
             var panel = tools.GetComponent<BalanceDebugPanel>();
@@ -42,15 +40,13 @@ namespace BossFight.EditorTools
             so.FindProperty("boss").objectReferenceValue = boss;
             so.FindProperty("bossHealth").objectReferenceValue = boss != null ? boss.GetComponent<BossHealth>() : null;
             so.FindProperty("stagger").objectReferenceValue = boss != null ? boss.GetComponent<BossStagger>() : null;
-            so.FindProperty("player").objectReferenceValue = player;
-            so.FindProperty("playerHealth").objectReferenceValue = player != null ? player.GetComponent<PlayerHealth>() : null;
-            so.FindProperty("playerAttack").objectReferenceValue = player != null ? player.GetComponent<PlayerAttack>() : null;
             so.FindProperty("cameraController").objectReferenceValue = cameraController;
             so.ApplyModifiedProperties();
 
             EditorSceneManager.MarkSceneDirty(panel.gameObject.scene);
+            var spawner = PlayerSpawnerBuilder.Wire(); // 玩家由 spawner 交給面板（BindPlayer）
             string missing = (battle == null ? " BattleManager" : "") + (boss == null ? " Boss" : "") +
-                             (player == null ? " 玩家" : "") + (cameraController == null ? " 鏡頭" : "");
+                             (spawner == null ? " PlayerSpawner" : "") + (cameraController == null ? " 鏡頭" : "");
             Debug.Log($"[Balance] 平衡面板（F12）已接上 {panel.gameObject.name}" + (missing.Length > 0 ? $"；缺少：{missing}" : ""));
             return panel;
         }

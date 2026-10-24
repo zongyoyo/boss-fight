@@ -25,6 +25,7 @@ namespace BossFight.EditorTools
     ///    CutsceneStage（Stage 底下以貓為準的鏡頭、PlayerAnchor 底下的狗臉特寫、第 1 步的全景鏡頭）、白閃、煙霧、
     ///    場地邊緣的電光（ElectricArcs）、無傷害衝擊波（ExpandingRing）、Timeline 用的 AudioSource。
     /// 3. 軌道依類型綁定，同類型有好幾條的（CurveTrack、AudioTrack、ElectricArcsTrack）依軌道名稱；Cinemachine 片段依片段名稱接到同名的鏡頭。
+    /// 玩家：走位、被推開的軌道與狗臉特寫的位置都用 PlayerSpawner 底下的預覽模型；執行時 PlayerSpawner 把生成的角色交給 CutsceneDirector、CutsceneStage（BindPlayer）。
     /// 4. BattleManager 的 transition 接到這裡的 CutsceneDirector（BattleManager 會關掉 Boss 的 AutoCompleteTransition），並加進跳過提示（SkipPromptUI）的 sources。
     /// 跳過（T14，這次執行看過一次之後）時 CutsceneDirector 在結尾前 Evaluate 一次：音樂「Restart」與「Pushed Out」兩個片段設成 Hold，
     /// 才會在結尾補上重播音樂、把狗推到外圈；已經存在的 Timeline 也會補設。
@@ -80,7 +81,8 @@ namespace BossFight.EditorTools
 
         public static GameObject Build()
         {
-            var player = Object.FindAnyObjectByType<PlayerController>();
+            var preview = PlayerSpawnerBuilder.Preview(); // 軌道綁 PlayerSpawner 底下的預覽模型，進 Play 時 CutsceneDirector.BindPlayer 改綁生成的角色
+            var player = preview != null ? preview.Controller : null;
             var cameraController = Object.FindAnyObjectByType<CameraController>();
             var boss = Object.FindAnyObjectByType<BossController>();
             var brain = Object.FindAnyObjectByType<CinemachineBrain>();
@@ -95,7 +97,7 @@ namespace BossFight.EditorTools
             if (player == null || cameraController == null || boss == null || brain == null || circle == null || audio == null ||
                 battle == null || arena == null || fxMat == null || ringMesh == null)
             {
-                Debug.LogError("[Cutscene] 轉階段演出需要場景裡的 PlayerController、CameraController、BossController、CinemachineBrain、" +
+                Debug.LogError("[Cutscene] 轉階段演出需要場景裡的 PlayerSpawner（含預覽模型）、CameraController、BossController、CinemachineBrain、" +
                                $"MagicCircle、AudioManager、BattleManager（先跑 Tools > Cutscene > Build Intro），以及 {ArenaDataPath}、" +
                                $"{FxMaterialPath}、{RingWallMeshPath}（Tools > Boss > Build Hazards）。");
                 return null;
@@ -127,7 +129,6 @@ namespace BossFight.EditorTools
             director.extrapolationMode = DirectorWrapMode.None;
             director.timeUpdateMode = DirectorUpdateMode.GameTime;
             var cutscene = root.AddComponent<CutsceneDirector>();
-            DaoDunDogBuilder.SetReference(cutscene, "player", player);
             DaoDunDogBuilder.SetReference(cutscene, "cameraController", cameraController);
             DaoDunDogBuilder.SetReference(cutscene, "faceTarget", boss.transform);
             if (settings != null) DaoDunDogBuilder.SetReference(cutscene, "settings", settings);
@@ -147,7 +148,6 @@ namespace BossFight.EditorTools
 
             var stage = stageTf.gameObject.AddComponent<CutsceneStage>();
             var sso = new SerializedObject(stage);
-            sso.FindProperty("player").objectReferenceValue = player;
             sso.FindProperty("boss").objectReferenceValue = boss.transform;
             sso.FindProperty("arenaCenter").objectReferenceValue = arenaGen != null ? arenaGen.transform : null;
             sso.FindProperty("playerAnchor").objectReferenceValue = anchor;

@@ -22,7 +22,8 @@ namespace BossFight.EditorTools
     /// 2. BattleUI Canvas（每次重建）：左下玩家 HUD（血條、耐力條、骨頭）、下方置中 Boss 名稱／血條（50%、20% 刻度）／失衡條、鎖定標記、勝敗畫面。
     ///    參考解析度 1920×1080；左上、右上留給 Debug 面板（PlayerDebugOverlay、BossDebugTools）。開場字卡與跳過提示是 IntroUI（IntroCutsceneBuilder），排在這個 Canvas 上面。
     /// 3. EventSystem（InputSystemUIInputModule，沒有才建）：勝敗畫面的按鈕用滑鼠、Enter、手把 A 都能按。
-    /// 4. 接好 BattleManager 的 T9 欄位（settings、bossHealth、playerHealth、player、cameraController）與 BossDebugTools.battle，並重新接上 F12 平衡面板（BalancePanelBuilder）。
+    /// 4. 接好 BattleManager 的 T9 欄位（settings、bossHealth、cameraController）與 BossDebugTools.battle，並重新接上 F12 平衡面板（BalancePanelBuilder）；
+    ///    玩家由 PlayerSpawner 執行時交給 BattleManager、HUD、鎖定標記（BindPlayer），這裡跑 PlayerSpawnerBuilder.Wire 把它們加進接收者。
     /// 5. 重建 ESC 選單（PauseMenuBuilder，也會重接設定、暫停與按鍵名稱）。
     /// Tools > Cutscene > Build Intro 會重建 BattleManager，最後也會呼叫這裡。
     /// </summary>
@@ -47,17 +48,14 @@ namespace BossFight.EditorTools
         public static GameObject Build()
         {
             var battle = Object.FindAnyObjectByType<BattleManager>();
-            var player = Object.FindAnyObjectByType<PlayerController>();
             var boss = Object.FindAnyObjectByType<BossController>();
             var cameraController = Object.FindAnyObjectByType<CameraController>();
             var mainCamera = Camera.main;
-            if (battle == null || player == null || boss == null || cameraController == null || mainCamera == null)
+            if (battle == null || boss == null || cameraController == null || mainCamera == null)
             {
-                Debug.LogError("[BattleUI] 需要場景裡的 BattleManager（Tools > Cutscene > Build Intro）、PlayerController、BossController、CameraController 與 Main Camera。");
+                Debug.LogError("[BattleUI] 需要場景裡的 BattleManager（Tools > Cutscene > Build Intro）、BossController、CameraController 與 Main Camera。");
                 return null;
             }
-            var playerHealth = player.GetComponent<PlayerHealth>();
-            var stamina = player.GetComponent<PlayerStamina>();
             var bossHealth = boss.GetComponent<BossHealth>();
             var stagger = boss.GetComponent<BossStagger>();
             var intro = new SerializedObject(battle).FindProperty("intro").objectReferenceValue as CutsceneDirector;
@@ -71,8 +69,6 @@ namespace BossFight.EditorTools
             var b = new SerializedObject(battle);
             b.FindProperty("settings").objectReferenceValue = settings;
             b.FindProperty("bossHealth").objectReferenceValue = bossHealth;
-            b.FindProperty("playerHealth").objectReferenceValue = playerHealth;
-            b.FindProperty("player").objectReferenceValue = player;
             b.FindProperty("cameraController").objectReferenceValue = cameraController;
             b.ApplyModifiedProperties();
 
@@ -106,10 +102,10 @@ namespace BossFight.EditorTools
             // ---------- HUD：玩家與鎖定標記 ----------
             var hud = Node("Hud", root.transform, typeof(CanvasGroup));
             IntroCutsceneBuilder.Stretch(hud);
-            var marker = BuildLockMarker(hud, data, player, mainCamera);
+            var marker = BuildLockMarker(hud, data, mainCamera);
             var execution = BuildExecutionMarker(hud, data, boss, mainCamera);
             DaoDunDogBuilder.SetReference(marker.parent.GetComponent<LockOnMarkerUI>(), "executionMarker", execution);
-            BuildPlayerHud(hud, data, playerHealth, stamina);
+            BuildPlayerHud(hud, data);
 
             // ---------- Boss ----------
             var bossRoot = Node("Boss", root.transform, typeof(CanvasGroup));
@@ -193,6 +189,7 @@ namespace BossFight.EditorTools
             so.FindProperty("bossPanel").objectReferenceValue = bossPanel;
             so.ApplyModifiedPropertiesWithoutUndo();
 
+            PlayerSpawnerBuilder.Wire(); // BattleManager、HUD、鎖定標記拿到玩家
             BalancePanelBuilder.Wire();
             PauseMenuBuilder.Build();
 
@@ -205,7 +202,7 @@ namespace BossFight.EditorTools
 
         // ---------- 玩家 HUD（左下） ----------
 
-        static void BuildPlayerHud(RectTransform parent, BattleUIData data, PlayerHealth health, PlayerStamina stamina)
+        static void BuildPlayerHud(RectTransform parent, BattleUIData data)
         {
             var panel = Node("PlayerHud", parent);
             panel.anchorMin = panel.anchorMax = panel.pivot = Vector2.zero;
@@ -240,8 +237,6 @@ namespace BossFight.EditorTools
             var hudUi = panel.gameObject.AddComponent<PlayerHudUI>();
             var so = new SerializedObject(hudUi);
             so.FindProperty("data").objectReferenceValue = data;
-            so.FindProperty("health").objectReferenceValue = health;
-            so.FindProperty("stamina").objectReferenceValue = stamina;
             so.FindProperty("healthBar").objectReferenceValue = healthBar;
             so.FindProperty("staminaBar").objectReferenceValue = staminaBar;
             so.FindProperty("boneTemplate").objectReferenceValue = template;
@@ -311,7 +306,7 @@ namespace BossFight.EditorTools
 
         // ---------- 鎖定標記 ----------
 
-        static RectTransform BuildLockMarker(RectTransform parent, BattleUIData data, PlayerController player, Camera mainCamera)
+        static RectTransform BuildLockMarker(RectTransform parent, BattleUIData data, Camera mainCamera)
         {
             var area = Node("LockOn", parent);
             IntroCutsceneBuilder.Stretch(area);
@@ -331,7 +326,6 @@ namespace BossFight.EditorTools
             var ui = area.gameObject.AddComponent<LockOnMarkerUI>();
             var so = new SerializedObject(ui);
             so.FindProperty("data").objectReferenceValue = data;
-            so.FindProperty("player").objectReferenceValue = player;
             so.FindProperty("viewCamera").objectReferenceValue = mainCamera;
             so.FindProperty("marker").objectReferenceValue = marker;
             so.ApplyModifiedPropertiesWithoutUndo();

@@ -77,10 +77,11 @@ namespace BossFight.Battle
     /// ESC 選單的秘技（UnlockDeveloperOptions）記在 BattleSession，重試後 Start 時再送一次 OnDeveloperOptionsUnlocked，選單繼續顯示開發者模式開關。
     /// 暫停（ESC 選單，GamePause）：暫停時鎖住玩家與鏡頭的輸入、放開游標；解除時還原（演出中交給演出解鎖、勝敗畫面維持鎖定）。
     /// UI 與演出訂閱 OnBattleStateChanged、OnBattleResult。
+    /// 玩家（PlayerController、PlayerHealth）由 PlayerSpawner 生成後交給 BindPlayer（T18）。
     /// 放在 Battle（最上層）：它要指揮 Boss、玩家與演出，Core 才能維持在最底層、不引用其他系統。
     /// </summary>
     [DisallowMultipleComponent]
-    public class BattleManager : MonoBehaviour
+    public class BattleManager : MonoBehaviour, IPlayerBinding
     {
         [Tooltip("勝敗結算的節奏")]
         [SerializeField] BattleSettings settings;
@@ -91,10 +92,6 @@ namespace BossFight.Battle
         [SerializeField] BossController boss;
         [Tooltip("Boss 血量歸零 → 勝利；也用來記結算時的剩餘血量")]
         [SerializeField] BossHealth bossHealth;
-        [Tooltip("玩家血量歸零 → 失敗")]
-        [SerializeField] PlayerHealth playerHealth;
-        [Tooltip("結算時鎖住玩家輸入、解除鎖定")]
-        [SerializeField] PlayerController player;
         [Tooltip("結算時鎖住視角、放開游標給勝敗畫面的按鈕")]
         [SerializeField] CameraController cameraController;
         [Tooltip("換階段時改音樂速度、勝敗時淡出；留空時不管音樂")]
@@ -125,11 +122,26 @@ namespace BossFight.Battle
         float resultAt = -1f;      // 真實時間；< 0 = 沒有待送的結算
         float slowMotionUntil = -1f;
         bool resultShown, pauseLocked;
+        // 玩家由 PlayerSpawner 交給 BindPlayer：血量歸零 → 失敗；結算、暫停時鎖住輸入、解除鎖定
+        PlayerController player;
+        PlayerHealth playerHealth;
+        DifficultyModifiers modifiers;
+        bool subscribed;
+
+        /// <summary>PlayerSpawner 生成（或換）角色時呼叫；已經訂閱就先退訂舊角色。</summary>
+        public void BindPlayer(PlayerRig rig)
+        {
+            if (subscribed && playerHealth != null) playerHealth.OnDied -= HandlePlayerDied;
+            player = rig != null ? rig.Controller : null;
+            playerHealth = rig != null ? rig.Health : null;
+            if (subscribed && playerHealth != null) playerHealth.OnDied += HandlePlayerDied;
+            if (modifiers != null && player != null) player.SetDifficulty(modifiers); // Awake 之後才換人時補套難度
+        }
 
         void Awake()
         {
             Difficulty = options != null ? options.Difficulty : Difficulty.Hard;
-            var modifiers = difficultyData != null ? difficultyData.Get(Difficulty) : DifficultyModifiers.None;
+            modifiers = difficultyData != null ? difficultyData.Get(Difficulty) : DifficultyModifiers.None;
             if (player != null) player.SetDifficulty(modifiers);
             if (boss != null) boss.SetDifficulty(modifiers);
         }
@@ -150,6 +162,7 @@ namespace BossFight.Battle
                 bossHealth.OnDefeated += HandleBossDefeated;
             }
             if (playerHealth != null) playerHealth.OnDied += HandlePlayerDied;
+            subscribed = true;
         }
 
         void OnDisable()
@@ -168,6 +181,7 @@ namespace BossFight.Battle
                 bossHealth.OnDefeated -= HandleBossDefeated;
             }
             if (playerHealth != null) playerHealth.OnDied -= HandlePlayerDied;
+            subscribed = false;
         }
 
         void Start()

@@ -33,17 +33,16 @@ namespace BossFight.Cutscene
     /// Timeline 用遊戲時間播，暫停（ESC 選單、F12 面板，timeScale 0）時演出停住，長按跳過也不累積。
     /// 有接 CutsceneStage 時，開始播之前先依玩家與場地中心的位置擺好演出鏡頭（轉階段時玩家在哪裡都有可能）。
     /// 播完時把自由視角擺到玩家背後、面向 Boss，解除輸入鎖定，送出 OnCutsceneFinished；BattleManager 收到後讓 Boss 開打或進入下一個階段。
+    /// 玩家由 PlayerSpawner 生成後交給 BindPlayer（T18），同時把 Timeline 的走位軌道改綁到生成的角色。
     /// 字卡由 Timeline 的 CutsceneEventMarker 觸發，轉成 OnTitleCard；UI 只訂閱這裡的事件。
     /// Timeline 上的自訂 Track 都依「目前時間」算出畫面狀態，所以直接改 director.time 跳過也會得到正確的結果。
     /// </summary>
     [RequireComponent(typeof(PlayableDirector))]
     [DisallowMultipleComponent]
-    public class CutsceneDirector : MonoBehaviour, INotificationReceiver
+    public class CutsceneDirector : MonoBehaviour, INotificationReceiver, IPlayerBinding
     {
         [Tooltip("跳過與字卡的設定；留空 = 不能跳過、沒有字卡。轉階段也接同一份（只用跳過的秒數，Timeline 上沒有字卡標記）")]
         [SerializeField] IntroCutsceneSettings settings;
-        [Tooltip("演出期間鎖住輸入，由 Timeline 帶著走")]
-        [SerializeField] PlayerController player;
         [Tooltip("演出期間鎖住視角；結束時轉到玩家背後")]
         [SerializeField] CameraController cameraController;
         [Tooltip("演出結束時，自由視角轉到玩家背後、面向這個目標（Boss）")]
@@ -71,6 +70,31 @@ namespace BossFight.Cutscene
         bool skippable, skipped;
         float held, lastProgress;
         int stopAfterFrame = -1; // 跳到結尾：這一幀之後的 LateUpdate 結束演出
+        PlayerController player; // 演出期間鎖住輸入，由 Timeline 帶著走（PlayerSpawner 交給 BindPlayer）
+
+        /// <summary>
+        /// PlayerSpawner 生成（或換）角色時呼叫：記下玩家，並把 Timeline 上綁定型別是 PlayerController 的軌道（走位、被推開）改綁到這個角色。
+        /// 編輯模式下這些軌道綁的是 spawner 底下的預覽模型（正式 build 裡已經被拿掉），所以看軌道型別，不看目前綁的是誰。
+        /// 第一次呼叫時 Awake 還沒跑，PlayableDirector 在這裡自己取。
+        /// </summary>
+        public void BindPlayer(PlayerRig rig)
+        {
+            player = rig != null ? rig.Controller : null;
+            if (director == null) director = GetComponent<PlayableDirector>();
+            if (director == null || !(director.playableAsset is TimelineAsset timeline)) return;
+            bool changed = false;
+            foreach (var track in timeline.GetOutputTracks())
+            {
+                foreach (var output in track.outputs)
+                {
+                    if (output.outputTargetType != typeof(PlayerController)) continue;
+                    director.SetGenericBinding(track, player);
+                    changed = true;
+                    break;
+                }
+            }
+            if (changed && director.playableGraph.IsValid()) director.RebuildGraph();
+        }
 
         void Awake()
         {

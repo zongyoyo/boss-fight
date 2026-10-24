@@ -40,12 +40,11 @@ namespace BossFight.Player
     public class PlayerController : MonoBehaviour
     {
         [SerializeField] PlayerStats stats;
-        [Tooltip("移動方向以這個鏡頭為準（Main Camera）")]
-        [SerializeField] Transform cameraTransform;
-        [Tooltip("可以被鎖定的目標（Boss）；按鎖定時選 lockOnRange 內最近的一個")]
-        [SerializeField] List<LockOnTarget> lockTargets = new List<LockOnTarget>();
-        [Tooltip("可以處決的目標（Boss）；按處決時選 executeRange 內最近、現在可以處決的一個")]
-        [SerializeField] List<ExecutionTarget> executionTargets = new List<ExecutionTarget>();
+
+        // 場景物件，由 PlayerSpawner 生成角色後經 PlayerRig.SetSceneReferences 填入（T18）
+        Transform cameraTransform; // 移動方向以這個鏡頭為準（Main Camera）
+        readonly List<LockOnTarget> lockTargets = new List<LockOnTarget>(); // 按鎖定時選 lockOnRange 內最近的一個
+        readonly List<ExecutionTarget> executionTargets = new List<ExecutionTarget>(); // 按處決時選 executeRange 內最近、現在可以處決的一個
 
         /// <summary>翻滾開始；參數是翻滾方向（水平單位向量）。</summary>
         public event Action<Vector3> OnRollStarted;
@@ -99,6 +98,25 @@ namespace BossFight.Player
         bool jumpRequested, bufferedAttack, bufferedRoll, bufferedExecute;
         Vector3 scriptedTarget, scriptedFace;
         bool hasScriptedTarget;
+
+        /// <summary>移動方向以這個鏡頭為準（Main Camera）；PlayerSpawner 生成後設定。</summary>
+        public void SetCameraTransform(Transform value) => cameraTransform = value;
+
+        /// <summary>可以被鎖定的目標（Boss）；PlayerSpawner 生成後設定。</summary>
+        public void SetLockTargets(IEnumerable<LockOnTarget> targets) => Fill(lockTargets, targets);
+
+        /// <summary>可以處決的目標（Boss）；PlayerSpawner 生成後設定。</summary>
+        public void SetExecutionTargets(IEnumerable<ExecutionTarget> targets) => Fill(executionTargets, targets);
+
+        static void Fill<T>(List<T> list, IEnumerable<T> items) where T : UnityEngine.Object
+        {
+            list.Clear();
+            if (items == null) return;
+            foreach (var item in items)
+            {
+                if (item != null) list.Add(item);
+            }
+        }
 
         /// <summary>套用難度修正（不改 PlayerStats，讀數值時才加）；null = 不修正。</summary>
         public void SetDifficulty(DifficultyModifiers modifiers) => Difficulty = modifiers ?? DifficultyModifiers.None;

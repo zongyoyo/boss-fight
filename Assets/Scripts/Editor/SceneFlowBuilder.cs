@@ -1,9 +1,7 @@
 using System.Collections.Generic;
 using BossFight.Battle;
-using BossFight.Cameras;
 using BossFight.Core;
 using BossFight.Hub;
-using BossFight.Player;
 using BossFight.Progression;
 using BossFight.UI;
 using UnityEditor;
@@ -16,9 +14,10 @@ namespace BossFight.EditorTools
     /// <summary>
     /// Tools > Progression > Build Scene Flow：在目前的場景建立換場景用的 SceneFlow（T17）。
     /// 1. 資產（沒有才建）：ScriptableObjects/Progression/SceneFlowData.asset（場景名稱、出生點 id、黑幕時間）。
-    /// 2. SceneFlow 物件（有就沿用，出生點清單保留）：黑幕 Canvas（sortingOrder 1000，全螢幕黑色 Image＋CanvasGroup）每次重建。
-    /// 3. 接線：SceneFlow 的 GamePause、玩家、鏡頭；BattleManager、PauseMenuUI、傳送門（Portal）的 sceneFlow。
-    /// PauseMenuBuilder.Wire 最後會呼叫這裡，HubBuilder 建休息區時也會呼叫，再自己填出生點。
+    /// 2. SceneFlow 物件（有就沿用）：黑幕 Canvas（sortingOrder 1000，全螢幕黑色 Image＋CanvasGroup）每次重建。
+    /// 3. 接線：SceneFlow 的 GamePause；BattleManager、PauseMenuUI、傳送門（Portal）的 sceneFlow。
+    /// 出生點清單在 PlayerSpawner（T18，PlayerSpawnerBuilder），換場景進來時由它把玩家生成在出生點。
+    /// PauseMenuBuilder.Wire 最後會呼叫這裡（HubBuilder 建休息區時也會走到）。
     /// </summary>
     public static class SceneFlowBuilder
     {
@@ -73,8 +72,6 @@ namespace BossFight.EditorTools
             so.FindProperty("data").objectReferenceValue = data;
             so.FindProperty("fade").objectReferenceValue = group;
             so.FindProperty("pause").objectReferenceValue = Object.FindAnyObjectByType<GamePause>();
-            so.FindProperty("player").objectReferenceValue = Object.FindAnyObjectByType<PlayerController>();
-            so.FindProperty("cameraController").objectReferenceValue = Object.FindAnyObjectByType<CameraController>();
             so.ApplyModifiedPropertiesWithoutUndo();
 
             var wired = new List<string>();
@@ -99,21 +96,6 @@ namespace BossFight.EditorTools
             EditorSceneManager.MarkSceneDirty(flow.gameObject.scene);
             Debug.Log($"[SceneFlow] 換場景已建立：{DataPath}；接上 {(wired.Count > 0 ? string.Join("、", wired) : "（沒有）")}");
             return flow;
-        }
-
-        /// <summary>設定 SceneFlow 的出生點清單（HubBuilder 用）。</summary>
-        public static void SetSpawnPoints(SceneFlow flow, params (string id, Transform point)[] points)
-        {
-            var so = new SerializedObject(flow);
-            var list = so.FindProperty("spawnPoints");
-            list.arraySize = points.Length;
-            for (int i = 0; i < points.Length; i++)
-            {
-                var element = list.GetArrayElementAtIndex(i);
-                element.FindPropertyRelative("id").stringValue = points[i].id;
-                element.FindPropertyRelative("point").objectReferenceValue = points[i].point;
-            }
-            so.ApplyModifiedPropertiesWithoutUndo();
         }
     }
 }

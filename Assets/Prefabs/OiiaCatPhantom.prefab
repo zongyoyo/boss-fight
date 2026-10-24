@@ -534,6 +534,8 @@ MonoBehaviour:
   flinchAngle: 9
   flinchSquash: 0.08
   flinchTime: 0.22
+  fallAngle: 80
+  fallTime: 0.7
 --- !u!114 &1620689787661032704
 MonoBehaviour:
   m_ObjectHideFlags: 0

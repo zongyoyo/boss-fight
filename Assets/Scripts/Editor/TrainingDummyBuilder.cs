@@ -10,7 +10,7 @@ namespace BossFight.EditorTools
 {
     /// <summary>
     /// 建立 T2 測試用木樁：底座、木柱、橫桿、草紮的頭，擋人用的實心碰撞、Hurtbox、攻擊判定、地上的範圍圈與計時圈，
-    /// 數值接 Assets/ScriptableObjects/Debug/TrainingDummyData.asset（沒有就建立），並加進玩家（PlayerController）的鎖定清單。
+    /// 數值接 Assets/ScriptableObjects/Debug/TrainingDummyData.asset（沒有就建立），並加進 PlayerSpawner 的鎖定清單（生成時交給玩家）。
     /// 選單 Tools > Debug > Build Training Dummy；重建時沿用舊木樁的位置與朝向。
     /// 尺寸、顏色都是純視覺參數；攻擊範圍讀 TrainingDummyData。
     /// </summary>
@@ -132,24 +132,11 @@ namespace BossFight.EditorTools
             return root;
         }
 
-        // 把木樁加進玩家的鎖定清單，順便清掉已經不存在的目標
+        // 木樁加進 PlayerSpawner 的鎖定清單（spawner 收集場景裡所有的 LockOnTarget，生成時交給玩家）
         static void AddToLockTargets(LockOnTarget target)
         {
-            var player = Object.FindAnyObjectByType<PlayerController>();
-            if (player == null)
-            {
-                Debug.LogWarning("[Dummy] 場景裡沒有 PlayerController，木樁不會出現在鎖定清單。");
-                return;
-            }
-            var so = new SerializedObject(player);
-            var list = so.FindProperty("lockTargets");
-            for (int i = list.arraySize - 1; i >= 0; i--)
-            {
-                if (list.GetArrayElementAtIndex(i).objectReferenceValue == null) list.DeleteArrayElementAtIndex(i);
-            }
-            list.arraySize++;
-            list.GetArrayElementAtIndex(list.arraySize - 1).objectReferenceValue = target;
-            so.ApplyModifiedProperties();
+            if (PlayerSpawnerBuilder.Wire() == null)
+                Debug.LogWarning($"[Dummy] 場景裡沒有 PlayerSpawner，{target.name} 不會出現在鎖定清單。");
         }
 
         static LineRenderer CreateRing(Transform parent, string name, Material mat, float width)

@@ -11,7 +11,7 @@ namespace BossFight.EditorTools
     /// <summary>
     /// Tools > Hub > Build Hub (T17)：建立空的休息區場景 Assets/Scenes/Hub.unity（每次整個重建，存檔前會先問要不要存目前的場景）。
     /// T17 只有：地板、四面隱形牆、方向光、紫色傳送門方塊（站在觸發區按 Interact 進 Boss 戰）、兩個出生點（Start＝之後營火的位置、Portal＝傳送門前）、
-    /// 刀盾狗（DaoDunDog.prefab）與鏡頭（CameraRigBuilder）、GameOptions（改鍵、音量也在休息區套用）、AudioManager（沒有音樂，只播打擊音效）、SceneFlow（SceneFlowBuilder）。
+    /// PlayerSpawner（T18：預設生成在 Start，出生點清單 Start、Portal；底下有刀盾狗的 EditorOnly 預覽模型）與鏡頭（CameraRigBuilder）、GameOptions（改鍵、音量也在休息區套用）、AudioManager（沒有音樂，只播打擊音效）、SceneFlow（SceneFlowBuilder）。
     /// 也把 Build Settings 設成 Hub 0、BossArena 1。T20 會照 HubLayoutData 擴充成正式的休息區。
     /// 尺寸、位置是佔位場景的版面，不是玩法數值。
     /// </summary>
@@ -19,7 +19,7 @@ namespace BossFight.EditorTools
     {
         public const string ScenePath = "Assets/Scenes/Hub.unity";
         const string BattleScenePath = "Assets/Scenes/BossArena.unity";
-        const string PlayerPrefabPath = "Assets/Prefabs/DaoDunDog.prefab";
+        const string PlayerPrefabPath = DaoDunDogBuilder.PrefabPath;
         const string OptionsDataPath = "Assets/ScriptableObjects/Options/GameOptionsData.asset";
         const string MatDir = "Assets/Models/Hub/Materials";
 
@@ -106,14 +106,12 @@ namespace BossFight.EditorTools
             // 設定、音效、玩家、鏡頭
             PauseMenuBuilder.EnsureOptions(AssetDatabase.LoadAssetAtPath<GameOptionsData>(OptionsDataPath), out _);
             IntroCutsceneBuilder.BuildAudioManager(null);
-            var player = (GameObject)PrefabUtility.InstantiatePrefab(playerPrefab, scene);
-            player.transform.SetPositionAndRotation(start.position, start.rotation);
-            CameraRigBuilder.Build(player.GetComponent<PlayerController>()); // 也會接打擊回饋（CombatFeedbackBuilder.Wire）
-            PauseMenuBuilder.Wire(); // AudioManager 的音量設定；最後建 SceneFlow（SceneFlowBuilder.Build）
-
-            var flow = Object.FindAnyObjectByType<BossFight.Progression.SceneFlow>();
             var flowData = AssetDatabase.LoadAssetAtPath<BossFight.Progression.SceneFlowData>(SceneFlowBuilder.DataPath);
-            SceneFlowBuilder.SetSpawnPoints(flow, (flowData.startArrival, start), (flowData.portalArrival, portalSpawn));
+            if (flowData == null) SceneFlowBuilder.Build(); // 建立 SceneFlowData（PauseMenuBuilder.Wire 之後會沿用這個 SceneFlow）
+            flowData = AssetDatabase.LoadAssetAtPath<BossFight.Progression.SceneFlowData>(SceneFlowBuilder.DataPath);
+            PlayerSpawnerBuilder.Build(start.position, start.rotation, (flowData.startArrival, start), (flowData.portalArrival, portalSpawn));
+            CameraRigBuilder.Build(PlayerSpawnerBuilder.Preview().Controller); // 也會接打擊回饋（CombatFeedbackBuilder.Wire）
+            PauseMenuBuilder.Wire(); // AudioManager 的音量設定；最後建 SceneFlow（SceneFlowBuilder.Build）並接 spawner
 
             EditorSceneManager.SaveScene(scene, ScenePath);
             SetBuildScenes();

@@ -12,17 +12,16 @@ namespace BossFight.Cameras
     /// 鎖定視角：Priority 比自由視角高時接手；每幀把水平軸轉到「玩家背後、朝向目標」，看向玩家與目標的 TargetGroup。
     /// 鎖定哪個目標由 PlayerController 決定（Player/LockOn），這裡只訂閱它的 OnLockTargetChanged 切換鏡頭。
     /// 游標：開打時鎖住；ESC 選單、勝敗畫面、F12 面板用 SetCursorReleased 放開，關掉時立刻鎖回。游標被別的原因放開（切出視窗、Editor 的 Esc）時點擊畫面重新鎖住。
+    /// 玩家由 PlayerSpawner 生成後交給 BindPlayer（T18），兩台鏡頭的 Follow 與鎖定群組在那時改成生成的角色（編輯模式下 Builder 先綁預覽模型）。
     /// 重建鏡頭：Tools > Camera > Build Camera Rig。
     /// 演出期間 CutsceneDirector 呼叫 SetInputLocked 鎖住視角，Timeline 的 Cinemachine Track 接管畫面；
     /// 演出結束前先解除玩家的鎖定，再用 ResetBehind 把自由視角擺到玩家背後、面向 Boss，Timeline 混回來時就是這個角度。
     /// </summary>
     [DisallowMultipleComponent]
-    public class CameraController : MonoBehaviour
+    public class CameraController : MonoBehaviour, IPlayerBinding
     {
         [Tooltip("視角靈敏度")]
         [SerializeField] PlayerStats stats;
-        [Tooltip("鏡頭跟隨的玩家；鎖定目標從它的 OnLockTargetChanged 來")]
-        [SerializeField] PlayerController player;
 
         [Header("Cinemachine")]
         [SerializeField] CinemachineCamera freeLookCamera;
@@ -35,6 +34,8 @@ namespace BossFight.Cameras
         [Header("手感（純視覺）")]
         [Tooltip("鎖定時鏡頭轉向目標方向的平滑時間（秒）")]
         [Min(0f)] [SerializeField] float lockOnYawSmoothTime = 0.12f;
+        [Tooltip("玩家在鎖定鏡頭群組裡的框取半徑 (m)")]
+        [Min(0f)] [SerializeField] float playerFramingRadius = 0.5f;
 
         [Header("游標")]
         [SerializeField] bool lockCursor = true;
@@ -50,6 +51,41 @@ namespace BossFight.Cameras
         float lockYaw, lockYawVelocity;
         Transform leavingMember; // 已解除鎖定、但鎖定鏡頭還在混出，暫時留在群組裡的目標
         int skipPointerFrames;
+        PlayerController player; // 鏡頭跟隨的玩家（PlayerSpawner 交給 BindPlayer）；鎖定目標從它的 OnLockTargetChanged 來
+        bool subscribed;
+
+        /// <summary>
+        /// PlayerSpawner 生成（或換）角色時呼叫：兩台鏡頭改跟新角色、鎖定群組換成新角色。
+        /// 第一次（開場、換場景進來）把自由視角轉到角色背後；換角色時保留目前的視角。已經訂閱就先退訂舊角色。
+        /// </summary>
+        public void BindPlayer(PlayerRig rig)
+        {
+            bool first = player == null;
+            if (subscribed && player != null) player.OnLockTargetChanged -= SetTarget;
+
+            // 編輯模式綁的是預覽模型，換人時是舊角色：都從群組拿掉
+            var oldFollow = freeLookCamera.Target.TrackingTarget;
+            if (oldFollow != null && lockOnGroup.FindMember(oldFollow) >= 0) lockOnGroup.RemoveMember(oldFollow);
+
+            player = rig != null ? rig.Controller : null;
+            var follow = rig != null ? rig.CameraTarget : null;
+            freeLookCamera.Target.TrackingTarget = follow;
+            lockOnCamera.Target.TrackingTarget = follow;
+            if (follow != null) lockOnGroup.AddMember(follow, 1f, playerFramingRadius);
+            if (player == null) return;
+
+            if (first)
+            {
+                float yaw = player.transform.eulerAngles.y;
+                freeLookOrbit.HorizontalAxis.Value = freeLookOrbit.HorizontalAxis.ClampValue(yaw);
+                freeLookOrbit.VerticalAxis.Value = freeLookOrbit.VerticalAxis.Center;
+                lockOnOrbit.HorizontalAxis.Value = lockOnOrbit.HorizontalAxis.ClampValue(yaw);
+            }
+            freeLookCamera.PreviousStateIsValid = false; // 直接跳到新角色，不從預覽模型的位置追過去
+            lockOnCamera.PreviousStateIsValid = false;
+            SetTarget(player.LockTarget); // 新角色沒有鎖定：鏡頭跟著解除
+            if (subscribed) player.OnLockTargetChanged += SetTarget;
+        }
 
         void Awake()
         {
@@ -68,6 +104,7 @@ namespace BossFight.Cameras
         {
             lookAction?.actionMap.Enable();
             if (player != null) player.OnLockTargetChanged += SetTarget;
+            subscribed = true;
         }
 
         void Start()
@@ -78,6 +115,7 @@ namespace BossFight.Cameras
         void OnDisable()
         {
             if (player != null) player.OnLockTargetChanged -= SetTarget;
+            subscribed = false;
             if (lockCursor) SetCursorLocked(false);
         }
 
