@@ -15,4 +15,5 @@ MonoBehaviour:
   defaultMasterVolume: 1
   defaultMusicVolume: 1
   defaultSfxVolume: 1
-  defaultDeveloperMode: 1
+  defaultDeveloperMode: 0
+  defaultDifficulty: 0

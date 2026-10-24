@@ -3,8 +3,19 @@ using UnityEngine;
 
 namespace BossFight.UI
 {
+    /// <summary>ESC 選單秘技的一個輸入：鍵盤是方向鍵與 A、B 字母鍵，手把是十字鍵與 A（下）、B（右）鍵。</summary>
+    public enum MenuCodeInput
+    {
+        Up,
+        Down,
+        Left,
+        Right,
+        A,
+        B,
+    }
+
     /// <summary>
-    /// ESC 選單的文字、顏色、改鍵清單與試聽音效。PauseMenuUI、KeyBindingPageUI 執行時讀這一份；
+    /// ESC 選單的文字、顏色、改鍵清單、試聽音效、難度頁的文字與解鎖開發者模式的秘技。PauseMenuUI、KeyBindingPageUI 執行時讀這一份；
     /// 頁面標題、按鈕上的固定文字與按鈕顏色由 PauseMenuBuilder 建立時寫進場景，改了要重跑 Tools > UI > Build Pause Menu。
     /// </summary>
     [CreateAssetMenu(menuName = "BossFight/Pause Menu Data", fileName = "PauseMenuData")]
@@ -62,6 +73,8 @@ namespace BossFight.UI
         public string settingsLabel = "設定";
         public string retryLabel = "重新挑戰";
         public string quitLabel = "退出遊戲";
+        [Tooltip("主選單的按鈕與難度頁的標題")]
+        public string difficultyLabel = "難度";
 
         [Header("設定")]
         public string controlsLabel = "按鍵設定";
@@ -114,6 +127,40 @@ namespace BossFight.UI
         [Range(0f, 1f)] public float sfxPreviewVolume = 0.8f;
         [Tooltip("試聽最短間隔（秒，真實時間）：拖動滑桿時不會連續響")]
         [Min(0f)] public float sfxPreviewInterval = 0.2f;
+
+        [Header("難度")]
+        public string hardLabel = "困難";
+        public string easyLabel = "簡單";
+        [Tooltip("目前難度的按鈕；{0} = hardLabel／easyLabel")]
+        public string currentDifficultyFormat = "{0}（目前）";
+        [Tooltip("難度頁按鈕下方的說明")]
+        [TextArea(4, 12)]
+        public string difficultyDescription =
+            "困難：原本的難度。\n" +
+            "簡單（相對於困難）：\n" +
+            "翻滾無敵 +0.1 秒　　盾反判定 +0.05 秒\n" +
+            "OIIA 失衡值累積 +15%　　失衡值衰減 −15%\n" +
+            "OIIA 出招預兆 +0.15 秒　　貓掌第一下蓄力 +0.2 秒\n" +
+            "OIIA 龍捲風速度 −10%　　雙重衝擊波間隔 +0.1 秒";
+        [Tooltip("選了另一個難度時的確認訊息；{0} = hardLabel／easyLabel")]
+        public string difficultyConfirmFormat = "切換為{0}模式？\n切換難度會重新挑戰，這場戰鬥的進度會消失。";
+
+        [Header("秘技：解鎖開發者模式")]
+        [Tooltip("選單開著時依序輸入就會在「設定」顯示開發者模式開關（這次執行有效，不存檔）。輸入到第一個 A／B 之前，手把的 A、B 暫時不會按下按鈕或返回")]
+        public MenuCodeInput[] developerUnlockCode =
+        {
+            MenuCodeInput.Up, MenuCodeInput.Up, MenuCodeInput.Down, MenuCodeInput.Down,
+            MenuCodeInput.Left, MenuCodeInput.Left, MenuCodeInput.Right, MenuCodeInput.Right,
+            MenuCodeInput.A, MenuCodeInput.B,
+        };
+        [Tooltip("解鎖時選單下方顯示的提示")]
+        public string developerUnlockedText = "已解鎖開發者模式（設定）";
+        [Tooltip("提示顯示幾秒（真實時間），最後 noticeFadeTime 秒淡出")]
+        [Min(0f)] public float noticeTime = 2.5f;
+        [Min(0.01f)] public float noticeFadeTime = 0.5f;
+        [Tooltip("解鎖時播的音效")]
+        public AudioClip developerUnlockSfx;
+        [Range(0f, 1f)] public float developerUnlockVolume = 0.9f;
 
         [Header("確認")]
         public string retryConfirm = "重新挑戰？\n這場戰鬥的進度會消失。";

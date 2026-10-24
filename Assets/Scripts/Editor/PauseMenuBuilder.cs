@@ -14,13 +14,14 @@ namespace BossFight.EditorTools
 {
     /// <summary>
     /// Tools > UI > Build Pause Menu：建立 ESC 選單（T13）。
-    /// 1. 數值資產（沒有才建）：ScriptableObjects/UI/PauseMenuData.asset（文字、顏色、改鍵清單；試聽音效空著時填 Sfx_Combat_Block）、
-    ///    ScriptableObjects/UI/InputNameData.asset（按鍵顯示名稱）、ScriptableObjects/Options/GameOptionsData.asset（設定的預設值）。
+    /// 1. 數值資產（沒有才建）：ScriptableObjects/UI/PauseMenuData.asset（文字、顏色、改鍵清單；試聽音效空著時填 Sfx_Combat_Block、秘技音效空著時填 Sfx_Combat_BoneEarned）、
+    ///    ScriptableObjects/UI/InputNameData.asset（按鍵顯示名稱）、ScriptableObjects/Options/GameOptionsData.asset（設定的預設值）、
+    ///    ScriptableObjects/Options/Difficulty.asset（各難度的修正值）。
     /// 2. GameOptions 物件（沒有才建）：GameOptions（設定存檔）、GamePause（暫停）與 InputHintDevice（按鍵提示顯示鍵鼠還是手把）。
-    /// 3. PauseMenu Canvas（每次重建，排在所有 UI 上面）：暗幕與 7 頁（主選單、設定、按鍵設定、鍵鼠、控制器、音量、確認）。
+    /// 3. PauseMenu Canvas（每次重建，排在所有 UI 上面）：暗幕與 8 頁（主選單、設定、按鍵設定、鍵鼠、控制器、音量、難度、確認），以及秘技解鎖的提示。
     ///    頁面上的固定文字、按鈕顏色、改鍵頁的大小依 PauseMenuData 建立，改了要重跑這裡。
     /// 4. 接線（Wire，Tools > UI > Wire Pause Menu 也可以單獨跑）：AudioManager（GameOptions、選單試聽的 Ui AudioSource、演出 Timeline 音軌的 AudioSource）、
-    ///    BattleManager 的 GamePause、DebugTools 的 DeveloperMode（開發者模式開關 BossDebugTools、BalanceDebugPanel、PlayerDebugOverlay）、
+    ///    BattleManager 的 GamePause、GameOptions 與 Difficulty、DebugTools 的 DeveloperMode（開發者模式開關 BossDebugTools、BalanceDebugPanel、PlayerDebugOverlay）、
     ///    Boss 血條與跳過提示的按鍵名稱。
     /// BattleUIBuilder（Build Intro 最後會跑）結束時會呼叫 Build；TransitionCutsceneBuilder、BossBuilder 結束時呼叫 Wire。
     /// </summary>
@@ -29,7 +30,9 @@ namespace BossFight.EditorTools
         const string DataPath = "Assets/ScriptableObjects/UI/PauseMenuData.asset";
         const string InputNamesPath = "Assets/ScriptableObjects/UI/InputNameData.asset";
         const string OptionsDataPath = "Assets/ScriptableObjects/Options/GameOptionsData.asset";
+        const string DifficultyPath = "Assets/ScriptableObjects/Options/Difficulty.asset";
         const string PreviewClipPath = "Assets/Audio/Placeholder/Sfx_Combat_Block.wav";
+        const string UnlockClipPath = "Assets/Audio/Placeholder/Sfx_Combat_BoneEarned.wav";
         const string MenuName = "PauseMenu";
         const string OptionsName = "GameOptions";
         const string UiSourceName = "Ui";
@@ -74,6 +77,12 @@ namespace BossFight.EditorTools
                 data.sfxPreview = AssetDatabase.LoadAssetAtPath<AudioClip>(PreviewClipPath);
                 EditorUtility.SetDirty(data);
             }
+            if (data.developerUnlockSfx == null)
+            {
+                data.developerUnlockSfx = AssetDatabase.LoadAssetAtPath<AudioClip>(UnlockClipPath);
+                EditorUtility.SetDirty(data);
+            }
+            GetOrCreate<DifficultyData>(DifficultyPath);
             var inputNames = GetOrCreate<InputNameData>(InputNamesPath);
             var optionsData = GetOrCreate<GameOptionsData>(OptionsDataPath);
             var options = EnsureOptions(optionsData, out var pause);
@@ -116,13 +125,14 @@ namespace BossFight.EditorTools
             so.FindProperty("group").objectReferenceValue = group;
 
             // ---------- 主選單 ----------
-            var main = Window("Main", root.transform, new Vector2(620f, 600f), data.pauseTitle);
-            var mainButtons = ButtonColumn(main, 130f, data.resumeLabel, data.settingsLabel, data.retryLabel, data.quitLabel);
+            var main = Window("Main", root.transform, new Vector2(620f, 690f), data.pauseTitle);
+            var mainButtons = ButtonColumn(main, 175f, data.resumeLabel, data.settingsLabel, data.difficultyLabel, data.retryLabel, data.quitLabel);
             so.FindProperty("mainPage").objectReferenceValue = main.gameObject;
             Set(so, "resumeButton", mainButtons[0]);
             Set(so, "settingsButton", mainButtons[1]);
-            Set(so, "retryButton", mainButtons[2]);
-            Set(so, "quitButton", mainButtons[3]);
+            Set(so, "difficultyButton", mainButtons[2]);
+            Set(so, "retryButton", mainButtons[3]);
+            Set(so, "quitButton", mainButtons[4]);
 
             // ---------- 設定 ----------
             var settings = Window("Settings", root.transform, new Vector2(620f, 600f), data.settingsLabel);
@@ -153,6 +163,20 @@ namespace BossFight.EditorTools
             VolumeRow(so, volume, -60f, "Sfx", data.sfxLabel, "sfxSlider", "sfxValue");
             Set(so, "volumeBackButton", MenuButton("Back", volume, data.backLabel, new Vector2(0f, -170f), ButtonSize));
 
+            // ---------- 難度 ----------
+            var difficulty = Window("Difficulty", root.transform, new Vector2(900f, 720f), data.difficultyLabel);
+            so.FindProperty("difficultyPage").objectReferenceValue = difficulty.gameObject;
+            var hard = MenuButton("Hard", difficulty, string.Format(data.currentDifficultyFormat, data.hardLabel), new Vector2(-190f, 180f), new Vector2(340f, 76f));
+            var easy = MenuButton("Easy", difficulty, data.easyLabel, new Vector2(190f, 180f), new Vector2(340f, 76f));
+            Set(so, "hardButton", hard);
+            so.FindProperty("hardLabel").objectReferenceValue = hard.GetComponentInChildren<Text>();
+            Set(so, "easyButton", easy);
+            so.FindProperty("easyLabel").objectReferenceValue = easy.GetComponentInChildren<Text>();
+            var description = Label("Description", difficulty, data.difficultyDescription, 28, FontStyle.Normal, data.textColor, TextAnchor.MiddleCenter);
+            Place(description.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, -15f), new Vector2(820f, 260f));
+            description.lineSpacing = 1.25f;
+            Set(so, "difficultyBackButton", MenuButton("Back", difficulty, data.backLabel, new Vector2(0f, -230f), ButtonSize));
+
             // ---------- 確認 ----------
             var confirm = Window("Confirm", root.transform, new Vector2(720f, 440f), "");
             var message = Label("Message", confirm, data.retryConfirm, 38, FontStyle.Normal, data.textColor, TextAnchor.MiddleCenter);
@@ -164,12 +188,18 @@ namespace BossFight.EditorTools
             Set(so, "confirmNoButton", MenuButton("No", confirm, data.confirmNo, new Vector2(130f, -100f), new Vector2(220f, 76f)));
             IntroCutsceneBuilder.SetArray(so.FindProperty("navigationHints"), navigationHints);
 
+            // ---------- 秘技解鎖的提示（不屬於哪一頁，每一頁都看得到） ----------
+            var notice = Label("Notice", root.transform, data.developerUnlockedText, 34, FontStyle.Bold, data.noticeColor, TextAnchor.MiddleCenter);
+            Place(notice.rectTransform, new Vector2(0.5f, 0f), new Vector2(0f, 70f), new Vector2(1200f, 60f));
+            notice.enabled = false;
+            so.FindProperty("noticeText").objectReferenceValue = notice;
+
             so.ApplyModifiedPropertiesWithoutUndo();
 
             // 編輯時只看得到暗幕的話很難調，頁面先關掉；PauseMenuUI 執行時自己切換
             foreach (Transform page in root.transform)
             {
-                if (page != dim.transform) page.gameObject.SetActive(false);
+                if (page != dim.transform && page != notice.transform) page.gameObject.SetActive(false);
             }
 
             Wire();
@@ -209,7 +239,12 @@ namespace BossFight.EditorTools
                 so.ApplyModifiedProperties();
             }
 
-            if (battle != null) DaoDunDogBuilder.SetReference(battle, "pause", pause);
+            if (battle != null)
+            {
+                DaoDunDogBuilder.SetReference(battle, "pause", pause);
+                DaoDunDogBuilder.SetReference(battle, "options", options);
+                DaoDunDogBuilder.SetReference(battle, "difficultyData", AssetDatabase.LoadAssetAtPath<DifficultyData>(DifficultyPath));
+            }
 
             // 開發者模式
             var bossTools = Object.FindAnyObjectByType<BossDebugTools>();

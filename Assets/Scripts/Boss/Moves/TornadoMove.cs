@@ -63,7 +63,7 @@ namespace BossFight.Boss.Moves
                 if (distance > 1e-3f)
                 {
                     Vector3 dir = to / distance;
-                    Boss.transform.position = Boss.ClampToArena(Boss.transform.position + dir * Mathf.Min(tornado.chaseSpeed * dt, distance));
+                    Boss.transform.position = Boss.ClampToArena(Boss.transform.position + dir * Mathf.Min(tornado.chaseSpeed * Boss.Difficulty.tornadoSpeedMultiplier * dt, distance));
                     Boss.FaceTarget(dt);
                 }
             }

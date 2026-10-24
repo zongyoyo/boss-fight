@@ -59,6 +59,9 @@ namespace BossFight.Boss.Moves
 
         void OnDisable() => hitbox.OnHit -= ReportHit;
 
+        /// <summary>第一下的蓄力（預兆）：難度修正用 pawSwipeFirstStrikeBonus 取代通用的 telegraphBonus；第二下之後的間隔不變。</summary>
+        public override float TelegraphTime => Data.telegraphTime + Boss.Difficulty.pawSwipeFirstStrikeBonus;
+
         public override void BeginTelegraph()
         {
             timer = 0f;

@@ -90,6 +90,7 @@ MonoBehaviour:
   settingsLabel: "\u8A2D\u5B9A"
   retryLabel: "\u91CD\u65B0\u6311\u6230"
   quitLabel: "\u9000\u51FA\u904A\u6232"
+  difficultyLabel: "\u96E3\u5EA6"
   controlsLabel: "\u6309\u9375\u8A2D\u5B9A"
   volumeLabel: "\u97F3\u91CF\u8A2D\u5B9A"
   developerModeFormat: "\u958B\u767C\u8005\u6A21\u5F0F\uFF1A{0}"
@@ -126,6 +127,22 @@ MonoBehaviour:
   sfxPreview: {fileID: 8300000, guid: 5f22d42bb927ea4499bbfdbca69a06e8, type: 3}
   sfxPreviewVolume: 0.8
   sfxPreviewInterval: 0.2
+  hardLabel: "\u56F0\u96E3"
+  easyLabel: "\u7C21\u55AE"
+  currentDifficultyFormat: "{0}\uFF08\u76EE\u524D\uFF09"
+  difficultyDescription: "\u56F0\u96E3\uFF1A\u539F\u672C\u7684\u96E3\u5EA6\u3002\n\u7C21\u55AE\uFF08\u76F8\u5C0D\u65BC\u56F0\u96E3\uFF09\uFF1A\n\u7FFB\u6EFE\u7121\u6575
+    +0.1 \u79D2\u3000\u3000\u76FE\u53CD\u5224\u5B9A +0.05 \u79D2\nOIIA \u5931\u8861\u503C\u7D2F\u7A4D
+    +15%\u3000\u3000\u5931\u8861\u503C\u8870\u6E1B \u221215%\nOIIA \u51FA\u62DB\u9810\u5146
+    +0.15 \u79D2\u3000\u3000\u8C93\u638C\u7B2C\u4E00\u4E0B\u84C4\u529B +0.2 \u79D2\nOIIA
+    \u9F8D\u6372\u98A8\u901F\u5EA6 \u221210%\u3000\u3000\u96D9\u91CD\u885D\u64CA\u6CE2\u9593\u9694
+    +0.1 \u79D2"
+  difficultyConfirmFormat: "\u5207\u63DB\u70BA{0}\u6A21\u5F0F\uFF1F\n\u5207\u63DB\u96E3\u5EA6\u6703\u91CD\u65B0\u6311\u6230\uFF0C\u9019\u5834\u6230\u9B25\u7684\u9032\u5EA6\u6703\u6D88\u5931\u3002"
+  developerUnlockCode: 00000000000000000100000001000000020000000200000003000000030000000400000005000000
+  developerUnlockedText: "\u5DF2\u89E3\u9396\u958B\u767C\u8005\u6A21\u5F0F\uFF08\u8A2D\u5B9A\uFF09"
+  noticeTime: 2.5
+  noticeFadeTime: 0.5
+  developerUnlockSfx: {fileID: 8300000, guid: 12b67ea5f9a7e3d4fb06c5267f4c5277, type: 3}
+  developerUnlockVolume: 0.9
   retryConfirm: "\u91CD\u65B0\u6311\u6230\uFF1F\n\u9019\u5834\u6230\u9B25\u7684\u9032\u5EA6\u6703\u6D88\u5931\u3002"
   quitConfirm: "\u9000\u51FA\u904A\u6232\uFF1F"
   confirmYes: "\u78BA\u5B9A"

@@ -43,13 +43,16 @@ namespace BossFight.Battle
         public readonly int attempt;
         /// <summary>分出勝負時 Boss 剩餘血量比例 0..1。</summary>
         public readonly float bossHealthRatio;
+        /// <summary>這一場的難度。</summary>
+        public readonly Difficulty difficulty;
 
-        public BattleResult(bool victory, float battleTime, int attempt, float bossHealthRatio)
+        public BattleResult(bool victory, float battleTime, int attempt, float bossHealthRatio, Difficulty difficulty)
         {
             this.victory = victory;
             this.battleTime = battleTime;
             this.attempt = attempt;
             this.bossHealthRatio = bossHealthRatio;
+            this.difficulty = difficulty;
         }
     }
 
@@ -66,6 +69,9 @@ namespace BossFight.Battle
     /// 重試（Retry，勝敗畫面的按鈕與 Debug F5）重新載入場景；「看過開場」「看過轉階段」存在 BattleSession，重試後可以長按跳過。
     /// 音樂速度：換階段時照 BossPhaseData.musicSpeed 設定；轉階段演出開始時先排好下一階段的速度，演出中重播音樂時才套用。
     /// 沒有接 CutsceneDirector 時直接開打／直接換階段。
+    /// 難度：Awake 時讀 GameOptions.Difficulty（存檔的值），把 DifficultyData 的修正交給玩家（PlayerController）與 Boss（BossController），整場不變；
+    /// ESC 選單改難度後要重新挑戰才套用。
+    /// ESC 選單的秘技（UnlockDeveloperOptions）記在 BattleSession，重試後 Start 時再送一次 OnDeveloperOptionsUnlocked，選單繼續顯示開發者模式開關。
     /// 暫停（ESC 選單，GamePause）：暫停時鎖住玩家與鏡頭的輸入、放開游標；解除時還原（演出中交給演出解鎖、勝敗畫面維持鎖定）。
     /// UI 與演出訂閱 OnBattleStateChanged、OnBattleResult。
     /// 放在 Battle（最上層）：它要指揮 Boss、玩家與演出，Core 才能維持在最底層、不引用其他系統。
@@ -92,20 +98,36 @@ namespace BossFight.Battle
         [SerializeField] AudioManager audioManager;
         [Tooltip("ESC 選單的暫停：暫停時鎖住玩家與鏡頭的輸入、放開游標；留空時不管")]
         [SerializeField] GamePause pause;
+        [Tooltip("存檔的難度；留空時一律困難")]
+        [SerializeField] GameOptions options;
+        [Tooltip("各難度的修正值；留空時不修正")]
+        [SerializeField] DifficultyData difficultyData;
 
         /// <summary>流程狀態改變；參數是新的狀態。</summary>
         public event Action<BattleState> OnBattleStateChanged;
         /// <summary>分出勝負、等完 BattleSettings 的秒數後送一次：顯示勝敗畫面。</summary>
         public event Action<BattleResult> OnBattleResult;
+        /// <summary>這次執行在 ESC 選單輸入了秘技（重試後 Start 時也會送）：選單顯示開發者模式開關。</summary>
+        public event Action OnDeveloperOptionsUnlocked;
 
         public BattleState State { get; private set; }
         public bool IsOver => State == BattleState.Victory || State == BattleState.Defeat;
+        /// <summary>這一場的難度（Awake 時從 GameOptions 讀到的值）。</summary>
+        public Difficulty Difficulty { get; private set; }
 
         float battleStartTime, bossHealthRatio = 1f;
         BattleResult pendingResult;
         float resultAt = -1f;      // 真實時間；< 0 = 沒有待送的結算
         float slowMotionUntil = -1f;
         bool resultShown, pauseLocked;
+
+        void Awake()
+        {
+            Difficulty = options != null ? options.Difficulty : Difficulty.Hard;
+            var modifiers = difficultyData != null ? difficultyData.Get(Difficulty) : DifficultyModifiers.None;
+            if (player != null) player.SetDifficulty(modifiers);
+            if (boss != null) boss.SetDifficulty(modifiers);
+        }
 
         void OnEnable()
         {
@@ -147,6 +169,7 @@ namespace BossFight.Battle
         {
             if (boss != null) boss.AutoCompleteTransition = transition == null;
             BattleSession.BeginAttempt();
+            if (BattleSession.DeveloperOptionsUnlocked) OnDeveloperOptionsUnlocked?.Invoke();
             if (intro == null)
             {
                 StartPhase1();
@@ -198,6 +221,14 @@ namespace BossFight.Battle
         {
             Time.timeScale = 1f; // 慢動作或畫面停頓中按下時不要把 timeScale 帶到新場景
             SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+        }
+
+        /// <summary>ESC 選單輸入了秘技：這次執行（含重試）都顯示開發者模式開關。</summary>
+        public void UnlockDeveloperOptions()
+        {
+            if (BattleSession.DeveloperOptionsUnlocked) return;
+            BattleSession.MarkDeveloperOptionsUnlocked();
+            OnDeveloperOptionsUnlocked?.Invoke();
         }
 
         void HandleIntroFinished(bool skipped)
@@ -274,7 +305,7 @@ namespace BossFight.Battle
         void EndBattle(bool victory)
         {
             float time = State == BattleState.None || State == BattleState.Intro ? 0f : Time.time - battleStartTime;
-            pendingResult = new BattleResult(victory, time, BattleSession.Attempt, bossHealthRatio);
+            pendingResult = new BattleResult(victory, time, BattleSession.Attempt, bossHealthRatio, Difficulty);
             if (victory && audioManager != null) audioManager.FadeOutMusic(settings != null ? settings.resultMusicFadeTime : 0f); // 失敗時照播（嘲諷）
             float delay = settings == null ? 0f : victory ? settings.victoryResultDelay : settings.defeatResultDelay;
             resultAt = Time.unscaledTime + delay;

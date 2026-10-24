@@ -23,8 +23,8 @@ namespace BossFight.Boss
         /// <summary>出這招的 Boss（BossController.Awake 時綁定）。</summary>
         protected BossController Boss { get; private set; }
 
-        /// <summary>預兆時間（秒）；需要依情況變動的招式可以覆寫。</summary>
-        public virtual float TelegraphTime => data.telegraphTime;
+        /// <summary>預兆時間（秒）：BossMoveData.telegraphTime 加上難度修正；需要依情況變動的招式可以覆寫。</summary>
+        public virtual float TelegraphTime => data.telegraphTime + (Boss != null ? Boss.Difficulty.telegraphBonus : 0f);
         /// <summary>破綻時間（秒）；例如衝撞撞牆與否可以覆寫成不同的值。</summary>
         public virtual float RecoveryTime => data.recoveryTime;
 

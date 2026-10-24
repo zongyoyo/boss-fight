@@ -1,4 +1,4 @@
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || BOSSFIGHT_DEV_TOOLS
 using System;
 using System.Collections.Generic;
 using System.Reflection;
@@ -27,7 +27,7 @@ namespace BossFight.DebugTools
     /// </para>
     /// <para>
     /// 調整值與歷次計時在重試（重新載入場景）後保留：複本與紀錄放在這個檔案的 static 欄位，進 Play 模式時清空、離開時銷毀複本。
-    /// 這是 CLAUDE.md「唯一的 static 例外」之外的 Debug 例外，正式 build 不會有。
+    /// 這是 CLAUDE.md「唯一的 static 例外」之外的 Debug 例外，沒有 Debug 程式的 build（見 CLAUDE.md 的 BOSSFIGHT_DEV_TOOLS）不會有。
     /// </para>
     /// <para>
     /// 面板開著時（預設）暫停遊戲（timeScale 0）、鎖住玩家與鏡頭的輸入、放開游標；關掉時還原（開場、轉階段演出中或勝敗畫面時維持鎖定，交給原本的流程解除）。
@@ -124,6 +124,7 @@ namespace BossFight.DebugTools
         sealed class RunRecord
         {
             public int attempt;
+            public Difficulty difficulty;
             public string result = "進行中";
             public bool finished;
             public float phase1, transition, phase2, ultimate, berserk;
@@ -145,7 +146,10 @@ namespace BossFight.DebugTools
         int tab;
         Vector2 scroll;
         float pendingHealth = -1f;
-        bool confirmSave, opened, paused;
+        bool opened, paused;
+#if UNITY_EDITOR
+        bool confirmSave; // 「存回 .asset」要按兩次；只有 Editor 有這個按鈕
+#endif
         bool savedPlayerLock, savedCameraLock, savedCursorReleased;
         string toast;
         float toastUntil;
@@ -437,7 +441,9 @@ namespace BossFight.DebugTools
         void SetOpen(bool open)
         {
             panelVisible = open;
+#if UNITY_EDITOR
             confirmSave = false;
+#endif
             if (open && !opened)
             {
                 opened = true;
@@ -544,7 +550,7 @@ namespace BossFight.DebugTools
 
             if (next == BattleState.Phase1 && run == null)
             {
-                run = new RunRecord { attempt = BattleSession.Attempt };
+                run = new RunRecord { attempt = BattleSession.Attempt, difficulty = battle != null ? battle.Difficulty : Difficulty.Hard };
                 runs.Add(run);
                 ResetStunCount();
             }
@@ -638,7 +644,7 @@ namespace BossFight.DebugTools
         static string Dps(float damage, float time) => time > 0f ? $"{damage / time:0.0}" : "—";
 
         static string RunLine(RunRecord r) =>
-            $"第 {r.attempt} 次 {r.result}｜總 {Clock(r.Total)}｜第一階段 {Clock(r.phase1)}（DPS {Dps(r.damagePhase1, r.phase1)}）" +
+            $"第 {r.attempt} 次（{(r.difficulty == Difficulty.Easy ? "簡單" : "困難")}）{r.result}｜總 {Clock(r.Total)}｜第一階段 {Clock(r.phase1)}（DPS {Dps(r.damagePhase1, r.phase1)}）" +
             $"｜轉階段 {Clock(r.transition)}｜第二階段 {Clock(r.Phase2Total)}（DPS {Dps(r.damagePhase2, r.Phase2Total)}；" +
             $"大迴旋 {Clock(r.ultimate)}、狂暴 {Clock(r.berserk)}）｜盾反 {r.parries}、頭暈 {r.stuns}、處決 {r.executions}" +
             $"｜被打中 {r.hitsTaken} 次、受傷 {r.damageTaken:0}、骨頭 用 {r.bonesUsed}／得 {r.bonesEarned}｜調整 {r.tunedCount} 項";

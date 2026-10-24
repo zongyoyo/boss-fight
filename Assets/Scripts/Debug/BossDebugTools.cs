@@ -1,4 +1,4 @@
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || BOSSFIGHT_DEV_TOOLS
 using System.Collections.Generic;
 using System.Text;
 using BossFight.Battle;
@@ -12,7 +12,7 @@ using UnityEngine.SceneManagement;
 namespace BossFight.DebugTools
 {
     /// <summary>
-    /// Boss 戰的 Debug 快捷鍵與右上角的 Boss 面板。按鍵直接讀 Keyboard.current，不放進 Input Actions，正式 build 不會帶到。
+    /// Boss 戰的 Debug 快捷鍵與右上角的 Boss 面板。按鍵直接讀 Keyboard.current，不放進 Input Actions，沒有 Debug 程式的 build（見 CLAUDE.md 的 BOSSFIGHT_DEV_TOOLS）不會帶到。
     /// F1：Boss 血量設為「下一個階段的門檻 + 1」（第一階段時是 1001，再打一下就轉階段）。
     /// F2：切換玩家無敵。
     /// F3：依序切換下一招指定（不指定 → 各招 → 不指定），下一次選招直接出，不看距離、冷卻、不連出與開場序列。

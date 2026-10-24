@@ -75,7 +75,7 @@ namespace BossFight.Boss
             return DamageResult.Hit;
         }
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || BOSSFIGHT_DEV_TOOLS
         /// <summary>Debug 用：直接設定血量（F1）。不會觸發 OnDamaged；設到 0 會倒下。</summary>
         public void DebugSetHealth(float value)
         {

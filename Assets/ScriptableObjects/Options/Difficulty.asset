@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ae283bd16ee42c24691eb44ad2b30b0e, type: 3}
+  m_Name: Difficulty
+  m_EditorClassIdentifier: Assembly-CSharp::BossFight.Core.DifficultyData
+  hard:
+    rollInvulnerableBonus: 0
+    parryWindowBonus: 0
+    imbalanceGainMultiplier: 1
+    imbalanceDecayMultiplier: 1
+    telegraphBonus: 0
+    pawSwipeFirstStrikeBonus: 0
+    tornadoSpeedMultiplier: 1
+    shockwaveIntervalBonus: 0
+  easy:
+    rollInvulnerableBonus: 0.1
+    parryWindowBonus: 0.05
+    imbalanceGainMultiplier: 1.15
+    imbalanceDecayMultiplier: 0.85
+    telegraphBonus: 0.15
+    pawSwipeFirstStrikeBonus: 0.2
+    tornadoSpeedMultiplier: 0.9
+    shockwaveIntervalBonus: 0.1

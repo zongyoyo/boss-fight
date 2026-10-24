@@ -194,6 +194,8 @@ namespace BossFight.Boss
         /// 轉階段 transitionTime 秒後自動結束（預設）。有轉階段演出時由 BattleManager 關掉，改由演出結束時呼叫 CompleteTransition。
         /// </summary>
         public bool AutoCompleteTransition { get; set; } = true;
+        /// <summary>難度修正（BattleManager 開場前用 SetDifficulty 設定）；招式與 BossStagger 讀數值時加上去，不改 SO。</summary>
+        public DifficultyModifiers Difficulty { get; private set; } = DifficultyModifiers.None;
         /// <summary>這次頭暈或轉階段的總秒數。</summary>
         public float TimedStateDuration { get; private set; }
         /// <summary>頭暈時間到也先不結束（被處決中，等那一刀打到）；離開頭暈時自動清掉。由 BossStagger 設定。</summary>
@@ -259,6 +261,9 @@ namespace BossFight.Boss
         }
 
         /// <summary>開打：直接進入選招（開場演出結束時接第一招，不另等出招間隔）。</summary>
+        /// <summary>套用難度修正（預兆、失衡值、龍捲風速度、衝擊波間隔）；null = 不修正。</summary>
+        public void SetDifficulty(DifficultyModifiers modifiers) => Difficulty = modifiers ?? DifficultyModifiers.None;
+
         public void StartBattle()
         {
             if (HasStarted || State == BossState.Defeated) return;

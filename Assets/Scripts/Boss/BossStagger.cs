@@ -21,6 +21,7 @@ namespace BossFight.Boss
     /// 這隻 Boss 的招式被盾反時加 HitReport.counterImbalance（被打方回傳的值，玩家是 PlayerStats.parryImbalance +25，從 BossController.OnMoveHit 拿）；
     /// 招式可以呼叫 AddImbalance（龍捲風 +40）。不引用玩家，換角色（多職業）時不用改這裡。
     /// 頭暈、轉階段、倒下、還沒開打時不累積。最後一次增加後 BossStats.imbalanceDecayDelay 秒開始每秒減少 imbalanceDecayRate。
+    /// 難度修正（BossController.Difficulty）：累積量乘 imbalanceGainMultiplier（所有來源），衰減速度乘 imbalanceDecayMultiplier。
     /// 上限是目前 BossPhaseData.imbalanceMax，換階段時保留目前的值（不超過新上限）。滿了呼叫 BossController.Stun，打斷招式、進入頭暈。
     /// 不管頭暈是怎麼來的（失衡值滿、招式指定的固定頭暈），頭暈期間受傷 × BossStats.stunDamageMultiplier、可以被處決（ExecutionTarget）；
     /// 處決進行中讓 BossController.HoldStun，那一刀（DamageInfo.isExecution）打到就提早結束頭暈。離開頭暈時失衡值歸零。
@@ -107,7 +108,7 @@ namespace BossFight.Boss
         void Update()
         {
             if (IsStunned || Current <= 0f || Time.time - lastGainTime < stats.imbalanceDecayDelay) return;
-            SetCurrent(Current - stats.imbalanceDecayRate * Time.deltaTime);
+            SetCurrent(Current - stats.imbalanceDecayRate * boss.Difficulty.imbalanceDecayMultiplier * Time.deltaTime);
         }
 
         /// <summary>
@@ -118,7 +119,7 @@ namespace BossFight.Boss
         {
             if (amount <= 0f || !CanAccumulate) return;
             lastGainTime = Time.time;
-            SetCurrent(Current + amount);
+            SetCurrent(Current + amount * boss.Difficulty.imbalanceGainMultiplier);
             if (Current >= Max) boss.Stun();
         }
 

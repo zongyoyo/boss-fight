@@ -84,9 +84,10 @@ namespace BossFight.Boss.Moves
         {
             timer += dt;
             if (wavesLeft <= 0) return timer >= wave.spinOutTime;
-            if (timer >= wave.waveInterval)
+            float interval = wave.waveInterval + Boss.Difficulty.shockwaveIntervalBonus;
+            if (timer >= interval)
             {
-                timer -= wave.waveInterval;
+                timer -= interval;
                 Launch();
             }
             return false;

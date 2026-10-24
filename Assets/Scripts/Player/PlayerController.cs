@@ -64,8 +64,10 @@ namespace BossFight.Player
         public bool IsRolling => Action == PlayerAction.Roll;
         public bool IsExecuting => Action == PlayerAction.Execute;
         public bool IsDead => Action == PlayerAction.Dead;
-        /// <summary>翻滾開始後的 rollInvulnerableTime 秒內、處決中（executeInvulnerable）無敵；受擊後的無敵在 PlayerHealth。</summary>
-        public bool IsInvulnerable => (IsRolling && rollTime < stats.rollInvulnerableTime) || (IsExecuting && stats.executeInvulnerable);
+        /// <summary>翻滾開始後的 rollInvulnerableTime（加上難度修正）秒內、處決中（executeInvulnerable）無敵；受擊後的無敵在 PlayerHealth。</summary>
+        public bool IsInvulnerable => (IsRolling && rollTime < stats.rollInvulnerableTime + Difficulty.rollInvulnerableBonus) || (IsExecuting && stats.executeInvulnerable);
+        /// <summary>難度修正（BattleManager 開場前用 SetDifficulty 設定）；翻滾無敵與 PlayerHealth 的盾反判定讀數值時加上去。</summary>
+        public DifficultyModifiers Difficulty { get; private set; } = DifficultyModifiers.None;
         /// <summary>正在處決的目標；沒有處決時為 null。</summary>
         public ExecutionTarget ExecutingTarget { get; private set; }
         /// <summary>目前這次翻滾的進度 0..1。</summary>
@@ -97,6 +99,9 @@ namespace BossFight.Player
         bool jumpRequested, bufferedAttack, bufferedRoll, bufferedExecute;
         Vector3 scriptedTarget, scriptedFace;
         bool hasScriptedTarget;
+
+        /// <summary>套用難度修正（不改 PlayerStats，讀數值時才加）；null = 不修正。</summary>
+        public void SetDifficulty(DifficultyModifiers modifiers) => Difficulty = modifiers ?? DifficultyModifiers.None;
 
         void Awake()
         {

@@ -29,7 +29,7 @@ namespace BossFight.Player
     /// <summary>
     /// 刀盾狗的血量、受傷結算與骨頭次數。數值讀 PlayerStats；目前血量、無敵時間、剩餘骨頭存在元件自己身上。
     /// 身上的 Hurtbox 把攻擊轉到 TakeDamage，依序判斷：
-    /// 無敵（強制無敵、翻滾前段、受擊後）→ 盾反（舉盾、正面、可盾反、舉盾不到 parryWindow）→ 格擋（舉盾、正面、可擋）→ 直接命中。
+    /// 無敵（強制無敵、翻滾前段、受擊後）→ 盾反（舉盾、正面、可盾反、舉盾不到 parryWindow，加上難度修正）→ 格擋（舉盾、正面、可擋）→ 直接命中。
     /// 格擋只吃 (1 − blockDamageReduction) 的傷害、耐力扣原傷害 × blockStaminaPerDamage × 攻擊的 blockStaminaMultiplier，扣到 0 就破防；
     /// 盾反完全免傷、畫面停頓 parryHitStop 秒並送出 OnParry；給攻擊方的失衡值 parryImbalance 放在回傳的 DamageOutcome，
     /// 經 Hitbox 的 HitReport 回到攻擊方（Boss 的 BossStagger 從 BossController.OnMoveHit 拿）；
@@ -77,6 +77,9 @@ namespace BossFight.Player
         HitStop hitStop;
         float hitInvulnerableUntil = float.NegativeInfinity;
 
+        // 難度修正的盾反判定加長（PlayerController.Difficulty）
+        float ParryWindowBonus => controller != null ? controller.Difficulty.parryWindowBonus : 0f;
+
         void Awake()
         {
             controller = GetComponent<PlayerController>();
@@ -119,7 +122,7 @@ namespace BossFight.Player
             {
                 result = DamageResult.Evaded;
             }
-            else if (guarded && info.canParry && held <= stats.parryWindow)
+            else if (guarded && info.canParry && held <= stats.parryWindow + ParryWindowBonus)
             {
                 result = DamageResult.Parried;
             }
@@ -199,7 +202,7 @@ namespace BossFight.Player
             OnBoneEarned?.Invoke();
         }
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || BOSSFIGHT_DEV_TOOLS
         /// <summary>Debug 用：直接設定血量（F7 設 0 測失敗）。不會觸發 OnDamageTaken；設到 0 會倒下。</summary>
         public void DebugSetHealth(float value)
         {
