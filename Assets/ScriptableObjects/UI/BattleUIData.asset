@@ -52,6 +52,7 @@ MonoBehaviour:
   defeatSubtitle: "\u5C31\u591A\u7DF4"
   defeatHint: "\u771F\u6253\u4E0D\u904E\u6211\u5011\u9078\u55AE\u88E1\u6709\u7C21\u55AE\u6A21\u5F0F\u5594
     :))"
+  defeatStatsSeparator: "\u3000\u3000"
   victoryButton: "\u518D\u6311\u6230"
   defeatButton: "\u91CD\u8A66"
   buttonHintKeyboard: "Enter \u78BA\u8A8D"
@@ -60,9 +61,14 @@ MonoBehaviour:
   defeatTitleStartColor: {r: 1, g: 1, b: 1, a: 1}
   defeatColor: {r: 0.9, g: 0.12, b: 0.1, a: 1}
   defeatTextColor: {r: 1, g: 1, b: 1, a: 1}
+  defeatHintColor: {r: 0.6, g: 0.6, b: 0.6, a: 1}
   defeatColorDelay: 0.6
   defeatColorTime: 2
   defeatTitleSize: 280
   defeatSubtitleSize: 64
-  defeatHintSize: 30
-  defeatStatsSize: 26
+  defeatHintSize: 22
+  defeatStatsSize: 22
+  defeatTitleY: 290
+  defeatSubtitleY: 70
+  defeatStatsY: -20
+  defeatHintY: -282

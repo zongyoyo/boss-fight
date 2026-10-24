@@ -10,9 +10,9 @@ namespace BossFight.UI
     /// <summary>
     /// 勝利與失敗畫面。只訂閱 BattleManager.OnBattleResult：暗幕淡入，顯示勝利或戰敗那一組文字（各自一個父物件，只開一組）與共用的按鈕。
     /// 勝利：標題、副標、通關時間、第幾次挑戰，按鈕「再挑戰」。
-    /// 戰敗：中央大字「菜」（defeatColorDelay 秒後花 defeatColorTime 秒從白色轉紅）、中字「就多練」、小字「選單裡有簡單模式」
-    /// （簡單模式戰敗時不顯示，看 BattleResult.difficulty），下面是較小的 Boss 剩餘血量、戰鬥時間、第幾次挑戰，按鈕「重試」。
-    /// 戰敗的文字、顏色、字級都讀 BattleUIData（Awake 時套用，改資產不用重建）。
+    /// 戰敗：中央大字「菜」（defeatColorDelay 秒後花 defeatColorTime 秒從白色轉紅）、中字「就多練」、一行小字的 Boss 剩餘血量／戰鬥時間／第幾次挑戰，
+    /// 按鈕「重試」；按鈕提示下面是灰色小字「選單裡有簡單模式」（簡單模式戰敗時不顯示，看 BattleResult.difficulty）。
+    /// 戰敗的文字、顏色、字級、高度都讀 BattleUIData（Awake 時套用，改資產不用重建）。
     /// 按鈕呼叫 BattleManager.Retry（重新載入場景，之後開場可以長按跳過）；出現時把按鈕設為選取，Enter／手把 A 也能按。
     /// Boss 名稱來自開場字卡（CutsceneDirector.OnTitleCard），沒有時用 BattleUIData.fallbackBossName。按鈕下面的提示跟著目前裝置（InputHintDevice）換鍵鼠或手把的字。
     /// </summary>
@@ -63,18 +63,20 @@ namespace BossFight.UI
             hintText.text = data.buttonHintKeyboard;
             if (victoryGroup != null) victoryGroup.SetActive(false);
             if (defeatGroup != null) defeatGroup.SetActive(false);
-            SetupText(defeatTitleText, data.defeatTitle, data.defeatTitleSize, data.defeatTitleStartColor);
-            SetupText(defeatSubtitleText, data.defeatSubtitle, data.defeatSubtitleSize, data.defeatTextColor);
-            SetupText(defeatHintText, data.defeatHint, data.defeatHintSize, data.defeatTextColor);
-            SetupText(defeatStatsText, string.Empty, data.defeatStatsSize, data.defeatTextColor);
+            SetupText(defeatTitleText, data.defeatTitle, data.defeatTitleSize, data.defeatTitleStartColor, data.defeatTitleY);
+            SetupText(defeatSubtitleText, data.defeatSubtitle, data.defeatSubtitleSize, data.defeatTextColor, data.defeatSubtitleY);
+            SetupText(defeatHintText, data.defeatHint, data.defeatHintSize, data.defeatHintColor, data.defeatHintY);
+            SetupText(defeatStatsText, string.Empty, data.defeatStatsSize, data.defeatTextColor, data.defeatStatsY);
         }
 
-        static void SetupText(Text text, string value, int size, Color color)
+        static void SetupText(Text text, string value, int size, Color color, float y)
         {
             if (text == null) return;
             text.text = value;
             text.fontSize = size;
             text.color = color;
+            var rt = text.rectTransform;
+            rt.anchoredPosition = new Vector2(rt.anchoredPosition.x, y);
         }
 
         void OnEnable()
@@ -118,8 +120,9 @@ namespace BossFight.UI
                 defeatTitleText.color = data.defeatTitleStartColor;
                 // 已經是簡單模式就不再推薦簡單模式
                 defeatHintText.gameObject.SetActive(result.difficulty != Difficulty.Easy);
-                defeatStatsText.text = $"{bossName} 剩餘血量　{Mathf.CeilToInt(result.bossHealthRatio * 100f)}%\n" +
-                                       $"戰鬥時間　{FormatTime(result.battleTime)}\n第 {result.attempt} 次挑戰";
+                string gap = data.defeatStatsSeparator;
+                defeatStatsText.text = $"{bossName} 剩餘血量 {Mathf.CeilToInt(result.bossHealthRatio * 100f)}%{gap}" +
+                                       $"戰鬥時間 {FormatTime(result.battleTime)}{gap}第 {result.attempt} 次挑戰";
                 retryLabel.text = data.defeatButton;
             }
             shownAt = Time.unscaledTime;

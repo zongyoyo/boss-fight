@@ -140,7 +140,7 @@ ScriptableObject 的「類別」寫在 `Scripts/` 對應的系統資料夾，「
   - GameOptions 存難度（PlayerPrefs `BossFight.Options.Difficulty`），預設 `GameOptionsData.defaultDifficulty`（困難）。ESC 主選單「難度」頁：選另一個先確認，確定後 `SetDifficulty` 再 `BattleManager.Retry`；這一場的難度是 BattleManager Awake 時讀到的（`BattleManager.Difficulty`、`BattleResult.difficulty`），F12 的每場紀錄也記難度。F12 調的是基礎值，簡單模式的修正疊在上面。
   - 秘技（`PauseMenuData.developerUnlockCode`）：選單開著、不在等改鍵時，鍵盤方向鍵與 A、B 字母鍵，或手把十字鍵與 A（South）、B（East）。結尾能對上秘技開頭幾個就算幾個（↑↑↑ 還是對到 2）；其他按鍵歸零、換頁或關選單也歸零。8 個方向輸完後先取消選取（手把 A 不會按下按鈕），這時按的 A、B 都算秘技、不當成返回；輸完或輸錯就還原選取。解鎖時選單下方顯示提示、播 `developerUnlockSfx`（佔位用 Sfx_Combat_BoneEarned），記在 BattleSession（重試後還顯示，重開遊戲要重輸）。開發者模式開著（例如存檔是開）時開關一直顯示；開關出現後這個場景不再藏起來。沒顯示時設定頁的「返回」補到它的位置。
   - 背景驗收：秘技是用 `InputSystem.QueueStateEvent` 加 `InputSystem.Update()` 模擬鍵盤與虛擬手把（`InputSystem.AddDevice<Gamepad>`）後反射呼叫 PauseMenuUI 驗的；實體鍵盤、手把要在前景手動試。
-- 戰敗畫面（T16，alpha 1.0.0 測試回饋）：BattleUIBuilder 在 Result 底下建 `Victory`、`Defeat` 兩組文字，BattleResultUI 依勝敗只開一組，按鈕與提示共用。戰敗：大字「菜」defeatColorDelay 秒後花 defeatColorTime 秒從 defeatTitleStartColor 轉成 defeatColor（真實時間，SmoothStep）、中字「就多練」、小字 defeatHint（`BattleResult.difficulty` 是簡單時隱藏）、較小的剩餘血量／戰鬥時間／挑戰次數。戰敗的文字、顏色、字級都在 BattleUIData，BattleResultUI 在 Awake 套用（改字級不用重建；位置是 Builder 寫的）。勝利畫面版面沒變。背景驗收時 MCP 指令往返要好幾秒，「菜」剛出現的白色是用反射設定 shownAt 再呼叫 Update 檢查顏色曲線（0–0.6 秒白、約 2.6 秒全紅），沒有截到白色的畫面。
+- 戰敗畫面（T16，alpha 1.0.0 測試回饋）：BattleUIBuilder 在 Result 底下建 `Victory`、`Defeat` 兩組文字，BattleResultUI 依勝敗只開一組，按鈕與提示共用。戰敗：大字「菜」defeatColorDelay 秒後花 defeatColorTime 秒從 defeatTitleStartColor 轉成 defeatColor（真實時間，SmoothStep）、中字「就多練」、剩餘血量／戰鬥時間／挑戰次數排成一行小字（defeatStatsSeparator 隔開），按鈕提示「Enter 確認」下面是灰色小字 defeatHint（`BattleResult.difficulty` 是簡單時隱藏）。戰敗的文字、顏色、字級與各行高度（defeatTitleY／SubtitleY／StatsY／HintY，畫面中心 = 0）都在 BattleUIData，Builder 建立時用、BattleResultUI 在 Awake 再套用一次（改資產不用重建）；按鈕（-170）與按鈕提示（-240）的位置仍是 Builder 寫死、勝敗共用。勝利畫面版面沒變。背景驗收時 MCP 指令往返要好幾秒，「菜」剛出現的白色是用反射設定 shownAt 再呼叫 Update 檢查顏色曲線（0–0.6 秒白、約 2.6 秒全紅），沒有截到白色的畫面。
 - 測試木樁 `TrainingDummy` 已經在 T3 從場景移除（程式與 `TrainingDummyData.asset` 還在 `Scripts/Debug`、`ScriptableObjects/Debug`）。要練格擋或盾反時用 Tools > Debug > Build Training Dummy 重建，它會自己加進鎖定清單；正式 build 前要刪掉物件，否則會變成 Missing Script。
 
 ## 工作流程
@@ -175,7 +175,7 @@ ScriptableObject 的「類別」寫在 `Scripts/` 對應的系統資料夾，「
 | T13 | ESC 選單（設定、重新挑戰、退出） | Esc／手把 Start 開關選單，開著時遊戲暫停（演出也停住）、音效暫停、音樂照播；設定 → 按鍵設定（鍵鼠主要／次要兩欄、控制器一欄，改完立刻生效、重進 Play 還在、同鍵互換、恢復預設）、音量設定（主音量、音樂、音效即時生效並保存）、開發者模式開／關（關掉後 F1–F12 與 Debug 面板都沒有）；重新挑戰與退出遊戲先確認，重試後可跳過開場；頭暈與跳過提示顯示目前的鍵 |
 | T14 | 戰鬥提示與演出（alpha 1.0.0 回饋） | Boss 頭暈時失衡條從左右往中間收縮，收到中間時頭暈剛好結束；頭暈時 Boss 胸口出現紅色處決標記（鎖定菱形先藏起來）；按鍵盤或滑鼠時處決、啃骨頭、跳過、選單返回、勝敗畫面的提示是鍵鼠的鍵，按手把時換成手把的鍵，改鍵後跟著變；轉階段第一次不能跳過，同一次執行第二次起可以長按跳過，跳過後法陣全紅、電光、音樂 1.2 倍、玩家在 10 m、進入第二階段；大迴旋兩個安全區中央各有一面漂浮盾牌 |
 | T15 | 難度（簡單模式）與選單秘技（alpha 1.0.0 回饋） | 預設困難，行為與 alpha 1.0.0 相同；ESC 主選單「難度」頁標出目前難度（不列差異說明），選另一個先確認（確認框文字不超出面板）、確定後重新挑戰；重進 Play 難度還在；簡單模式下翻滾無敵 +0.1、盾反 +0.05、失衡值累積 ×1.15、衰減 ×0.85、出招預兆 +0.15（貓掌第一下 +0.2）、龍捲風速度 ×0.9、雙重衝擊波間隔 +0.1；開發者模式預設關、設定頁沒有開關，選單裡輸入 ↑↑↓↓←←→→ A B（鍵盤或手把）後出現開關與提示、重試後還在；player 編譯（有 `BOSSFIGHT_DEV_TOOLS`）包含 Debug 程式 |
-| T16 | 戰敗畫面（alpha 1.0.0 回饋） | F7 讓玩家倒下：中央大字「菜」剛出現白色、逐漸轉紅；下面中字「就多練」（白）、小字「真打不過我們選單裡有簡單模式喔 :))」（白，簡單模式不顯示）；沒有「刀盾狗倒下了」；剩餘血量、戰鬥時間、挑戰次數字變小；重試照常；F6 勝利畫面版面不變 |
+| T16 | 戰敗畫面（alpha 1.0.0 回饋） | F7 讓玩家倒下：中央大字「菜」剛出現白色、逐漸轉紅；下面中字「就多練」（白，跟「菜」拉開不貼著）；剩餘血量、戰鬥時間、挑戰次數橫排成一行小字；按鈕下「Enter 確認」提示下面是灰色小字「真打不過我們選單裡有簡單模式喔 :))」（簡單模式不顯示）；沒有「刀盾狗倒下了」；重試照常；F6 勝利畫面版面不變 |
 
 
 ## Skill 使用規則

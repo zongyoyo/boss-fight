@@ -86,8 +86,10 @@ namespace BossFight.UI
         public string defeatTitle = "菜";
         [Tooltip("大字下面的中字")]
         public string defeatSubtitle = "就多練";
-        [Tooltip("中字下面的小字；簡單模式戰敗時不顯示")]
+        [Tooltip("按鈕提示下面的小字；簡單模式戰敗時不顯示")]
         public string defeatHint = "真打不過我們選單裡有簡單模式喔 :))";
+        [Tooltip("戰敗的剩餘血量、戰鬥時間、挑戰次數排成一行，中間用這個隔開")]
+        public string defeatStatsSeparator = "　　";
         public string victoryButton = "再挑戰";
         public string defeatButton = "重試";
         [Tooltip("按鈕下面的提示（用鍵鼠時）")]
@@ -99,8 +101,10 @@ namespace BossFight.UI
         public Color defeatTitleStartColor = Color.white;
         [Tooltip("戰敗大字最後變成的顏色")]
         public Color defeatColor = new Color(0.9f, 0.12f, 0.1f);
-        [Tooltip("戰敗中字、小字與戰鬥資訊的顏色")]
+        [Tooltip("戰敗中字與戰鬥資訊的顏色")]
         public Color defeatTextColor = Color.white;
+        [Tooltip("戰敗按鈕提示下面那行小字的顏色")]
+        public Color defeatHintColor = new Color(0.6f, 0.6f, 0.6f, 1f);
 
         [Header("戰敗畫面（真實時間）")]
         [Tooltip("畫面出現後大字維持白色多久才開始轉紅（秒）")]
@@ -111,9 +115,17 @@ namespace BossFight.UI
         [Min(1)] public int defeatTitleSize = 280;
         [Tooltip("中字的字級")]
         [Min(1)] public int defeatSubtitleSize = 64;
-        [Tooltip("小字的字級")]
-        [Min(1)] public int defeatHintSize = 30;
-        [Tooltip("剩餘血量、戰鬥時間、挑戰次數的字級")]
-        [Min(1)] public int defeatStatsSize = 26;
+        [Tooltip("按鈕提示下面那行小字的字級")]
+        [Min(1)] public int defeatHintSize = 22;
+        [Tooltip("剩餘血量、戰鬥時間、挑戰次數（一行）的字級")]
+        [Min(1)] public int defeatStatsSize = 22;
+        [Tooltip("大字中心的高度（Canvas 單位，畫面中心 = 0、往上為正；參考解析度 1920×1080）")]
+        public float defeatTitleY = 290f;
+        [Tooltip("中字中心的高度（同上）；跟大字拉開，不要貼著")]
+        public float defeatSubtitleY = 70f;
+        [Tooltip("戰鬥資訊那一行的高度（同上）")]
+        public float defeatStatsY = -20f;
+        [Tooltip("小字的高度（同上）：按鈕在 -170、按鈕提示在 -240，放在提示下面")]
+        public float defeatHintY = -282f;
     }
 }

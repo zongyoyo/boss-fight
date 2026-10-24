@@ -359,18 +359,17 @@ namespace BossFight.EditorTools
             Place(stats.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, -10f), new Vector2(1000f, 160f));
             stats.lineSpacing = 1.2f;
 
-            // 戰敗：大字「菜」、中字、小字、較小的戰鬥資訊（字級與顏色執行時由 BattleResultUI 照 BattleUIData 套用）
+            // 戰敗：大字「菜」、中字、一行戰鬥資訊，按鈕提示下面一行灰色小字（字級、顏色、高度執行時由 BattleResultUI 照 BattleUIData 再套用一次）
             var defeat = Node("Defeat", result);
             IntroCutsceneBuilder.Stretch(defeat);
             var defeatTitle = Label("Title", defeat, data.defeatTitle, data.defeatTitleSize, FontStyle.Bold, data.defeatTitleStartColor, TextAnchor.MiddleCenter);
-            Place(defeatTitle.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, 250f), new Vector2(1400f, 320f));
+            Place(defeatTitle.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, data.defeatTitleY), new Vector2(1400f, 320f));
             var defeatSubtitle = Label("Subtitle", defeat, data.defeatSubtitle, data.defeatSubtitleSize, FontStyle.Bold, data.defeatTextColor, TextAnchor.MiddleCenter);
-            Place(defeatSubtitle.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, 80f), new Vector2(1400f, 90f));
-            var defeatHint = Label("Hint", defeat, data.defeatHint, data.defeatHintSize, FontStyle.Normal, data.defeatTextColor, TextAnchor.MiddleCenter);
-            Place(defeatHint.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, 22f), new Vector2(1400f, 44f));
+            Place(defeatSubtitle.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, data.defeatSubtitleY), new Vector2(1400f, 90f));
             var defeatStats = Label("Stats", defeat, "", data.defeatStatsSize, FontStyle.Normal, data.defeatTextColor, TextAnchor.MiddleCenter);
-            Place(defeatStats.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, -62f), new Vector2(1000f, 100f));
-            defeatStats.lineSpacing = 1.2f;
+            Place(defeatStats.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, data.defeatStatsY), new Vector2(1400f, 40f));
+            var defeatHint = Label("Hint", defeat, data.defeatHint, data.defeatHintSize, FontStyle.Normal, data.defeatHintColor, TextAnchor.MiddleCenter);
+            Place(defeatHint.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, data.defeatHintY), new Vector2(1400f, 36f));
 
             var buttonImage = Img("RetryButton", result, roundSprite, Color.white);
             buttonImage.type = Image.Type.Sliced;
