@@ -82,8 +82,12 @@ namespace BossFight.UI
         public string victoryTitle = "勝利";
         [Tooltip("{0} = Boss 名稱")]
         public string victorySubtitle = "{0} 討伐成功";
-        public string defeatTitle = "落敗";
-        public string defeatSubtitle = "刀盾狗倒下了";
+        [Tooltip("戰敗畫面中央的大字")]
+        public string defeatTitle = "菜";
+        [Tooltip("大字下面的中字")]
+        public string defeatSubtitle = "就多練";
+        [Tooltip("中字下面的小字；簡單模式戰敗時不顯示")]
+        public string defeatHint = "真打不過我們選單裡有簡單模式喔 :))";
         public string victoryButton = "再挑戰";
         public string defeatButton = "重試";
         [Tooltip("按鈕下面的提示（用鍵鼠時）")]
@@ -91,6 +95,25 @@ namespace BossFight.UI
         [Tooltip("按鈕下面的提示（用手把時）")]
         public string buttonHintGamepad = "A 確認";
         public Color victoryColor = new Color(1f, 0.85f, 0.4f);
-        public Color defeatColor = new Color(0.85f, 0.25f, 0.25f);
+        [Tooltip("戰敗大字剛出現的顏色")]
+        public Color defeatTitleStartColor = Color.white;
+        [Tooltip("戰敗大字最後變成的顏色")]
+        public Color defeatColor = new Color(0.9f, 0.12f, 0.1f);
+        [Tooltip("戰敗中字、小字與戰鬥資訊的顏色")]
+        public Color defeatTextColor = Color.white;
+
+        [Header("戰敗畫面（真實時間）")]
+        [Tooltip("畫面出現後大字維持白色多久才開始轉紅（秒）")]
+        [Min(0f)] public float defeatColorDelay = 0.6f;
+        [Tooltip("大字從白色轉成紅色的時間（秒）")]
+        [Min(0.01f)] public float defeatColorTime = 2f;
+        [Tooltip("大字的字級")]
+        [Min(1)] public int defeatTitleSize = 280;
+        [Tooltip("中字的字級")]
+        [Min(1)] public int defeatSubtitleSize = 64;
+        [Tooltip("小字的字級")]
+        [Min(1)] public int defeatHintSize = 30;
+        [Tooltip("剩餘血量、戰鬥時間、挑戰次數的字級")]
+        [Min(1)] public int defeatStatsSize = 26;
     }
 }

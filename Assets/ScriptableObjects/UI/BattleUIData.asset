@@ -48,11 +48,21 @@ MonoBehaviour:
   stunnedLabel: "\u982D\u6688\u4E2D\uFF01\u9760\u8FD1\u6309 {0} \u8655\u6C7A"
   victoryTitle: "\u52DD\u5229"
   victorySubtitle: "{0} \u8A0E\u4F10\u6210\u529F"
-  defeatTitle: "\u843D\u6557"
-  defeatSubtitle: "\u5200\u76FE\u72D7\u5012\u4E0B\u4E86"
+  defeatTitle: "\u83DC"
+  defeatSubtitle: "\u5C31\u591A\u7DF4"
+  defeatHint: "\u771F\u6253\u4E0D\u904E\u6211\u5011\u9078\u55AE\u88E1\u6709\u7C21\u55AE\u6A21\u5F0F\u5594
+    :))"
   victoryButton: "\u518D\u6311\u6230"
   defeatButton: "\u91CD\u8A66"
   buttonHintKeyboard: "Enter \u78BA\u8A8D"
   buttonHintGamepad: "A \u78BA\u8A8D"
   victoryColor: {r: 1, g: 0.85, b: 0.4, a: 1}
-  defeatColor: {r: 0.85, g: 0.25, b: 0.25, a: 1}
+  defeatTitleStartColor: {r: 1, g: 1, b: 1, a: 1}
+  defeatColor: {r: 0.9, g: 0.12, b: 0.1, a: 1}
+  defeatTextColor: {r: 1, g: 1, b: 1, a: 1}
+  defeatColorDelay: 0.6
+  defeatColorTime: 2
+  defeatTitleSize: 280
+  defeatSubtitleSize: 64
+  defeatHintSize: 30
+  defeatStatsSize: 26

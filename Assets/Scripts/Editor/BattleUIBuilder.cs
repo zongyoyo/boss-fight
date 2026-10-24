@@ -348,13 +348,29 @@ namespace BossFight.EditorTools
             IntroCutsceneBuilder.Stretch(dim.rectTransform);
             dim.raycastTarget = true; // 擋住後面
 
-            var title = Label("Title", result, data.victoryTitle, 150, FontStyle.Bold, data.victoryColor, TextAnchor.MiddleCenter);
+            // 勝利：標題、副標、戰鬥資訊
+            var victory = Node("Victory", result);
+            IntroCutsceneBuilder.Stretch(victory);
+            var title = Label("Title", victory, data.victoryTitle, 150, FontStyle.Bold, data.victoryColor, TextAnchor.MiddleCenter);
             Place(title.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, 250f), new Vector2(1400f, 190f));
-            var subtitle = Label("Subtitle", result, "", 54, FontStyle.Bold, new Color(1f, 0.93f, 0.85f), TextAnchor.MiddleCenter);
+            var subtitle = Label("Subtitle", victory, "", 54, FontStyle.Bold, new Color(1f, 0.93f, 0.85f), TextAnchor.MiddleCenter);
             Place(subtitle.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, 120f), new Vector2(1400f, 80f));
-            var stats = Label("Stats", result, "", 38, FontStyle.Normal, Color.white, TextAnchor.MiddleCenter);
+            var stats = Label("Stats", victory, "", 38, FontStyle.Normal, Color.white, TextAnchor.MiddleCenter);
             Place(stats.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, -10f), new Vector2(1000f, 160f));
             stats.lineSpacing = 1.2f;
+
+            // 戰敗：大字「菜」、中字、小字、較小的戰鬥資訊（字級與顏色執行時由 BattleResultUI 照 BattleUIData 套用）
+            var defeat = Node("Defeat", result);
+            IntroCutsceneBuilder.Stretch(defeat);
+            var defeatTitle = Label("Title", defeat, data.defeatTitle, data.defeatTitleSize, FontStyle.Bold, data.defeatTitleStartColor, TextAnchor.MiddleCenter);
+            Place(defeatTitle.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, 250f), new Vector2(1400f, 320f));
+            var defeatSubtitle = Label("Subtitle", defeat, data.defeatSubtitle, data.defeatSubtitleSize, FontStyle.Bold, data.defeatTextColor, TextAnchor.MiddleCenter);
+            Place(defeatSubtitle.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, 80f), new Vector2(1400f, 90f));
+            var defeatHint = Label("Hint", defeat, data.defeatHint, data.defeatHintSize, FontStyle.Normal, data.defeatTextColor, TextAnchor.MiddleCenter);
+            Place(defeatHint.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, 22f), new Vector2(1400f, 44f));
+            var defeatStats = Label("Stats", defeat, "", data.defeatStatsSize, FontStyle.Normal, data.defeatTextColor, TextAnchor.MiddleCenter);
+            Place(defeatStats.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, -62f), new Vector2(1000f, 100f));
+            defeatStats.lineSpacing = 1.2f;
 
             var buttonImage = Img("RetryButton", result, roundSprite, Color.white);
             buttonImage.type = Image.Type.Sliced;
@@ -382,6 +398,12 @@ namespace BossFight.EditorTools
             so.FindProperty("titleText").objectReferenceValue = title;
             so.FindProperty("subtitleText").objectReferenceValue = subtitle;
             so.FindProperty("statsText").objectReferenceValue = stats;
+            so.FindProperty("victoryGroup").objectReferenceValue = victory.gameObject;
+            so.FindProperty("defeatGroup").objectReferenceValue = defeat.gameObject;
+            so.FindProperty("defeatTitleText").objectReferenceValue = defeatTitle;
+            so.FindProperty("defeatSubtitleText").objectReferenceValue = defeatSubtitle;
+            so.FindProperty("defeatHintText").objectReferenceValue = defeatHint;
+            so.FindProperty("defeatStatsText").objectReferenceValue = defeatStats;
             so.FindProperty("retryButton").objectReferenceValue = button;
             so.FindProperty("retryLabel").objectReferenceValue = label;
             so.FindProperty("hintText").objectReferenceValue = hint;
