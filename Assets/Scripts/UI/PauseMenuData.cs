@@ -133,15 +133,6 @@ namespace BossFight.UI
         public string easyLabel = "簡單";
         [Tooltip("目前難度的按鈕；{0} = hardLabel／easyLabel")]
         public string currentDifficultyFormat = "{0}（目前）";
-        [Tooltip("難度頁按鈕下方的說明")]
-        [TextArea(4, 12)]
-        public string difficultyDescription =
-            "困難：原本的難度。\n" +
-            "簡單（相對於困難）：\n" +
-            "翻滾無敵 +0.1 秒　　盾反判定 +0.05 秒\n" +
-            "OIIA 失衡值累積 +15%　　失衡值衰減 −15%\n" +
-            "OIIA 出招預兆 +0.15 秒　　貓掌第一下蓄力 +0.2 秒\n" +
-            "OIIA 龍捲風速度 −10%　　雙重衝擊波間隔 +0.1 秒";
         [Tooltip("選了另一個難度時的確認訊息；{0} = hardLabel／easyLabel")]
         public string difficultyConfirmFormat = "切換為{0}模式？\n切換難度會重新挑戰，這場戰鬥的進度會消失。";
 

@@ -164,23 +164,24 @@ namespace BossFight.EditorTools
             Set(so, "volumeBackButton", MenuButton("Back", volume, data.backLabel, new Vector2(0f, -170f), ButtonSize));
 
             // ---------- 難度 ----------
-            var difficulty = Window("Difficulty", root.transform, new Vector2(900f, 720f), data.difficultyLabel);
+            // 兩排（困難／簡單、返回），間距同按鍵設定頁
+            var difficulty = Window("Difficulty", root.transform, new Vector2(840f, 510f - ButtonGap), data.difficultyLabel);
             so.FindProperty("difficultyPage").objectReferenceValue = difficulty.gameObject;
-            var hard = MenuButton("Hard", difficulty, string.Format(data.currentDifficultyFormat, data.hardLabel), new Vector2(-190f, 180f), new Vector2(340f, 76f));
-            var easy = MenuButton("Easy", difficulty, data.easyLabel, new Vector2(190f, 180f), new Vector2(340f, 76f));
+            float difficultyY = 100f - ButtonGap * 0.5f;
+            var hard = MenuButton("Hard", difficulty, string.Format(data.currentDifficultyFormat, data.hardLabel), new Vector2(-190f, difficultyY), new Vector2(340f, 76f));
+            var easy = MenuButton("Easy", difficulty, data.easyLabel, new Vector2(190f, difficultyY), new Vector2(340f, 76f));
             Set(so, "hardButton", hard);
             so.FindProperty("hardLabel").objectReferenceValue = hard.GetComponentInChildren<Text>();
             Set(so, "easyButton", easy);
             so.FindProperty("easyLabel").objectReferenceValue = easy.GetComponentInChildren<Text>();
-            var description = Label("Description", difficulty, data.difficultyDescription, 28, FontStyle.Normal, data.textColor, TextAnchor.MiddleCenter);
-            Place(description.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, -15f), new Vector2(820f, 260f));
-            description.lineSpacing = 1.25f;
-            Set(so, "difficultyBackButton", MenuButton("Back", difficulty, data.backLabel, new Vector2(0f, -230f), ButtonSize));
+            Set(so, "difficultyBackButton", MenuButton("Back", difficulty, data.backLabel, new Vector2(0f, difficultyY - ButtonGap), ButtonSize));
 
             // ---------- 確認 ----------
-            var confirm = Window("Confirm", root.transform, new Vector2(720f, 440f), "");
+            // 最長的是切換難度（第二行 22 字 × 38 = 836）：面板加寬到放得下一行，超過時在面板內自動換行
+            var confirm = Window("Confirm", root.transform, new Vector2(940f, 440f), "");
             var message = Label("Message", confirm, data.retryConfirm, 38, FontStyle.Normal, data.textColor, TextAnchor.MiddleCenter);
-            Place(message.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, 60f), new Vector2(640f, 180f));
+            Place(message.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, 60f), new Vector2(860f, 180f));
+            message.horizontalOverflow = HorizontalWrapMode.Wrap;
             message.lineSpacing = 1.2f;
             so.FindProperty("confirmPage").objectReferenceValue = confirm.gameObject;
             so.FindProperty("confirmText").objectReferenceValue = message;
