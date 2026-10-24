@@ -359,7 +359,7 @@ namespace BossFight.EditorTools
             Place(stats.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, -10f), new Vector2(1000f, 160f));
             stats.lineSpacing = 1.2f;
 
-            // 戰敗：大字「菜」、中字、一行戰鬥資訊，按鈕提示下面一行灰色小字（字級、顏色、高度執行時由 BattleResultUI 照 BattleUIData 再套用一次）
+            // 戰敗：大字「菜」、中字；按鈕下面一行戰鬥資訊、再下面一行灰色小字（字級、顏色、高度執行時由 BattleResultUI 照 BattleUIData 再套用一次）
             var defeat = Node("Defeat", result);
             IntroCutsceneBuilder.Stretch(defeat);
             var defeatTitle = Label("Title", defeat, data.defeatTitle, data.defeatTitleSize, FontStyle.Bold, data.defeatTitleStartColor, TextAnchor.MiddleCenter);
@@ -385,8 +385,6 @@ namespace BossFight.EditorTools
             button.colors = colors;
             var label = Label("Label", buttonImage.transform, data.defeatButton, 40, FontStyle.Bold, Color.white, TextAnchor.MiddleCenter);
             Stretch(label.rectTransform, Vector2.zero, Vector2.zero);
-            var hint = Label("Hint", result, data.buttonHintKeyboard, 24, FontStyle.Normal, new Color(1f, 1f, 1f, 0.7f), TextAnchor.MiddleCenter);
-            Place(hint.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, -240f), new Vector2(600f, 36f));
 
             var ui = result.gameObject.AddComponent<BattleResultUI>();
             var so = new SerializedObject(ui);
@@ -405,7 +403,6 @@ namespace BossFight.EditorTools
             so.FindProperty("defeatStatsText").objectReferenceValue = defeatStats;
             so.FindProperty("retryButton").objectReferenceValue = button;
             so.FindProperty("retryLabel").objectReferenceValue = label;
-            so.FindProperty("hintText").objectReferenceValue = hint;
             so.FindProperty("eventSystem").objectReferenceValue = eventSystem;
             so.ApplyModifiedPropertiesWithoutUndo();
         }

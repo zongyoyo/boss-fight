@@ -277,8 +277,6 @@ namespace BossFight.EditorTools
                 DaoDunDogBuilder.SetReference(hud, "inputNames", inputNames);
                 DaoDunDogBuilder.SetReference(hud, "hintDevice", hintDevice);
             }
-            foreach (var result in Object.FindObjectsByType<BattleResultUI>(FindObjectsInactive.Include, FindObjectsSortMode.None))
-                DaoDunDogBuilder.SetReference(result, "hintDevice", hintDevice);
             foreach (var skip in Object.FindObjectsByType<SkipPromptUI>(FindObjectsInactive.Include, FindObjectsSortMode.None))
             {
                 var so = new SerializedObject(skip);

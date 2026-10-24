@@ -86,16 +86,12 @@ namespace BossFight.UI
         public string defeatTitle = "菜";
         [Tooltip("大字下面的中字")]
         public string defeatSubtitle = "就多練";
-        [Tooltip("按鈕提示下面的小字；簡單模式戰敗時不顯示")]
+        [Tooltip("戰鬥資訊下面的灰色小字；簡單模式戰敗時不顯示")]
         public string defeatHint = "真打不過我們選單裡有簡單模式喔 :))";
         [Tooltip("戰敗的剩餘血量、戰鬥時間、挑戰次數排成一行，中間用這個隔開")]
         public string defeatStatsSeparator = "　　";
         public string victoryButton = "再挑戰";
         public string defeatButton = "重試";
-        [Tooltip("按鈕下面的提示（用鍵鼠時）")]
-        public string buttonHintKeyboard = "Enter 確認";
-        [Tooltip("按鈕下面的提示（用手把時）")]
-        public string buttonHintGamepad = "A 確認";
         public Color victoryColor = new Color(1f, 0.85f, 0.4f);
         [Tooltip("戰敗大字剛出現的顏色")]
         public Color defeatTitleStartColor = Color.white;
@@ -103,7 +99,7 @@ namespace BossFight.UI
         public Color defeatColor = new Color(0.9f, 0.12f, 0.1f);
         [Tooltip("戰敗中字與戰鬥資訊的顏色")]
         public Color defeatTextColor = Color.white;
-        [Tooltip("戰敗按鈕提示下面那行小字的顏色")]
+        [Tooltip("戰敗畫面最下面那行小字的顏色")]
         public Color defeatHintColor = new Color(0.6f, 0.6f, 0.6f, 1f);
 
         [Header("戰敗畫面（真實時間）")]
@@ -115,17 +111,17 @@ namespace BossFight.UI
         [Min(1)] public int defeatTitleSize = 280;
         [Tooltip("中字的字級")]
         [Min(1)] public int defeatSubtitleSize = 64;
-        [Tooltip("按鈕提示下面那行小字的字級")]
+        [Tooltip("最下面那行小字的字級")]
         [Min(1)] public int defeatHintSize = 22;
         [Tooltip("剩餘血量、戰鬥時間、挑戰次數（一行）的字級")]
         [Min(1)] public int defeatStatsSize = 22;
-        [Tooltip("大字中心的高度（Canvas 單位，畫面中心 = 0、往上為正；參考解析度 1920×1080）")]
-        public float defeatTitleY = 290f;
-        [Tooltip("中字中心的高度（同上）；跟大字拉開，不要貼著")]
-        public float defeatSubtitleY = 70f;
-        [Tooltip("戰鬥資訊那一行的高度（同上）")]
-        public float defeatStatsY = -20f;
-        [Tooltip("小字的高度（同上）：按鈕在 -170、按鈕提示在 -240，放在提示下面")]
-        public float defeatHintY = -282f;
+        [Tooltip("大字中心的高度（Canvas 單位，畫面中心 = 0、往上為正；參考解析度 1920×1080）；跟中字一起調，保持兩段間距相等")]
+        public float defeatTitleY = 176f;
+        [Tooltip("中字中心的高度（同上）：「菜」下緣到中字上緣、中字下緣到重試按鈕上緣（-128）兩段間距要相等")]
+        public float defeatSubtitleY = -44f;
+        [Tooltip("戰鬥資訊那一行的高度（同上）：重試按鈕在 -170（高 84），放在按鈕下面")]
+        public float defeatStatsY = -240f;
+        [Tooltip("最下面那行小字的高度（同上），接在戰鬥資訊下面")]
+        public float defeatHintY = -274f;
     }
 }

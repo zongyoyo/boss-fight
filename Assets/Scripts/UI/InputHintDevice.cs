@@ -7,7 +7,7 @@ namespace BossFight.UI
 {
     /// <summary>
     /// 判斷按鍵提示要顯示鍵鼠還是手把的鍵：最後一次輸入是鍵盤按鍵、滑鼠按鍵或移動滑鼠 → 鍵鼠；手把任一鍵或推搖桿 → 手把。啟動時是鍵鼠。
-    /// 放在 GameOptions 物件上；處決、啃骨頭、跳過、選單返回、勝敗畫面的提示在 Inspector 引用這裡，訂閱 OnDeviceChanged 換字。
+    /// 放在 GameOptions 物件上；處決、啃骨頭、跳過、選單返回的提示在 Inspector 引用這裡，訂閱 OnDeviceChanged 換字。
     /// Start 時送一次初始值；改鍵（InputSystem 的綁定改變）後也會再送一次同樣的值，讓提示重讀目前的鍵。時間用真實時間，暫停中照常判斷。
     /// 這裡的數字全是輸入偵測的門檻，不是玩法數值。
     /// </summary>

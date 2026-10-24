@@ -55,8 +55,6 @@ MonoBehaviour:
   defeatStatsSeparator: "\u3000\u3000"
   victoryButton: "\u518D\u6311\u6230"
   defeatButton: "\u91CD\u8A66"
-  buttonHintKeyboard: "Enter \u78BA\u8A8D"
-  buttonHintGamepad: "A \u78BA\u8A8D"
   victoryColor: {r: 1, g: 0.85, b: 0.4, a: 1}
   defeatTitleStartColor: {r: 1, g: 1, b: 1, a: 1}
   defeatColor: {r: 0.9, g: 0.12, b: 0.1, a: 1}
@@ -68,7 +66,7 @@ MonoBehaviour:
   defeatSubtitleSize: 64
   defeatHintSize: 22
   defeatStatsSize: 22
-  defeatTitleY: 290
-  defeatSubtitleY: 70
-  defeatStatsY: -20
-  defeatHintY: -282
+  defeatTitleY: 176
+  defeatSubtitleY: -44
+  defeatStatsY: -240
+  defeatHintY: -274

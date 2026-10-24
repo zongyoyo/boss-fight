@@ -10,11 +10,11 @@ namespace BossFight.UI
     /// <summary>
     /// 勝利與失敗畫面。只訂閱 BattleManager.OnBattleResult：暗幕淡入，顯示勝利或戰敗那一組文字（各自一個父物件，只開一組）與共用的按鈕。
     /// 勝利：標題、副標、通關時間、第幾次挑戰，按鈕「再挑戰」。
-    /// 戰敗：中央大字「菜」（defeatColorDelay 秒後花 defeatColorTime 秒從白色轉紅）、中字「就多練」、一行小字的 Boss 剩餘血量／戰鬥時間／第幾次挑戰，
-    /// 按鈕「重試」；按鈕提示下面是灰色小字「選單裡有簡單模式」（簡單模式戰敗時不顯示，看 BattleResult.difficulty）。
+    /// 戰敗：中央大字「菜」（defeatColorDelay 秒後花 defeatColorTime 秒從白色轉紅）、中字「就多練」、按鈕「重試」，
+    /// 按鈕下面是一行小字的 Boss 剩餘血量／戰鬥時間／第幾次挑戰，再下面是灰色小字「選單裡有簡單模式」（簡單模式戰敗時不顯示，看 BattleResult.difficulty）。
     /// 戰敗的文字、顏色、字級、高度都讀 BattleUIData（Awake 時套用，改資產不用重建）。
     /// 按鈕呼叫 BattleManager.Retry（重新載入場景，之後開場可以長按跳過）；出現時把按鈕設為選取，Enter／手把 A 也能按。
-    /// Boss 名稱來自開場字卡（CutsceneDirector.OnTitleCard），沒有時用 BattleUIData.fallbackBossName。按鈕下面的提示跟著目前裝置（InputHintDevice）換鍵鼠或手把的字。
+    /// Boss 名稱來自開場字卡（CutsceneDirector.OnTitleCard），沒有時用 BattleUIData.fallbackBossName。按鈕下面不放按鍵提示（勝敗都一樣）。
     /// </summary>
     [DisallowMultipleComponent]
     public class BattleResultUI : MonoBehaviour
@@ -37,18 +37,15 @@ namespace BossFight.UI
         [SerializeField] Text defeatTitleText;
         [Tooltip("大字下面的中字")]
         [SerializeField] Text defeatSubtitleText;
-        [Tooltip("中字下面的小字（簡單模式提示）")]
+        [Tooltip("戰鬥資訊下面的灰色小字（簡單模式提示）")]
         [SerializeField] Text defeatHintText;
-        [Tooltip("Boss 剩餘血量、戰鬥時間、挑戰次數")]
+        [Tooltip("按鈕下面一行的 Boss 剩餘血量、戰鬥時間、挑戰次數")]
         [SerializeField] Text defeatStatsText;
         [Header("按鈕")]
         [SerializeField] Button retryButton;
         [SerializeField] Text retryLabel;
-        [SerializeField] Text hintText;
         [Tooltip("出現時把按鈕設為選取（Enter／手把 A 可以按）")]
         [SerializeField] EventSystem eventSystem;
-        [Tooltip("目前用鍵鼠還是手把（按鈕下面的提示）；留空時一律鍵鼠")]
-        [SerializeField] InputHintDevice hintDevice;
 
         string bossName;
         float shownAt = -1f;
@@ -60,7 +57,6 @@ namespace BossFight.UI
             group.alpha = 0f;
             group.interactable = false;
             group.blocksRaycasts = false;
-            hintText.text = data.buttonHintKeyboard;
             if (victoryGroup != null) victoryGroup.SetActive(false);
             if (defeatGroup != null) defeatGroup.SetActive(false);
             SetupText(defeatTitleText, data.defeatTitle, data.defeatTitleSize, data.defeatTitleStartColor, data.defeatTitleY);
@@ -84,7 +80,6 @@ namespace BossFight.UI
             if (battle != null) battle.OnBattleResult += Show;
             if (intro != null) intro.OnTitleCard += HandleTitleCard;
             retryButton.onClick.AddListener(Retry);
-            if (hintDevice != null) hintDevice.OnDeviceChanged += HandleDeviceChanged;
         }
 
         void OnDisable()
@@ -92,10 +87,7 @@ namespace BossFight.UI
             if (battle != null) battle.OnBattleResult -= Show;
             if (intro != null) intro.OnTitleCard -= HandleTitleCard;
             retryButton.onClick.RemoveListener(Retry);
-            if (hintDevice != null) hintDevice.OnDeviceChanged -= HandleDeviceChanged;
         }
-
-        void HandleDeviceChanged(bool gamepad) => hintText.text = gamepad ? data.buttonHintGamepad : data.buttonHintKeyboard;
 
         void HandleTitleCard(TitleCardInfo info)
         {
