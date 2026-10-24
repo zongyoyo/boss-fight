@@ -1,0 +1,103 @@
+using BossFight.Player;
+using BossFight.Progression;
+using UnityEditor;
+using UnityEngine;
+
+namespace BossFight.EditorTools
+{
+    /// <summary>
+    /// Tools > Progression > Build Game Database：建立角色與數值管線的資產（T19），可重複執行。
+    /// 1. 刀盾狗的基礎數值：T18 以前的 ScriptableObjects/Player/PlayerStats.asset 用 AssetDatabase.MoveAsset 搬成
+    ///    ScriptableObjects/Progression/Characters/DaoDunDogStats.asset（GUID 不變，prefab 與鏡頭的引用不會斷）。
+    /// 2. 資產（沒有才建，已存在的只補空欄位）：Characters/DaoDunDog.asset（CharacterDefinition）、CharacterRoster.asset、GameDatabase.asset。
+    /// 3. 檢查 id（GameDatabaseValidator），再接好目前場景的 PlayerSpawner（PlayerSpawnerBuilder.Wire 會接 GameDatabase）。
+    /// PlayerSpawnerBuilder 找不到 GameDatabase 時也會呼叫 EnsureAssets。
+    /// </summary>
+    public static class ProgressionBuilder
+    {
+        const string Root = "Assets/ScriptableObjects/Progression";
+        const string CharactersDir = Root + "/Characters";
+        public const string DatabasePath = Root + "/GameDatabase.asset";
+        public const string RosterPath = Root + "/CharacterRoster.asset";
+        public const string DaoDunDogPath = CharactersDir + "/DaoDunDog.asset";
+        public const string DaoDunDogStatsPath = CharactersDir + "/DaoDunDogStats.asset";
+        const string LegacyStatsPath = "Assets/ScriptableObjects/Player/PlayerStats.asset"; // T18 以前的位置
+
+        [MenuItem("Tools/Progression/Build Game Database")]
+        public static void BuildFromMenu()
+        {
+            var database = EnsureAssets();
+            GameDatabaseValidator.Validate(database, true);
+            PlayerSpawnerBuilder.Wire();
+            Selection.activeObject = database;
+        }
+
+        /// <summary>目前的 GameDatabase（沒有時 null）。</summary>
+        public static GameDatabase LoadDatabase() => AssetDatabase.LoadAssetAtPath<GameDatabase>(DatabasePath);
+
+        /// <summary>刀盾狗的基礎數值（沒有時 null）。</summary>
+        public static PlayerStats LoadDaoDunDogStats()
+        {
+            MoveLegacyStats();
+            return AssetDatabase.LoadAssetAtPath<PlayerStats>(DaoDunDogStatsPath);
+        }
+
+        /// <summary>建立（或補齊）刀盾狗定義、名冊與 GameDatabase；回傳 GameDatabase。</summary>
+        public static GameDatabase EnsureAssets()
+        {
+            DaoDunDogBuilder.EnsureFolder(CharactersDir);
+            var stats = LoadDaoDunDogStats();
+            if (stats == null)
+            {
+                stats = ScriptableObject.CreateInstance<PlayerStats>();
+                AssetDatabase.CreateAsset(stats, DaoDunDogStatsPath);
+                Debug.LogWarning($"[Progression] 找不到刀盾狗的數值，已用預設值建立 {DaoDunDogStatsPath}。");
+            }
+
+            var dog = LoadOrCreate<CharacterDefinition>(DaoDunDogPath);
+            if (string.IsNullOrEmpty(dog.id)) dog.id = "daodun_dog";
+            if (string.IsNullOrEmpty(dog.displayName)) dog.displayName = "刀盾狗";
+            if (dog.prefab == null) dog.prefab = AssetDatabase.LoadAssetAtPath<PlayerRig>(DaoDunDogBuilder.PrefabPath);
+            if (dog.baseStats == null) dog.baseStats = stats;
+            EditorUtility.SetDirty(dog);
+            if (dog.prefab == null) Debug.LogWarning($"[Progression] {DaoDunDogPath} 沒有 prefab：請先跑 Tools > Player > Build DaoDun Dog，再跑一次 Build Game Database。");
+
+            var roster = LoadOrCreate<CharacterRoster>(RosterPath);
+            if (!roster.characters.Contains(dog)) roster.characters.Insert(0, dog);
+            EditorUtility.SetDirty(roster);
+
+            var database = LoadOrCreate<GameDatabase>(DatabasePath);
+            if (database.characters == null) database.characters = roster;
+            EditorUtility.SetDirty(database);
+
+            AssetDatabase.SaveAssets();
+            return database;
+        }
+
+        static void MoveLegacyStats()
+        {
+            if (AssetDatabase.LoadAssetAtPath<PlayerStats>(LegacyStatsPath) == null || AssetDatabase.LoadAssetAtPath<PlayerStats>(DaoDunDogStatsPath) != null) return;
+            DaoDunDogBuilder.EnsureFolder(CharactersDir);
+            string error = AssetDatabase.MoveAsset(LegacyStatsPath, DaoDunDogStatsPath);
+            if (!string.IsNullOrEmpty(error))
+            {
+                Debug.LogError($"[Progression] 搬移 {LegacyStatsPath} 失敗：{error}");
+                return;
+            }
+            Debug.Log($"[Progression] 刀盾狗的數值已搬到 {DaoDunDogStatsPath}（GUID 不變）。");
+            string legacyDir = LegacyStatsPath.Substring(0, LegacyStatsPath.LastIndexOf('/'));
+            if (AssetDatabase.IsValidFolder(legacyDir) && AssetDatabase.FindAssets("", new[] { legacyDir }).Length == 0)
+                AssetDatabase.DeleteAsset(legacyDir);
+        }
+
+        static T LoadOrCreate<T>(string path) where T : ScriptableObject
+        {
+            var asset = AssetDatabase.LoadAssetAtPath<T>(path);
+            if (asset != null) return asset;
+            asset = ScriptableObject.CreateInstance<T>();
+            AssetDatabase.CreateAsset(asset, path);
+            Debug.Log($"[Progression] 已建立 {path}");
+            return asset;
+        }
+    }
+}

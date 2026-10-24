@@ -1011,7 +1011,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9699d9fbcdf82764fbe8737471b3f4d6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Progression.PlayerSpawner
-  characterPrefab: {fileID: 4060941524532905949, guid: ba4551dbd87fc6645aa6a8c52c387733, type: 3}
+  database: {fileID: 11400000, guid: 341e11e21653ff648b3a23c8d7586806, type: 2}
   previewCharacter: {fileID: 922705458}
   spawnPoints:
   - id: Start

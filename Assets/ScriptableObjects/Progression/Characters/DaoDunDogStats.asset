@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 554b62e949510da4f981af473eb070e7, type: 3}
-  m_Name: PlayerStats
+  m_Name: DaoDunDogStats
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Player.PlayerStats
   moveSpeed: 5
   acceleration: 40

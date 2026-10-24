@@ -6,7 +6,7 @@ using UnityEngine;
 namespace BossFight.DebugTools
 {
     /// <summary>
-    /// 左上角的玩家狀態，方便驗收 T1、T2：血量、骨頭、耐力與回復速度、水平速度、目前動作（含舉盾秒數、蓄力進度、受擊無敵）、
+    /// 左上角的玩家狀態，方便驗收 T1、T2：血量、骨頭、耐力與回復速度、水平速度與跑速設定值（T19：含數值修正）、目前動作（含舉盾秒數、蓄力進度、受擊無敵）、
     /// 上一次翻滾的距離、時間與無敵時間、上一次受擊的結果（命中時已經舉盾幾秒）、上一次出手打到誰、鎖定目標與和 Boss 的水平距離，
     /// 範圍內有可以處決的目標時提示「按 F 處決」。
     /// 血量、耐力、骨頭、受擊、出手、鎖定、翻滾訂閱事件；速度、動作與無敵每幀讀 PlayerController／PlayerHealth。
@@ -249,7 +249,7 @@ namespace BossFight.DebugTools
             GUILayout.BeginArea(new Rect(10f, 10f, 620f, 330f), GUI.skin.box);
             GUILayout.Label($"血量  {healthCurrent:0.0} / {healthMax:0}　骨頭 {bonesLeft} / {bonesMax}（下一根 {boneProgress:P0}）", style);
             GUILayout.Label($"耐力  {staminaCurrent:0.0} / {staminaMax:0}　（回復 {regenRate:0.0}/s{(regenBoosted ? "，舉盾加速" : "")}）", style);
-            GUILayout.Label($"水平速度  {player.PlanarSpeed:0.00} m/s", style);
+            GUILayout.Label($"水平速度  {player.PlanarSpeed:0.00} m/s（跑速 {player.MoveSpeed:0.00}）", style);
             GUILayout.Label($"狀態  {StateText()}", style);
             GUILayout.Label($"上次受擊  {lastDamageText}", style);
             GUILayout.Label($"　命中 {hitCount}　格擋 {blockCount}　盾反 {parryCount}　破防 {guardBreakCount}　閃過 {evadeCount}", style);

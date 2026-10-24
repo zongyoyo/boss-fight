@@ -26,7 +26,7 @@ namespace BossFight.EditorTools
         const string PrefabDir = "Assets/Prefabs/Characters";
         public const string PrefabPath = PrefabDir + "/DaoDunDog.prefab";
         const string LegacyPrefabPath = "Assets/Prefabs/DaoDunDog.prefab"; // T17 以前的位置
-        const string StatsPath = "Assets/ScriptableObjects/Player/PlayerStats.asset";
+        const string StatsPath = ProgressionBuilder.DaoDunDogStatsPath; // T19 起由 ProgressionBuilder 管（T18 以前在 ScriptableObjects/Player）
         internal const string HurtboxLayer = "Hurtbox";
 
         static readonly Color BoneColor = new Color(0.96f, 0.93f, 0.84f);
@@ -173,7 +173,7 @@ namespace BossFight.EditorTools
         static void EnsureCombatParts(GameObject root, Material boneMat)
         {
             ConfigureGrounding(root.GetComponent<CharacterController>());
-            var stats = AssetDatabase.LoadAssetAtPath<PlayerStats>(StatsPath);
+            var stats = ProgressionBuilder.LoadDaoDunDogStats();
             var health = GetOrAdd<PlayerHealth>(root);
             var attack = GetOrAdd<PlayerAttack>(root);
             GetOrAdd<HitStop>(root);
@@ -255,7 +255,7 @@ namespace BossFight.EditorTools
             cc.skinWidth = 0.04f;
             ConfigureGrounding(cc);
             var pc = root.AddComponent<PlayerController>(); // RequireComponent 會一起加上 PlayerStamina、PlayerHealth、PlayerAttack
-            var stats = AssetDatabase.LoadAssetAtPath<PlayerStats>(StatsPath);
+            var stats = ProgressionBuilder.LoadDaoDunDogStats();
             if (stats == null) Debug.LogWarning($"[Player] 找不到 {StatsPath}，PlayerController 與 PlayerStamina 的 stats 要手動指定。");
             SetReference(pc, "stats", stats);
             SetReference(root.GetComponent<PlayerStamina>(), "stats", stats);

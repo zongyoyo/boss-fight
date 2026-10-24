@@ -13,6 +13,7 @@ namespace BossFight.EditorTools
     /// <summary>
     /// 場景裡的 PlayerSpawner（T18）：Build 在出生位置建立 spawner（刪掉舊的 spawner 與場景裡舊的玩家實例），底下放 EditorOnly 的預覽模型
     /// （角色 prefab 的實例，編輯模式給 Timeline 綁軌道、預覽鏡頭用；進 Play 時 spawner 關掉它，正式 build 不會有）。
+    /// 生成哪個角色由 GameDatabase（ProgressionBuilder 建立）與存檔決定，預覽模型是名冊的預設角色。
     /// Wire 自動收集場景裡的接收者（所有實作 IPlayerBinding 的元件）、Main Camera、LockOnTarget、ExecutionTarget、AudioManager 與 BossController 接到 spawner，可重複執行；
     /// 重建會動到這些物件的 Builder（鏡頭、Boss、開場、轉階段、戰鬥 UI、平衡面板、ESC 選單、打擊回饋、木樁）結束時都會呼叫。
     /// 選單 Tools > Player > Wire Player Spawner 可以單獨跑。
@@ -47,10 +48,13 @@ namespace BossFight.EditorTools
         /// </summary>
         public static PlayerSpawner Build(Vector3 position, Quaternion rotation, params (string id, Transform point)[] spawnPoints)
         {
-            var prefab = AssetDatabase.LoadAssetAtPath<PlayerRig>(DaoDunDogBuilder.PrefabPath);
+            // 預覽模型用名冊的預設角色（T19）；資產還沒建立時順便建立
+            var database = ProgressionBuilder.EnsureAssets();
+            var character = database != null ? database.DefaultCharacter : null;
+            var prefab = character != null ? character.prefab : null;
             if (prefab == null)
             {
-                Debug.LogError($"[PlayerSpawner] 找不到 {DaoDunDogBuilder.PrefabPath}（或它沒有 PlayerRig），請先跑 Tools > Player > Build DaoDun Dog。");
+                Debug.LogError($"[PlayerSpawner] 名冊的預設角色沒有 prefab（{DaoDunDogBuilder.PrefabPath}），請先跑 Tools > Player > Build DaoDun Dog。");
                 return null;
             }
 
@@ -77,7 +81,6 @@ namespace BossFight.EditorTools
             preview.transform.localRotation = Quaternion.identity;
 
             var so = new SerializedObject(spawner);
-            so.FindProperty("characterPrefab").objectReferenceValue = prefab;
             so.FindProperty("previewCharacter").objectReferenceValue = preview;
             so.ApplyModifiedPropertiesWithoutUndo();
             SetSpawnPoints(spawner, spawnPoints != null && spawnPoints.Length > 0 ? spawnPoints : keep ?? new (string, Transform)[0]);
@@ -135,7 +138,11 @@ namespace BossFight.EditorTools
                                .OrderBy(b => b.name).ToList();
             var mainCamera = Camera.main;
 
+            var database = ProgressionBuilder.LoadDatabase();
+            if (database == null) database = ProgressionBuilder.EnsureAssets();
+
             var so = new SerializedObject(spawner);
+            so.FindProperty("database").objectReferenceValue = database;
             so.FindProperty("cameraTransform").objectReferenceValue = mainCamera != null ? mainCamera.transform : null;
             so.FindProperty("audioManager").objectReferenceValue = Object.FindAnyObjectByType<AudioManager>(FindObjectsInactive.Include);
             SetList(so.FindProperty("lockTargets"), lockTargets);

@@ -33,7 +33,8 @@ namespace BossFight.Player
 
     /// <summary>
     /// 刀盾狗的玩法數值（企劃書「玩家角色」一節）。PlayerController、PlayerStamina、PlayerHealth、PlayerAttack、CameraController 都讀這一份。
-    /// 執行期只讀不寫；調平衡改 Assets/ScriptableObjects/Player/PlayerStats.asset。
+    /// 執行期只讀不寫；調平衡改角色的基礎數值（刀盾狗：Assets/ScriptableObjects/Progression/Characters/DaoDunDogStats.asset）。
+    /// T19 起角色身上用的是 PlayerLoadout 依 CharacterDefinition.baseStats 建出的複本（加上裝備、技能的修正）。
     /// </summary>
     [CreateAssetMenu(fileName = "PlayerStats", menuName = "BossFight/Player Stats")]
     public class PlayerStats : ScriptableObject

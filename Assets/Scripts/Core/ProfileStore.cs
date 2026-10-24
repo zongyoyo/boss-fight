@@ -16,6 +16,8 @@ namespace BossFight.Core
         public int version = CurrentVersion;
         [Tooltip("擊敗過的 Boss（id）")]
         public List<string> defeatedBosses = new List<string>();
+        [Tooltip("目前的角色（CharacterDefinition 的 id）；空字串 = 名冊的預設角色")]
+        public string currentCharacter = "";
     }
 
     /// <summary>
@@ -63,6 +65,20 @@ namespace BossFight.Core
             return true;
         }
 
+        // ---------- 角色 ----------
+
+        /// <summary>目前的角色 id；空字串 = 用名冊的預設角色（PlayerSpawner 依它生成）。</summary>
+        public static string CurrentCharacter => Data.currentCharacter ?? string.Empty;
+
+        /// <summary>設定目前的角色並存檔（T21 營火切換角色用）。</summary>
+        public static void SetCurrentCharacter(string id)
+        {
+            id = id ?? string.Empty;
+            if (Data.currentCharacter == id) return;
+            Data.currentCharacter = id;
+            Save();
+        }
+
         // ---------- 整份存檔 ----------
 
         /// <summary>清空存檔（開發者模式的「重置存檔」）並寫檔。</summary>
@@ -105,6 +121,7 @@ namespace BossFight.Core
                 var loaded = JsonUtility.FromJson<ProfileData>(File.ReadAllText(path));
                 if (loaded == null) throw new FormatException("檔案是空的");
                 if (loaded.defeatedBosses == null) loaded.defeatedBosses = new List<string>();
+                if (loaded.currentCharacter == null) loaded.currentCharacter = string.Empty;
                 data = loaded;
             }
             catch (Exception e)

@@ -20,7 +20,7 @@ namespace BossFight.EditorTools
     public static class CameraRigBuilder
     {
         const string RigName = "CameraRig";
-        const string StatsPath = "Assets/ScriptableObjects/Player/PlayerStats.asset";
+        const string StatsPath = ProgressionBuilder.DaoDunDogStatsPath; // T19 起由 ProgressionBuilder 管（T18 以前在 ScriptableObjects/Player）
 
         const float PivotHeight = 1.1f;     // 鏡頭繞著角色這個高度轉
         const float FreeLookRadius = 5.5f;
@@ -50,7 +50,7 @@ namespace BossFight.EditorTools
             Undo.SetCurrentGroupName("Build Camera Rig");
             int undoGroup = Undo.GetCurrentGroup();
 
-            var stats = AssetDatabase.LoadAssetAtPath<PlayerStats>(StatsPath);
+            var stats = ProgressionBuilder.LoadDaoDunDogStats();
             if (stats == null) Debug.LogWarning($"[Camera] 找不到 {StatsPath}，CameraController 的 stats 要手動指定。");
 
             var cam = SetupMainCamera();

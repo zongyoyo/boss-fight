@@ -366,7 +366,7 @@ MonoBehaviour:
     m_Value: -10
   OutputChannel: 1
   StandbyUpdate: 2
-  m_StreamingVersion: 0
+  m_StreamingVersion: 20241001
   m_LegacyPriority: 0
   Target:
     TrackingTarget: {fileID: 0}
@@ -856,7 +856,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9699d9fbcdf82764fbe8737471b3f4d6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Progression.PlayerSpawner
-  characterPrefab: {fileID: 4060941524532905949, guid: ba4551dbd87fc6645aa6a8c52c387733, type: 3}
+  database: {fileID: 11400000, guid: 341e11e21653ff648b3a23c8d7586806, type: 2}
   previewCharacter: {fileID: 909258643}
   spawnPoints: []
   cameraTransform: {fileID: 1411419184}
@@ -1558,7 +1558,7 @@ MonoBehaviour:
     m_FontStyle: 1
     m_BestFit: 0
     m_MinSize: 10
-    m_MaxSize: 40
+    m_MaxSize: 56
     m_Alignment: 4
     m_AlignByGeometry: 0
     m_RichText: 1
@@ -1653,7 +1653,7 @@ MonoBehaviour:
     m_FontStyle: 1
     m_BestFit: 0
     m_MinSize: 10
-    m_MaxSize: 40
+    m_MaxSize: 54
     m_Alignment: 4
     m_AlignByGeometry: 0
     m_RichText: 1
@@ -1770,7 +1770,7 @@ MonoBehaviour:
     m_Value: -10
   OutputChannel: 1
   StandbyUpdate: 2
-  m_StreamingVersion: 0
+  m_StreamingVersion: 20241001
   m_LegacyPriority: 0
   Target:
     TrackingTarget: {fileID: 0}
@@ -2390,7 +2390,7 @@ MonoBehaviour:
     m_Value: -10
   OutputChannel: 1
   StandbyUpdate: 2
-  m_StreamingVersion: 0
+  m_StreamingVersion: 20241001
   m_LegacyPriority: 0
   Target:
     TrackingTarget: {fileID: 0}
@@ -3405,8 +3405,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 170772030}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalRotation: {x: 0.13055645, y: 0.000000043541373, z: -0.000000005733682, w: 0.9914409}
+  m_LocalPosition: {x: -0.0000011638238, y: 2.523505, z: -13.312592}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -3584,7 +3584,7 @@ MonoBehaviour:
     m_Value: 10
   OutputChannel: 1
   StandbyUpdate: 2
-  m_StreamingVersion: 0
+  m_StreamingVersion: 20241001
   m_LegacyPriority: 0
   Target:
     TrackingTarget: {fileID: 909258642}
@@ -4269,7 +4269,7 @@ MonoBehaviour:
     m_Value: -10
   OutputChannel: 1
   StandbyUpdate: 2
-  m_StreamingVersion: 0
+  m_StreamingVersion: 20241001
   m_LegacyPriority: 0
   Target:
     TrackingTarget: {fileID: 0}
@@ -4448,7 +4448,7 @@ MonoBehaviour:
     m_FontStyle: 1
     m_BestFit: 0
     m_MinSize: 10
-    m_MaxSize: 40
+    m_MaxSize: 56
     m_Alignment: 4
     m_AlignByGeometry: 0
     m_RichText: 1
@@ -4758,7 +4758,7 @@ Transform:
   m_GameObject: {fileID: 215217075}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: -0.0000006993822, y: 0, z: -8}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -4953,7 +4953,7 @@ MonoBehaviour:
     m_Value: -10
   OutputChannel: 1
   StandbyUpdate: 2
-  m_StreamingVersion: 0
+  m_StreamingVersion: 20241001
   m_LegacyPriority: 0
   Target:
     TrackingTarget: {fileID: 0}
@@ -5808,7 +5808,7 @@ MonoBehaviour:
     m_FontStyle: 1
     m_BestFit: 0
     m_MinSize: 10
-    m_MaxSize: 40
+    m_MaxSize: 56
     m_Alignment: 4
     m_AlignByGeometry: 0
     m_RichText: 1
@@ -8939,7 +8939,7 @@ MonoBehaviour:
     m_FontStyle: 1
     m_BestFit: 0
     m_MinSize: 10
-    m_MaxSize: 40
+    m_MaxSize: 56
     m_Alignment: 4
     m_AlignByGeometry: 0
     m_RichText: 1
@@ -9288,7 +9288,7 @@ MonoBehaviour:
     m_Value: -10
   OutputChannel: 1
   StandbyUpdate: 2
-  m_StreamingVersion: 0
+  m_StreamingVersion: 20241001
   m_LegacyPriority: 0
   Target:
     TrackingTarget: {fileID: 0}
@@ -11706,7 +11706,7 @@ MonoBehaviour:
     m_Value: 9
   OutputChannel: 1
   StandbyUpdate: 2
-  m_StreamingVersion: 0
+  m_StreamingVersion: 20241001
   m_LegacyPriority: 0
   Target:
     TrackingTarget: {fileID: 909258642}
@@ -12198,6 +12198,8 @@ MonoBehaviour:
   bossHealth: {fileID: 1800870795941640679}
   stagger: {fileID: 1800870795941640682}
   cameraController: {fileID: 1477780914}
+  spawner: {fileID: 21998371}
+  testModifiers: {fileID: 11400000, guid: cbd314306a9ffe34fa29ed73d54fb2a7, type: 2}
   panelVisible: 0
   pauseWhileOpen: 1
   showTimer: 1
@@ -13510,7 +13512,7 @@ MonoBehaviour:
     m_FontStyle: 1
     m_BestFit: 0
     m_MinSize: 10
-    m_MaxSize: 40
+    m_MaxSize: 56
     m_Alignment: 4
     m_AlignByGeometry: 0
     m_RichText: 1
@@ -14214,7 +14216,7 @@ MonoBehaviour:
     m_FontStyle: 1
     m_BestFit: 0
     m_MinSize: 10
-    m_MaxSize: 40
+    m_MaxSize: 140
     m_Alignment: 4
     m_AlignByGeometry: 0
     m_RichText: 1
@@ -15505,7 +15507,7 @@ MonoBehaviour:
     m_FontStyle: 1
     m_BestFit: 0
     m_MinSize: 10
-    m_MaxSize: 40
+    m_MaxSize: 56
     m_Alignment: 4
     m_AlignByGeometry: 0
     m_RichText: 1
@@ -15881,7 +15883,7 @@ MonoBehaviour:
     m_Value: -10
   OutputChannel: 1
   StandbyUpdate: 2
-  m_StreamingVersion: 0
+  m_StreamingVersion: 20241001
   m_LegacyPriority: 0
   Target:
     TrackingTarget: {fileID: 0}
@@ -16049,7 +16051,7 @@ MonoBehaviour:
     m_Value: -10
   OutputChannel: 1
   StandbyUpdate: 2
-  m_StreamingVersion: 0
+  m_StreamingVersion: 20241001
   m_LegacyPriority: 0
   Target:
     TrackingTarget: {fileID: 0}
@@ -16514,7 +16516,7 @@ MonoBehaviour:
     m_FontStyle: 1
     m_BestFit: 0
     m_MinSize: 10
-    m_MaxSize: 40
+    m_MaxSize: 150
     m_Alignment: 4
     m_AlignByGeometry: 0
     m_RichText: 1
@@ -17248,7 +17250,7 @@ MonoBehaviour:
     m_FontStyle: 1
     m_BestFit: 0
     m_MinSize: 10
-    m_MaxSize: 40
+    m_MaxSize: 56
     m_Alignment: 4
     m_AlignByGeometry: 0
     m_RichText: 1
@@ -20797,8 +20799,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1411419181}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.1305262, y: 0.000000043337433, z: -0.0000000057054814, w: 0.9914449}
-  m_LocalPosition: {x: -0.0000011638238, y: 2.523505, z: -13.312592}
+  m_LocalRotation: {x: 0.13055648, y: 0.000000043337266, z: -0.0000000057068057, w: 0.9914409}
+  m_LocalPosition: {x: -0.0000010577281, y: 2.1985917, z: -12.098999}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -21057,7 +21059,7 @@ MonoBehaviour:
     m_Value: -10
   OutputChannel: 1
   StandbyUpdate: 2
-  m_StreamingVersion: 0
+  m_StreamingVersion: 20241001
   m_LegacyPriority: 0
   Target:
     TrackingTarget: {fileID: 0}
@@ -21584,7 +21586,7 @@ MonoBehaviour:
     m_Value: -10
   OutputChannel: 1
   StandbyUpdate: 2
-  m_StreamingVersion: 0
+  m_StreamingVersion: 20241001
   m_LegacyPriority: 0
   Target:
     TrackingTarget: {fileID: 0}
@@ -23342,7 +23344,7 @@ MonoBehaviour:
     m_Value: -10
   OutputChannel: 1
   StandbyUpdate: 2
-  m_StreamingVersion: 0
+  m_StreamingVersion: 20241001
   m_LegacyPriority: 0
   Target:
     TrackingTarget: {fileID: 0}
@@ -24229,7 +24231,7 @@ MonoBehaviour:
     m_FontStyle: 1
     m_BestFit: 0
     m_MinSize: 10
-    m_MaxSize: 40
+    m_MaxSize: 64
     m_Alignment: 4
     m_AlignByGeometry: 0
     m_RichText: 1
@@ -26261,7 +26263,7 @@ MonoBehaviour:
     m_FontStyle: 1
     m_BestFit: 0
     m_MinSize: 10
-    m_MaxSize: 40
+    m_MaxSize: 280
     m_Alignment: 4
     m_AlignByGeometry: 0
     m_RichText: 1
@@ -26910,7 +26912,7 @@ MonoBehaviour:
     m_Value: -10
   OutputChannel: 1
   StandbyUpdate: 2
-  m_StreamingVersion: 0
+  m_StreamingVersion: 20241001
   m_LegacyPriority: 0
   Target:
     TrackingTarget: {fileID: 0}
@@ -28914,7 +28916,7 @@ MonoBehaviour:
     m_Value: -10
   OutputChannel: 1
   StandbyUpdate: 2
-  m_StreamingVersion: 0
+  m_StreamingVersion: 20241001
   m_LegacyPriority: 0
   Target:
     TrackingTarget: {fileID: 0}
@@ -29672,7 +29674,7 @@ MonoBehaviour:
     m_FontStyle: 1
     m_BestFit: 0
     m_MinSize: 10
-    m_MaxSize: 40
+    m_MaxSize: 64
     m_Alignment: 4
     m_AlignByGeometry: 0
     m_RichText: 1
@@ -30123,7 +30125,7 @@ MonoBehaviour:
     m_Value: -10
   OutputChannel: 1
   StandbyUpdate: 2
-  m_StreamingVersion: 0
+  m_StreamingVersion: 20241001
   m_LegacyPriority: 0
   Target:
     TrackingTarget: {fileID: 0}

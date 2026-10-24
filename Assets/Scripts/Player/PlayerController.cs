@@ -80,6 +80,8 @@ namespace BossFight.Player
         /// <summary>破防剩餘時間（秒）。</summary>
         public float GuardBreakRemaining => Action == PlayerAction.GuardBreak ? Mathf.Max(0f, stats.guardBreakDuration - actionTime) : 0f;
         public float MoveSpeed => stats.moveSpeed;
+        /// <summary>目前讀的數值（PlayerSpawner 套用角色定義與修正後的複本，T19）。</summary>
+        public PlayerStats Stats => stats;
         public float PlanarSpeed { get; private set; }
         public LockOnTarget LockTarget { get; private set; }
         /// <summary>演出中：不讀輸入，只照 ScriptedMoveTo 走。</summary>
@@ -116,6 +118,12 @@ namespace BossFight.Player
             {
                 if (item != null) list.Add(item);
             }
+        }
+
+        /// <summary>換成另一份數值（PlayerRig.ApplyStats 呼叫；角色定義加上修正後的複本）。</summary>
+        public void SetStats(PlayerStats value)
+        {
+            if (value != null) stats = value;
         }
 
         /// <summary>套用難度修正（不改 PlayerStats，讀數值時才加）；null = 不修正。</summary>

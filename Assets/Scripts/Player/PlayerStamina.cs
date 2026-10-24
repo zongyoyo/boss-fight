@@ -34,6 +34,15 @@ namespace BossFight.Player
             OnStaminaChanged?.Invoke(Current, Max);
         }
 
+        /// <summary>換成另一份數值（PlayerRig.ApplyStats 呼叫）：refill 時補滿，否則只把目前值夾到新上限以內。</summary>
+        public void SetStats(PlayerStats value, bool refill)
+        {
+            if (value == null) return;
+            stats = value;
+            Current = refill ? Max : Mathf.Min(Current, Max);
+            OnStaminaChanged?.Invoke(Current, Max);
+        }
+
         /// <summary>耐力大於 0 就成功，扣完最低為 0；耐力已經是 0 則失敗、不扣。</summary>
         public bool TrySpend(float amount)
         {

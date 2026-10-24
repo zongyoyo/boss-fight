@@ -9,6 +9,7 @@ using BossFight.Boss.Moves;
 using BossFight.Cameras;
 using BossFight.Core;
 using BossFight.Player;
+using BossFight.Progression;
 using UnityEngine;
 using UnityEngine.InputSystem;
 #if UNITY_EDITOR
@@ -20,8 +21,12 @@ namespace BossFight.DebugTools
     /// <summary>
     /// 平衡面板（F12，T10）：即時調整 Boss 血量、各招傷害／冷卻／預兆／破綻／權重、各階段節奏、失衡值、玩家耐力，並量這場的通關時間。
     /// <para>
-    /// 不寫入 SO 資產：Awake 時把 Boss、玩家、鏡頭底下所有元件引用的 BossStats／BossPhaseData／BossMoveData／PlayerStats
+    /// 不寫入 SO 資產：Awake 時把 Boss、鏡頭底下所有元件引用的 BossStats／BossPhaseData／BossMoveData
     /// 換成記憶體裡的複本（Instantiate；BossStats.phases、階段的 entryMove 與開場序列也改指向複本，招式比對才不會錯），面板只改複本。
+    /// 玩家（T19）：角色身上的 PlayerStats 是 PlayerSpawner 的數值管線（PlayerLoadout）每次重新建出的複本，所以面板不換它，
+    /// 而是把管線的基礎值（CharacterDefinition.baseStats）換成面板的複本（PlayerLoadout.BaseStatsSource）：面板調基礎值，
+    /// 裝備、技能與「測試修正」開關疊在上面（跟難度修正一樣），改了就 ReapplyStats（不補滿血量）。有修正時「實際」欄顯示套用後的值，
+    /// 「存回 .asset」只寫基礎值。
     /// 遊戲程式每次都從 SO 讀數值，所以改了立刻生效；冷卻在下一次招式結束時才用新值計算。
     /// 「存回 .asset」（只在 Editor，要按兩次確認）才把面板上的欄位寫回原本的資產並存檔。
     /// </para>
@@ -48,6 +53,10 @@ namespace BossFight.DebugTools
         [SerializeField] BossStagger stagger;
         [Tooltip("面板開著時鎖住視角、放開游標")]
         [SerializeField] CameraController cameraController;
+        [Tooltip("玩家的數值管線：基礎值換成面板的複本、登記測試修正")]
+        [SerializeField] PlayerSpawner spawner;
+        [Tooltip("「玩家」頁開關套用的測試修正（T19）")]
+        [SerializeField] TestModifierData testModifiers;
         [Tooltip("一開始就打開面板（F12 切換）")]
         [SerializeField] bool panelVisible;
         [Tooltip("面板開著時暫停遊戲（面板裡也可以切換）")]
@@ -62,12 +71,15 @@ namespace BossFight.DebugTools
         static readonly Dictionary<ScriptableObject, ScriptableObject> cloneOf = new Dictionary<ScriptableObject, ScriptableObject>();
         static readonly Dictionary<ScriptableObject, ScriptableObject> originalOf = new Dictionary<ScriptableObject, ScriptableObject>();
         static readonly List<RunRecord> runs = new List<RunRecord>();
+        static bool testModifiersOn; // 「測試修正」開關（重試後保留）
+        const string TestSourceKey = "debug.testModifiers";
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         static void ResetStatics()
         {
             DestroyClones();
             runs.Clear();
+            testModifiersOn = false;
             Application.quitting -= DestroyClones;
             Application.quitting += DestroyClones;
         }
@@ -84,7 +96,7 @@ namespace BossFight.DebugTools
 
         static bool IsTunable(Type t) =>
             typeof(BossStats).IsAssignableFrom(t) || typeof(BossPhaseData).IsAssignableFrom(t) ||
-            typeof(BossMoveData).IsAssignableFrom(t) || typeof(PlayerStats).IsAssignableFrom(t);
+            typeof(BossMoveData).IsAssignableFrom(t);
 
         // ---------- 一個可調的欄位 ----------
 
@@ -97,6 +109,8 @@ namespace BossFight.DebugTools
             /// <summary>只顯示、不能直接調（例如跟著血量上限縮放的門檻）；存回 .asset 時一樣會寫。</summary>
             public bool readOnly;
             public Action<float, float> onChanged; // (舊值, 新值)
+            /// <summary>套用修正後的實際值（玩家數值）；null = 沒有修正的概念。</summary>
+            public Func<float> actual;
 
             public float Value => (float)field.GetValue(clone);
             public float Original => (float)field.GetValue(original);
@@ -202,6 +216,13 @@ namespace BossFight.DebugTools
                     if (component != null && component != this) swapped += Remap(component);
                 }
             }
+            if (spawner != null)
+            {
+                // spawner（-1000）已經用資產生成並套用過；換成面板的基礎值複本、加上測試修正後重新套用（還在開場前，補滿血量沒關係）
+                spawner.Loadout.BaseStatsSource = PlayerBaseStats;
+                ApplyTestModifiers(false);
+                spawner.ReapplyStats(true);
+            }
             BuildKnobs();
             Debug.Log($"[Balance] 已把 {swapped} 個 SO 引用換成執行期複本（{originalOf.Count} 份），F12 調整數值不會改到 .asset；" +
                       $"目前有 {CountChanged()} 項調整（重試後保留）。");
@@ -281,6 +302,24 @@ namespace BossFight.DebugTools
                 }
             }
             return count;
+        }
+
+        static PlayerStats PlayerBaseStats(PlayerStats original) => CloneOf(original) as PlayerStats;
+
+        // 把測試修正登記進（或拿出）數值管線；reapply 時立刻重新套用（補滿血量與耐力，驗證上限用）
+        void ApplyTestModifiers(bool reapply)
+        {
+            if (spawner == null) return;
+            if (testModifiersOn && testModifiers != null) spawner.Loadout.SetSource(TestSourceKey, testModifiers.modifiers, testModifiers.effects);
+            else spawner.Loadout.ClearSource(TestSourceKey);
+            if (reapply) spawner.ReapplyStats(true);
+        }
+
+        // 角色身上目前套用的值（含修正）
+        float ActualPlayerValue(FieldInfo field)
+        {
+            var applied = spawner != null ? spawner.Loadout.Applied : null;
+            return applied != null ? (float)field.GetValue(applied) : float.NaN;
         }
 
         static T FindClone<T>() where T : ScriptableObject
@@ -369,8 +408,12 @@ namespace BossFight.DebugTools
             var playerStats = FindClone<PlayerStats>();
             if (playerStats != null)
             {
-                var s = new Section { title = "刀盾狗" };
+                var character = spawner != null ? spawner.CurrentCharacter : null;
+                var s = new Section { title = character != null && !string.IsNullOrEmpty(character.displayName) ? character.displayName : "玩家" };
                 sections[4].Add(s);
+                int first = s.knobs.Count;
+                AddKnob(s, "血量上限", playerStats, nameof(PlayerStats.maxHealth), 50f, 300f, 5f);
+                AddKnob(s, "跑速 (m/s)", playerStats, nameof(PlayerStats.moveSpeed), 1f, 12f, 0.1f);
                 AddKnob(s, "耐力上限", playerStats, nameof(PlayerStats.maxStamina), 50f, 200f, 5f);
                 AddKnob(s, "耐力回復 (/s)", playerStats, nameof(PlayerStats.staminaRegen), 0f, 100f, 1f);
                 AddKnob(s, "舉盾加速回復 (/s)", playerStats, nameof(PlayerStats.staminaRegenBlocking), 0f, 100f, 1f);
@@ -381,6 +424,12 @@ namespace BossFight.DebugTools
                 AddKnob(s, "命中累積骨頭（根）", playerStats, nameof(PlayerStats.boneGainPerHit), 0f, 0.5f, 0.01f);
                 AddKnob(s, "處決累積骨頭（根）", playerStats, nameof(PlayerStats.boneGainPerExecution), 0f, 1f, 0.05f);
                 AddKnob(s, "受擊累積骨頭（根）", playerStats, nameof(PlayerStats.boneGainWhenHurt), 0f, 0.2f, 0.01f);
+                for (int i = first; i < s.knobs.Count; i++)
+                {
+                    var field = s.knobs[i].field;
+                    s.knobs[i].actual = () => ActualPlayerValue(field);
+                    s.knobs[i].onChanged = (_, __) => { if (spawner != null) spawner.ReapplyStats(false); };
+                }
             }
         }
 
@@ -719,6 +768,7 @@ namespace BossFight.DebugTools
             else
             {
                 if (tab == 1) DrawHealthRow();
+                if (tab == 4) DrawLoadoutRow();
                 foreach (var s in sections[tab]) DrawSection(s);
             }
             GUILayout.EndScrollView();
@@ -787,6 +837,28 @@ namespace BossFight.DebugTools
             GUILayout.Space(6f);
         }
 
+        // 玩家頁上方：測試修正開關，以及有修正時的提醒（欄位是基礎值、「實際」是套用後的值）
+        void DrawLoadoutRow()
+        {
+            if (spawner == null) return;
+            if (testModifiers != null)
+            {
+                bool on = GUILayout.Toggle(testModifiersOn, $"測試修正（{testModifiers.label}）");
+                if (on != testModifiersOn)
+                {
+                    testModifiersOn = on;
+                    ApplyTestModifiers(true);
+                    Notify(on ? "已套用測試修正（血量與耐力補滿）" : "已拿掉測試修正（血量與耐力補滿）");
+                }
+            }
+            var loadout = spawner.Loadout;
+            int modifiers = loadout.ModifierCount, effects = loadout.EffectCount;
+            if (modifiers + effects > 0)
+                GUILayout.Label($"<color=#ffd84d>玩家數值有 {modifiers} 條修正、{effects} 個效果（裝備、技能或測試修正）：滑桿是基礎值，" +
+                                "<color=#7dd8ff>實際</color> 是套用修正後角色正在用的值；存回 .asset 只寫基礎值。</color>", small);
+            GUILayout.Space(4f);
+        }
+
         void DrawSection(Section s)
         {
             if (s.foldable)
@@ -826,6 +898,11 @@ namespace BossFight.DebugTools
             bool changed = k.Changed;
             string name = changed ? $"<color=#ffd84d>{k.label}</color>" : k.label;
             string original = changed ? $"<color=#ffd84d>原 {Format(k.Original, k.step)}</color>" : "";
+            if (k.actual != null)
+            {
+                float actual = k.actual();
+                if (!float.IsNaN(actual) && !Mathf.Approximately(actual, v)) original += $"　<color=#7dd8ff>實際 {Format(actual, k.step)}</color>";
+            }
 
             GUILayout.BeginHorizontal(GUILayout.Height(RowHeight));
             GUILayout.Label($"　{name}", row, GUILayout.Width(190f));

@@ -21,19 +21,21 @@ namespace BossFight.Progression
     /// 生成玩家角色（T18）：場景裡不再放玩家，改放這個。Awake（最早執行）時：
     /// 1. 關掉底下的預覽模型（previewCharacter，EditorOnly：編輯模式下給 Timeline 綁軌道、預覽鏡頭用，正式 build 不會有）。
     /// 2. 看這次的出生點（ProfileStore.PeekArrival，換場景時 SceneFlow 設定）：spawnPoints 裡有同 id 的就生成在那裡，否則生成在自己的位置與朝向。
-    /// 3. 生成 characterPrefab，把場景物件（Main Camera、鎖定與處決清單、AudioManager）交給 PlayerRig.SetSceneReferences，Boss 呼叫 SetTarget。
-    /// 4. 對 receivers（Inspector 接好的 IPlayerBinding）呼叫 BindPlayer，最後送出 OnPlayerSpawned。
+    /// 3. 依存檔的目前角色（ProfileStore.CurrentCharacter）從 GameDatabase 的名冊找 CharacterDefinition（空的或找不到時用預設角色），生成它的 prefab，
+    ///    把場景物件（Main Camera、鎖定與處決清單、AudioManager）交給 PlayerRig.SetSceneReferences，Boss 呼叫 SetTarget。
+    /// 4. 套用數值（T19，Loadout：baseStats 的複本加上修正 → PlayerRig.ApplyStats、補滿血量與耐力 → 掛效果）。
+    /// 5. 對 receivers（Inspector 接好的 IPlayerBinding）呼叫 BindPlayer，最後送出 OnPlayerSpawned。
     /// 接收者的 Awake／OnEnable 比這裡晚，執行時已經拿到玩家；Inspector 接線不算編譯期依賴，所以可以把玩家交給 UI、Debug 這些上層元件。
-    /// ReplaceCharacter 換角色（之後休息區的營火用）：在同一位置生成新角色、銷毀舊的，再對所有接收者 BindPlayer 一次。
-    /// 這一版 characterPrefab 固定是刀盾狗；T19 起改從存檔的目前角色與 CharacterRoster 找。
+    /// ReplaceCharacter 換角色（之後休息區的營火用）：在同一位置生成新角色、銷毀舊的，套用數值後再對所有接收者 BindPlayer 一次。
+    /// ReapplyStats 在執行中重新套用（換裝、點技能、Debug 的測試修正）。
     /// 接線與預覽模型由 PlayerSpawnerBuilder 建立（Builder 會自動收集場景裡的接收者與目標）。
     /// </summary>
     [DefaultExecutionOrder(-1000)]
     [DisallowMultipleComponent]
     public class PlayerSpawner : MonoBehaviour
     {
-        [Tooltip("要生成的角色 prefab")]
-        [SerializeField] PlayerRig characterPrefab;
+        [Tooltip("角色名冊等資料；依存檔的目前角色找 CharacterDefinition")]
+        [SerializeField] GameDatabase database;
         [Tooltip("編輯模式的預覽模型（EditorOnly）；進 Play 時關掉")]
         [SerializeField] GameObject previewCharacter;
         [Tooltip("換場景進來時依 id 找出生點；沒有對應的（直接進 Play、重試）生成在這個物件的位置")]
@@ -61,43 +63,82 @@ namespace BossFight.Progression
         /// <summary>目前的角色。</summary>
         public PlayerRig Current { get; private set; }
 
+        /// <summary>目前角色的定義。</summary>
+        public CharacterDefinition CurrentCharacter => Loadout.Character;
+
+        /// <summary>數值套用管線：修正來源在這裡登記（SetSource），再呼叫 ReapplyStats。</summary>
+        public PlayerLoadout Loadout { get; } = new PlayerLoadout();
+
+        /// <summary>角色資料（之後營火、鐵匠鋪找角色與裝備用）。</summary>
+        public GameDatabase Database => database;
+
         void Awake()
         {
             if (previewCharacter != null) previewCharacter.SetActive(false);
-            if (characterPrefab == null)
+            var character = SavedCharacter();
+            if (character == null || character.prefab == null)
             {
-                Debug.LogError("[PlayerSpawner] 沒有指定角色 prefab。", this);
+                Debug.LogError("[PlayerSpawner] 沒有可以生成的角色：請接上 GameDatabase，名冊裡至少要有一個有 prefab 的角色（Tools > Progression > Build Game Database）。", this);
                 return;
             }
             GetSpawnPose(out Vector3 position, out Quaternion rotation);
-            Spawn(characterPrefab, position, rotation);
+            Spawn(character, position, rotation);
         }
 
-        /// <summary>換角色：在目前角色的位置與朝向生成 prefab，銷毀舊的，再對所有接收者 BindPlayer。</summary>
-        public void ReplaceCharacter(PlayerRig prefab)
+        void OnDestroy()
         {
-            if (prefab == null) return;
+            Loadout.Release();
+        }
+
+        // 存檔的目前角色；空的或名冊裡沒有時用預設角色
+        CharacterDefinition SavedCharacter()
+        {
+            if (database == null) return null;
+            string id = ProfileStore.CurrentCharacter;
+            var character = database.FindCharacter(id);
+            if (character != null) return character;
+            if (!string.IsNullOrEmpty(id)) Debug.LogWarning($"[PlayerSpawner] 名冊裡沒有存檔的角色「{id}」，改用預設角色。", this);
+            return database.DefaultCharacter;
+        }
+
+        /// <summary>
+        /// 重新套用目前角色的數值（換裝、點技能、Debug 改修正後呼叫）：refill 時補滿血量、耐力與骨頭，否則只把目前值夾到新上限以內。
+        /// 角色身上的元件、鏡頭（PlayerRig.OnStatsApplied）、HUD（血量與耐力事件）都會跟著更新。
+        /// </summary>
+        public void ReapplyStats(bool refill = true)
+        {
+            if (Current != null) Loadout.Apply(Current, refill);
+        }
+
+        /// <summary>換角色：在目前角色的位置與朝向生成新角色的 prefab，銷毀舊的，套用數值後再對所有接收者 BindPlayer。修正來源保留。</summary>
+        public void ReplaceCharacter(CharacterDefinition character)
+        {
+            if (character == null || character.prefab == null) return;
             var old = Current;
             Vector3 position = old != null ? old.transform.position : transform.position;
             Quaternion rotation = old != null ? old.transform.rotation : transform.rotation;
             if (old != null)
             {
+                Loadout.Release();
                 old.gameObject.SetActive(false); // 這一幀剩下的時間不再動、不再被打到；Destroy 要等到幀末
                 Destroy(old.gameObject);
             }
-            Spawn(prefab, position, rotation);
+            Spawn(character, position, rotation);
         }
 
-        void Spawn(PlayerRig prefab, Vector3 position, Quaternion rotation)
+        void Spawn(CharacterDefinition character, Vector3 position, Quaternion rotation)
         {
-            var rig = Instantiate(prefab, position, rotation);
-            rig.name = prefab.name;
+            var rig = Instantiate(character.prefab, position, rotation);
+            rig.name = character.prefab.name;
             rig.SetSceneReferences(cameraTransform, lockTargets, executionTargets, audioManager);
             foreach (var boss in bosses)
             {
                 if (boss != null) boss.SetTarget(rig.transform);
             }
             Current = rig;
+            Loadout.Character = character;
+            if (!Loadout.Apply(rig, true))
+                Debug.LogWarning($"[PlayerSpawner] 角色 {character.name} 沒有 baseStats，沿用 prefab 上接的數值。", this);
             foreach (var receiver in receivers)
             {
                 if (receiver is IPlayerBinding binding) binding.BindPlayer(rig);

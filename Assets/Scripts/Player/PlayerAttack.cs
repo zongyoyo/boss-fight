@@ -41,6 +41,12 @@ namespace BossFight.Player
 
         AttackSpec spec;
         bool windowOpened;
+
+        /// <summary>換成另一份數值（PlayerRig.ApplyStats 呼叫）。</summary>
+        public void SetStats(PlayerStats value)
+        {
+            if (value != null) stats = value;
+        }
         float lunged;
 
         void OnEnable()

@@ -20,7 +20,7 @@ namespace BossFight.Cameras
     [DisallowMultipleComponent]
     public class CameraController : MonoBehaviour, IPlayerBinding
     {
-        [Tooltip("視角靈敏度")]
+        [Tooltip("視角靈敏度；綁了玩家之後改讀角色目前套用的數值（PlayerRig.Stats），這份只在沒有玩家時用")]
         [SerializeField] PlayerStats stats;
 
         [Header("Cinemachine")]
@@ -52,7 +52,10 @@ namespace BossFight.Cameras
         Transform leavingMember; // 已解除鎖定、但鎖定鏡頭還在混出，暫時留在群組裡的目標
         int skipPointerFrames;
         PlayerController player; // 鏡頭跟隨的玩家（PlayerSpawner 交給 BindPlayer）；鎖定目標從它的 OnLockTargetChanged 來
+        PlayerRig rig; // 視角靈敏度讀它目前套用的數值（重新套用時會換成新的複本，所以每次都重讀）
         bool subscribed;
+
+        PlayerStats Stats => rig != null && rig.Stats != null ? rig.Stats : stats;
 
         /// <summary>
         /// PlayerSpawner 生成（或換）角色時呼叫：兩台鏡頭改跟新角色、鎖定群組換成新角色。
@@ -61,7 +64,8 @@ namespace BossFight.Cameras
         public void BindPlayer(PlayerRig rig)
         {
             bool first = player == null;
-            if (subscribed && player != null) player.OnLockTargetChanged -= SetTarget;
+            if (subscribed) Unsubscribe();
+            this.rig = rig;
 
             // 編輯模式綁的是預覽模型，換人時是舊角色：都從群組拿掉
             var oldFollow = freeLookCamera.Target.TrackingTarget;
@@ -84,7 +88,17 @@ namespace BossFight.Cameras
             freeLookCamera.PreviousStateIsValid = false; // 直接跳到新角色，不從預覽模型的位置追過去
             lockOnCamera.PreviousStateIsValid = false;
             SetTarget(player.LockTarget); // 新角色沒有鎖定：鏡頭跟著解除
-            if (subscribed) player.OnLockTargetChanged += SetTarget;
+            if (subscribed) Subscribe();
+        }
+
+        void Subscribe()
+        {
+            if (player != null) player.OnLockTargetChanged += SetTarget;
+        }
+
+        void Unsubscribe()
+        {
+            if (player != null) player.OnLockTargetChanged -= SetTarget;
         }
 
         void Awake()
@@ -103,7 +117,7 @@ namespace BossFight.Cameras
         void OnEnable()
         {
             lookAction?.actionMap.Enable();
-            if (player != null) player.OnLockTargetChanged += SetTarget;
+            Subscribe();
             subscribed = true;
         }
 
@@ -114,7 +128,7 @@ namespace BossFight.Cameras
 
         void OnDisable()
         {
-            if (player != null) player.OnLockTargetChanged -= SetTarget;
+            Unsubscribe();
             subscribed = false;
             if (lockCursor) SetCursorLocked(false);
         }
@@ -215,11 +229,11 @@ namespace BossFight.Cameras
                 if (fromPointer) v = Vector2.zero;
             }
 
-            Vector2 delta = fromPointer ? v * stats.mouseSensitivity : v * (stats.stickSensitivity * Time.deltaTime);
+            Vector2 delta = fromPointer ? v * Stats.mouseSensitivity : v * (Stats.stickSensitivity * Time.deltaTime);
             ref var h = ref freeLookOrbit.HorizontalAxis;
             ref var p = ref freeLookOrbit.VerticalAxis;
             h.Value = h.ClampValue(h.Value + delta.x);
-            p.Value = p.ClampValue(p.Value + (stats.invertY ? delta.y : -delta.y));
+            p.Value = p.ClampValue(p.Value + (Stats.invertY ? delta.y : -delta.y));
         }
 
         void UpdateCursor()

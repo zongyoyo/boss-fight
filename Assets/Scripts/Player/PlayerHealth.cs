@@ -108,6 +108,30 @@ namespace BossFight.Player
             OnBoneProgressChanged?.Invoke(BoneProgress);
         }
 
+        /// <summary>
+        /// 換成另一份數值（PlayerRig.ApplyStats 呼叫）：refill 時補滿血量與骨頭（倒下了就不補），否則只把目前值夾到新上限以內。
+        /// 上限可能變了，所以血量與骨頭的事件都重送一次。
+        /// </summary>
+        public void SetStats(PlayerStats value, bool refill)
+        {
+            if (value == null) return;
+            stats = value;
+            if (refill && !IsDead)
+            {
+                Current = Max;
+                BonesLeft = BonesMax;
+            }
+            else
+            {
+                Current = Mathf.Min(Current, Max);
+                BonesLeft = Mathf.Min(BonesLeft, BonesMax);
+            }
+            if (BonesLeft >= BonesMax) BoneProgress = 0f;
+            OnHealthChanged?.Invoke(Current, Max);
+            OnBonesChanged?.Invoke(BonesLeft, BonesMax);
+            OnBoneProgressChanged?.Invoke(BoneProgress);
+        }
+
         public DamageOutcome TakeDamage(in DamageInfo info)
         {
             if (IsDead) return DamageResult.Ignored;
