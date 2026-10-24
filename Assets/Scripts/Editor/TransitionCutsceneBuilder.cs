@@ -6,6 +6,7 @@ using BossFight.Core;
 using BossFight.Cutscene;
 using BossFight.Hazards;
 using BossFight.Player;
+using BossFight.UI;
 using Unity.Cinemachine;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -20,11 +21,13 @@ namespace BossFight.EditorTools
     /// 建立轉階段演出（T7）。選單 Tools > Cutscene > Build Transition，可以重複執行；Build Intro 最後也會呼叫這裡。
     /// 1. Timeline（Assets/Timelines/Transition.playable，照企劃書「轉階段演出」5 步驟排好，5.0 秒）只在不存在時建立；
     ///    Tools > Cutscene > Reset Transition Timeline 會刪掉重排。佔位的唱片刮擦聲由 PlaceholderAudioBuilder 產生。
-    /// 2. 場景物件 TransitionCutscene 每次刪掉重建：PlayableDirector、CutsceneDirector（不能跳過、沒有字卡）、
+    /// 2. 場景物件 TransitionCutscene 每次刪掉重建：PlayableDirector、CutsceneDirector（跳過的秒數接開場的 IntroCutsceneSettings；沒有字卡）、
     ///    CutsceneStage（Stage 底下以貓為準的鏡頭、PlayerAnchor 底下的狗臉特寫、第 1 步的全景鏡頭）、白閃、煙霧、
     ///    場地邊緣的電光（ElectricArcs）、無傷害衝擊波（ExpandingRing）、Timeline 用的 AudioSource。
     /// 3. 軌道依類型綁定，同類型有好幾條的（CurveTrack、AudioTrack、ElectricArcsTrack）依軌道名稱；Cinemachine 片段依片段名稱接到同名的鏡頭。
-    /// 4. BattleManager 的 transition 接到這裡的 CutsceneDirector（BattleManager 會關掉 Boss 的 AutoCompleteTransition）。
+    /// 4. BattleManager 的 transition 接到這裡的 CutsceneDirector（BattleManager 會關掉 Boss 的 AutoCompleteTransition），並加進跳過提示（SkipPromptUI）的 sources。
+    /// 跳過（T14，這次執行看過一次之後）時 CutsceneDirector 在結尾前 Evaluate 一次：音樂「Restart」與「Pushed Out」兩個片段設成 Hold，
+    /// 才會在結尾補上重播音樂、把狗推到外圈；已經存在的 Timeline 也會補設。
     /// 鏡頭在建立時依「玩家出生點 → 場地中心」擺好；執行時 CutsceneStage 依觸發時玩家的位置整組轉過去。位置、顏色都是純視覺參數。
     /// </summary>
     public static class TransitionCutsceneBuilder
@@ -33,6 +36,9 @@ namespace BossFight.EditorTools
         const string ArenaDataPath = "Assets/ScriptableObjects/Arena/ArenaData.asset";
         const string FxMaterialPath = "Assets/Models/Hazards/Materials/Fx_Additive.mat";
         const string RingWallMeshPath = "Assets/Models/Hazards/Meshes/Fx_RingWall.asset";
+        const string SettingsPath = "Assets/ScriptableObjects/Cutscene/IntroCutsceneSettings.asset";
+        const string ClipRestart = "Restart";
+        const string ClipPushedOut = "Pushed Out";
         const string NoisePath = "Packages/com.unity.cinemachine/Presets/Noise/6D Shake.asset";
         const string RootName = "TransitionCutscene";
 
@@ -83,6 +89,7 @@ namespace BossFight.EditorTools
             var battle = Object.FindAnyObjectByType<BattleManager>();
             var arenaGen = Object.FindAnyObjectByType<ArenaGenerator>();
             var arena = AssetDatabase.LoadAssetAtPath<ArenaData>(ArenaDataPath);
+            var settings = AssetDatabase.LoadAssetAtPath<IntroCutsceneSettings>(SettingsPath);
             var fxMat = AssetDatabase.LoadAssetAtPath<Material>(FxMaterialPath);
             var ringMesh = AssetDatabase.LoadAssetAtPath<Mesh>(RingWallMeshPath);
             if (player == null || cameraController == null || boss == null || brain == null || circle == null || audio == null ||
@@ -123,6 +130,8 @@ namespace BossFight.EditorTools
             DaoDunDogBuilder.SetReference(cutscene, "player", player);
             DaoDunDogBuilder.SetReference(cutscene, "cameraController", cameraController);
             DaoDunDogBuilder.SetReference(cutscene, "faceTarget", boss.transform);
+            if (settings != null) DaoDunDogBuilder.SetReference(cutscene, "settings", settings);
+            else Debug.LogWarning($"[Cutscene] 找不到 {SettingsPath}（Tools > Cutscene > Build Intro 會建立），轉階段不能跳過。");
 
             // ---------- 舞台與鏡頭 ----------
             var stageTf = DaoDunDogBuilder.Node(root.transform, "Stage", Vector3.zero);
@@ -160,6 +169,7 @@ namespace BossFight.EditorTools
             // ---------- Timeline ----------
             var timeline = AssetDatabase.LoadAssetAtPath<TimelineAsset>(TimelinePath);
             if (timeline == null) timeline = CreateTimeline(center, arena, sounds);
+            EnsureSkipHolds(timeline);
             director.playableAsset = timeline;
 
             var named = new Dictionary<string, Object>
@@ -179,6 +189,7 @@ namespace BossFight.EditorTools
             // 戰鬥流程：Boss 進入轉階段時由 BattleManager 播這段，播完才套用第二階段
             DaoDunDogBuilder.SetReference(battle, "transition", cutscene);
             DaoDunDogBuilder.SetReference(battle, "audioManager", audio);
+            AddToSkipPrompt(cutscene, new SerializedObject(battle).FindProperty("intro").objectReferenceValue as CutsceneDirector);
             PauseMenuBuilder.Wire(); // 演出的音軌 AudioSource 重建了：音效音量要重接
 
             Undo.CollapseUndoOperations(undoGroup);
@@ -186,6 +197,46 @@ namespace BossFight.EditorTools
             EditorSceneManager.MarkSceneDirty(root.scene);
             Debug.Log($"[Cutscene] 轉階段演出已建立：{TimelinePath}（{timeline.duration:0.0} 秒），BattleManager 已接上");
             return root;
+        }
+
+        // 跳過時在結尾 Evaluate：被跳過的「音樂重播」「推到外圈」要延伸到結尾才會補上
+        static void EnsureSkipHolds(TimelineAsset tl)
+        {
+            bool restart = false, push = false;
+            foreach (var track in tl.GetOutputTracks())
+            {
+                foreach (var clip in track.GetClips())
+                {
+                    if (track is MusicCueTrack && clip.displayName == ClipRestart) restart = Hold(clip);
+                    else if (track is ActorPushTrack && clip.displayName == ClipPushedOut) push = Hold(clip);
+                }
+            }
+            if (!restart || !push)
+                Debug.LogWarning($"[Cutscene] 轉階段 Timeline 找不到「{ClipRestart}」或「{ClipPushedOut}」片段，跳過時可能不會重播音樂或推開玩家；Reset Transition Timeline 會重排。");
+        }
+
+        static bool Hold(TimelineClip clip)
+        {
+            if (clip.postExtrapolationMode != TimelineClip.ClipExtrapolation.Hold)
+            {
+                IntroCutsceneBuilder.Hold(clip);
+                EditorUtility.SetDirty(clip.GetParentTrack());
+            }
+            return true;
+        }
+
+        // 開場的跳過提示也顯示轉階段的長按進度：sources = 開場 + 這段（舊的轉階段物件已經刪掉）
+        static void AddToSkipPrompt(CutsceneDirector cutscene, CutsceneDirector intro)
+        {
+            var list = new List<CutsceneDirector>();
+            if (intro != null) list.Add(intro);
+            list.Add(cutscene);
+            foreach (var prompt in Object.FindObjectsByType<SkipPromptUI>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            {
+                var so = new SerializedObject(prompt);
+                IntroCutsceneBuilder.SetArray(so.FindProperty("sources"), list);
+                so.ApplyModifiedPropertiesWithoutUndo();
+            }
         }
 
         // ---------- 鏡頭 ----------
@@ -368,7 +419,7 @@ namespace BossFight.EditorTools
                                                                        new AnimationCurve(new Keyframe(0f, 0.2f), new Keyframe(0.3f, 1f), new Keyframe(1f, 1f)), 1f));
             IntroCutsceneBuilder.CurveClipAt(tl.CreateTrack<BossSpinTrack>(null, "Cat Spin"), "Spin", 3.2, Duration - 3.2,
                                              new AnimationCurve(new Keyframe(0f, 0f), new Keyframe(0.5f, 1f), new Keyframe(0.78f, 1f), new Keyframe(1f, 0f)), 1440f);
-            var restart = IntroCutsceneBuilder.Clip<MusicCueClip>(music, "Restart", 3.2, 0.1);
+            var restart = IntroCutsceneBuilder.Hold(IntroCutsceneBuilder.Clip<MusicCueClip>(music, ClipRestart, 3.2, 0.1)); // Hold：跳過時在結尾補上重播
             ((MusicCueClip)restart.asset).template.action = MusicCueAction.Restart;
             var thunder = tl.CreateTrack<AudioTrack>(null, TrackThunder);
             IntroCutsceneBuilder.AudioClipAt(thunder, sounds.thunder, 2.5, 1.5, false);
@@ -376,7 +427,7 @@ namespace BossFight.EditorTools
             // 5. 無傷害衝擊波把狗推到外圈（ArenaData.transitionPushRadius），鏡頭震動
             IntroCutsceneBuilder.CurveClipAt(tl.CreateTrack<CurveTrack>(null, TrackWave), "Wave", 4.2, 0.65, AnimationCurve.Linear(0f, 0.02f, 1f, 1f), 1f);
             IntroCutsceneBuilder.CurveClipAt(tl.CreateTrack<CurveTrack>(null, TrackShake), "Shake", 4.2, 0.4, AnimationCurve.Linear(0f, 1f, 1f, 0f), 2f);
-            var push = IntroCutsceneBuilder.Clip<ActorPushClip>(dogTrack, "Pushed Out", 4.25, 0.6);
+            var push = IntroCutsceneBuilder.Hold(IntroCutsceneBuilder.Clip<ActorPushClip>(dogTrack, ClipPushedOut, 4.25, 0.6)); // Hold：跳過時在結尾補上推開
             var pb = ((ActorPushClip)push.asset).template;
             pb.center = center;
             pb.arena = arena;

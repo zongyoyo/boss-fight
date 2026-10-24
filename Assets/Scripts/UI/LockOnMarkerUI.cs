@@ -7,6 +7,7 @@ namespace BossFight.UI
     /// <summary>
     /// 鎖定標記：鎖定時在目標的 LockOnTarget.AimPoint 上顯示一個小菱形，出現時從大縮回、之後輕輕呼吸。
     /// 鎖定哪個目標只訂閱 PlayerController.OnLockTargetChanged；位置每幀用 viewCamera 把 AimPoint 投到畫面上（目標在鏡頭後方時隱藏）。
+    /// 處決標記（ExecutionMarkerUI.OnShownChanged）出現時先藏起來，兩個標記不疊在一起。
     /// </summary>
     [DisallowMultipleComponent]
     public class LockOnMarkerUI : MonoBehaviour
@@ -17,10 +18,13 @@ namespace BossFight.UI
         [SerializeField] Camera viewCamera;
         [Tooltip("標記（父物件是全螢幕的 RectTransform）")]
         [SerializeField] RectTransform marker;
+        [Tooltip("處決標記；出現時藏起鎖定菱形（可留空）")]
+        [SerializeField] ExecutionMarkerUI executionMarker;
 
         LockOnTarget target;
         RectTransform area;
         float shownTime;
+        bool hiddenByExecution;
 
         void Awake()
         {
@@ -31,11 +35,19 @@ namespace BossFight.UI
         void OnEnable()
         {
             if (player != null) player.OnLockTargetChanged += HandleLockTargetChanged;
+            if (executionMarker != null) executionMarker.OnShownChanged += HandleExecutionMarker;
         }
 
         void OnDisable()
         {
             if (player != null) player.OnLockTargetChanged -= HandleLockTargetChanged;
+            if (executionMarker != null) executionMarker.OnShownChanged -= HandleExecutionMarker;
+        }
+
+        void HandleExecutionMarker(bool shown)
+        {
+            hiddenByExecution = shown;
+            if (!shown) shownTime = Time.unscaledTime; // 處決標記消失後重新彈出
         }
 
         void HandleLockTargetChanged(LockOnTarget next)
@@ -46,7 +58,7 @@ namespace BossFight.UI
 
         void LateUpdate()
         {
-            bool visible = target != null && viewCamera != null;
+            bool visible = target != null && viewCamera != null && !hiddenByExecution;
             Vector3 screen = Vector3.zero;
             if (visible)
             {

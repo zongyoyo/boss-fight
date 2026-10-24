@@ -9,6 +9,7 @@ namespace BossFight.UI
     /// 與 PlayerStamina.OnStaminaChanged／OnRegenBoostChanged。
     /// 耐力歸零（翻滾、重擊把耐力用光，或舉盾被打到破防）時耐力條閃一下；舉盾加速回復時換成 staminaBoostColor。
     /// 骨頭依上限複製 boneTemplate，沒有的變暗；下方的細條是下一根骨頭的累積進度。
+    /// 骨頭左邊的按鍵提示是 Player/Heal 目前裝置（InputHintDevice）的按鍵，換裝置、改鍵後跟著變。
     /// </summary>
     [DisallowMultipleComponent]
     public class PlayerHudUI : MonoBehaviour
@@ -26,6 +27,12 @@ namespace BossFight.UI
         [SerializeField] Text healthText;
         [Tooltip("下一根骨頭的累積進度；留空時不顯示")]
         [SerializeField] ResourceBar boneProgressBar;
+        [Tooltip("骨頭左邊的啃骨頭鍵（Player/Heal）；留空時不改字")]
+        [SerializeField] Text healKeyText;
+        [Tooltip("啃骨頭鍵的顯示名稱")]
+        [SerializeField] InputNameData inputNames;
+        [Tooltip("目前用鍵鼠還是手把；留空時一律鍵鼠")]
+        [SerializeField] InputHintDevice hintDevice;
 
         Image[][] bones = new Image[0][];
         float staminaFlashUntil;
@@ -45,6 +52,7 @@ namespace BossFight.UI
                 stamina.OnStaminaChanged += HandleStaminaChanged;
                 stamina.OnRegenBoostChanged += HandleRegenBoostChanged;
             }
+            if (hintDevice != null) hintDevice.OnDeviceChanged += HandleDeviceChanged;
         }
 
         void OnDisable()
@@ -61,12 +69,19 @@ namespace BossFight.UI
                 stamina.OnStaminaChanged -= HandleStaminaChanged;
                 stamina.OnRegenBoostChanged -= HandleRegenBoostChanged;
             }
+            if (hintDevice != null) hintDevice.OnDeviceChanged -= HandleDeviceChanged;
         }
 
         void Start()
         {
             if (healthBar.FillImage != null) healthBar.FillImage.color = data.playerHealthColor;
             if (boneProgressBar != null && boneProgressBar.FillImage != null) boneProgressBar.FillImage.color = data.boneProgressColor;
+            if (hintDevice == null) HandleDeviceChanged(false);
+        }
+
+        void HandleDeviceChanged(bool gamepad)
+        {
+            if (healKeyText != null) healKeyText.text = BindingText.FirstDisplay("Player/Heal", BindingText.Group(gamepad), inputNames);
         }
 
         void HandleHealthChanged(float current, float max)

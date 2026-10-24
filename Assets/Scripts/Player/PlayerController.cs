@@ -141,14 +141,18 @@ namespace BossFight.Player
 
         /// <summary>
         /// 鎖住或解除輸入（演出用）。鎖住時清掉預約的輸入、中斷蓄力；正在做的動作（翻滾、揮刀）照常做完。鎖住期間不能切換鎖定。
-        /// 解除時停止照腳本走。
+        /// 解除時停止照腳本走；照腳本走的速度（跳過演出時一幀被推開好幾公尺）不帶進操作，免得解除後繼續滑。
         /// </summary>
         public void SetInputLocked(bool locked)
         {
             InputLocked = locked;
             jumpRequested = bufferedAttack = bufferedRoll = bufferedExecute = false;
             if (locked && Action == PlayerAction.Charge) SetAction(PlayerAction.None);
-            if (!locked) hasScriptedTarget = false;
+            if (!locked && hasScriptedTarget)
+            {
+                hasScriptedTarget = false;
+                planarVelocity = Vector3.zero;
+            }
         }
 
         /// <summary>輸入鎖住時，這一幀往 position（只看水平）走過去，面向前進方向；由 Timeline 每幀給。</summary>

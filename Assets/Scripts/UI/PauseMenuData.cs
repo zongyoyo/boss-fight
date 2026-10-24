@@ -71,8 +71,10 @@ namespace BossFight.UI
         public string onText = "開";
         public string offText = "關";
         public string backLabel = "返回";
-        [Tooltip("每一頁下方的操作提示")]
-        public string navigationHint = "Esc／手把 B 返回";
+        [Tooltip("每一頁下方的操作提示（用鍵鼠時）")]
+        public string navigationHintKeyboard = "Esc 返回";
+        [Tooltip("每一頁下方的操作提示（用手把時）")]
+        public string navigationHintGamepad = "B 返回";
 
         [Header("按鍵設定")]
         public string keyboardLabel = "鍵鼠按鍵設定";

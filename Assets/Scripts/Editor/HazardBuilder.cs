@@ -304,16 +304,69 @@ namespace BossFight.EditorTools
             return SavePrefab(go, "TornadoVortex").GetComponent<TornadoVortex>();
         }
 
-        /// 大迴旋的安全區：只有一個地上的圓圈，顏色在 SafeZone 上指定。
+        /// 大迴旋的安全區：地上的圓圈（顏色在 SafeZone 上指定）與圈中央的漂浮盾牌（T14 佔位標記）。
         static SafeZone BuildSafeZone(GroundTelegraph telegraphPrefab)
         {
             var go = new GameObject("SafeZone");
             var circle = (GroundTelegraph)PrefabUtility.InstantiatePrefab(telegraphPrefab);
             circle.name = "Circle";
             circle.transform.SetParent(go.transform, false);
+            var shield = BuildShieldMarker(go.transform);
             var zone = go.AddComponent<SafeZone>();
             DaoDunDogBuilder.SetReference(zone, "circle", circle);
+            DaoDunDogBuilder.SetReference(zone, "shield", shield);
             return SavePrefab(go, "SafeZone").GetComponent<SafeZone>();
+        }
+
+        /// 佔位的發光圓盾（直立、約 0.9 m）：外框、盾面、中間的十字紋與盾心，正反兩面都有（會自轉），都是基本形體、沒有碰撞。高度與動作由 SafeZone 執行時擺。
+        static Transform BuildShieldMarker(Transform parent)
+        {
+            var rimMat = GetGlowMat("Fx_ShieldRim", new Color(0.75f, 0.85f, 0.95f), new Color(0.45f, 0.75f, 1.1f));
+            var faceMat = GetGlowMat("Fx_ShieldFace", new Color(0.1f, 0.3f, 0.75f), new Color(0.03f, 0.18f, 0.6f));
+            var emblemMat = GetGlowMat("Fx_ShieldEmblem", Color.white, new Color(1.1f, 1.2f, 1.3f));
+
+            var root = DaoDunDogBuilder.Node(parent, "ShieldMarker", Vector3.zero);
+            Part(root, "Rim", PrimitiveType.Cylinder, rimMat, Vector3.zero, Quaternion.Euler(90f, 0f, 0f), new Vector3(0.9f, 0.03f, 0.9f));
+            foreach (float side in new[] { 1f, -1f })
+            {
+                string suffix = side > 0f ? "Front" : "Back";
+                Part(root, "Face" + suffix, PrimitiveType.Cylinder, faceMat, new Vector3(0f, 0f, 0.035f * side), Quaternion.Euler(90f, 0f, 0f), new Vector3(0.78f, 0.03f, 0.78f));
+                Part(root, "CrossV" + suffix, PrimitiveType.Cube, emblemMat, new Vector3(0f, 0f, 0.08f * side), Quaternion.identity, new Vector3(0.12f, 0.6f, 0.04f));
+                Part(root, "CrossH" + suffix, PrimitiveType.Cube, emblemMat, new Vector3(0f, 0.05f, 0.08f * side), Quaternion.identity, new Vector3(0.5f, 0.12f, 0.04f));
+                Part(root, "Center" + suffix, PrimitiveType.Sphere, rimMat, new Vector3(0f, 0.05f, 0.1f * side), Quaternion.identity, new Vector3(0.16f, 0.16f, 0.08f));
+            }
+            return root;
+        }
+
+        static void Part(Transform parent, string name, PrimitiveType type, Material mat, Vector3 pos, Quaternion rot, Vector3 scale)
+        {
+            var go = GameObject.CreatePrimitive(type);
+            go.name = name;
+            Object.DestroyImmediate(go.GetComponent<Collider>());
+            go.transform.SetParent(parent, false);
+            go.transform.SetLocalPositionAndRotation(pos, rot);
+            go.transform.localScale = scale;
+            var r = go.GetComponent<MeshRenderer>();
+            r.sharedMaterial = mat;
+            r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        }
+
+        /// 自己發光的 URP Lit 材質（HDR Emission，配合 Bloom 看起來發亮）；只在不存在時建立。
+        static Material GetGlowMat(string name, Color color, Color emission)
+        {
+            DaoDunDogBuilder.EnsureFolder(MatDir);
+            string path = $"{MatDir}/{name}.mat";
+            var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (mat != null) return mat;
+
+            mat = new Material(Shader.Find("Universal Render Pipeline/Lit")) { name = name };
+            mat.SetColor("_BaseColor", color);
+            mat.SetFloat("_Smoothness", 0.6f);
+            mat.EnableKeyword("_EMISSION");
+            mat.SetColor("_EmissionColor", emission);
+            mat.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
+            AssetDatabase.CreateAsset(mat, path);
+            return mat;
         }
 
         /// 大迴旋的全場判定：Hitbox、落地時整片閃紅光的地面提示；安全區執行時生成在底下。

@@ -27,7 +27,9 @@ namespace BossFight.Cutscene
     /// <summary>
     /// 播放一段演出（同一個物件上 PlayableDirector 的 Timeline），期間鎖住玩家與鏡頭的輸入、由 Timeline 的 Cinemachine Track 接管鏡頭。
     /// 場景裡一段演出一個物件：開場（IntroCutscene，Assets/Timelines/Intro.playable）、轉階段（TransitionCutscene，Transition.playable）。
-    /// BattleManager 呼叫 Play；skippable 時長按 Player/SkipCutscene（Space）settings.skipHoldTime 秒，跳到 Timeline 上的 SkipTarget 標記（開場第 7 鏡）。
+    /// BattleManager 呼叫 Play；skippable 時長按 Player/SkipCutscene（Space）settings.skipHoldTime 秒，跳到 Timeline 上的 SkipTarget 標記（開場第 7 鏡）；
+    /// 沒有標記時跳到結尾（轉階段）：先在結尾前一點點 Evaluate 一次、停住，套用結尾的狀態（Hold 的片段：法陣全紅、Boss 電光、音樂重播、玩家被推到外圈），
+    /// 等下一幀所有 Update 跑完（玩家在輸入還鎖著時走到被推開的位置）才在 LateUpdate 結束。
     /// Timeline 用遊戲時間播，暫停（ESC 選單、F12 面板，timeScale 0）時演出停住，長按跳過也不累積。
     /// 有接 CutsceneStage 時，開始播之前先依玩家與場地中心的位置擺好演出鏡頭（轉階段時玩家在哪裡都有可能）。
     /// 播完時把自由視角擺到玩家背後、面向 Boss，解除輸入鎖定，送出 OnCutsceneFinished；BattleManager 收到後讓 Boss 開打或進入下一個階段。
@@ -38,7 +40,7 @@ namespace BossFight.Cutscene
     [DisallowMultipleComponent]
     public class CutsceneDirector : MonoBehaviour, INotificationReceiver
     {
-        [Tooltip("跳過與字卡的設定；留空 = 不能跳過、沒有字卡（轉階段）")]
+        [Tooltip("跳過與字卡的設定；留空 = 不能跳過、沒有字卡。轉階段也接同一份（只用跳過的秒數，Timeline 上沒有字卡標記）")]
         [SerializeField] IntroCutsceneSettings settings;
         [Tooltip("演出期間鎖住輸入，由 Timeline 帶著走")]
         [SerializeField] PlayerController player;
@@ -63,10 +65,12 @@ namespace BossFight.Cutscene
         public bool IsPlaying { get; private set; }
         public bool CanSkip => IsPlaying && skippable && !skipped;
 
+
         PlayableDirector director;
         InputAction skipAction;
         bool skippable, skipped;
         float held, lastProgress;
+        int stopAfterFrame = -1; // 跳到結尾：這一幀之後的 LateUpdate 結束演出
 
         void Awake()
         {
@@ -85,7 +89,7 @@ namespace BossFight.Cutscene
 
         void OnDisable() => director.stopped -= HandleStopped;
 
-        /// <summary>從頭播放；canSkip = 可以長按跳過（開場第二次挑戰起；沒有 settings 時一律不能跳過）。</summary>
+        /// <summary>從頭播放；canSkip = 可以長按跳過（這次執行看過同一段演出之後；沒有 settings 時一律不能跳過）。</summary>
         public void Play(bool canSkip)
         {
             if (IsPlaying) return;
@@ -93,6 +97,7 @@ namespace BossFight.Cutscene
             skippable = canSkip && settings != null;
             skipped = false;
             held = lastProgress = 0f;
+            stopAfterFrame = -1;
 
             if (player != null) player.SetInputLocked(true);
             if (cameraController != null) cameraController.SetInputLocked(true);
@@ -126,9 +131,27 @@ namespace BossFight.Cutscene
 
             double target = SkipTargetTime();
             if (target >= director.duration)
-                director.Stop(); // 送出 stopped → Finish
+            {
+                // 跳到結尾前一點點，套用結尾的狀態後停住；玩家要在輸入還鎖著時照 ScriptedMoveTo 走到被推開的位置，下一幀的 LateUpdate 才結束
+                director.time = Math.Max(director.time, director.duration - EndEvaluateOffset);
+                director.Evaluate();
+                director.Pause();
+                stopAfterFrame = Time.frameCount;
+            }
             else if (target > director.time)
+            {
                 director.time = target;
+            }
+        }
+
+        // 跳到結尾時，Evaluate 的時間比結尾早這麼多秒（還在 Timeline 範圍內，Hold 的片段才會作用）
+        const double EndEvaluateOffset = 0.001;
+
+        void LateUpdate()
+        {
+            if (stopAfterFrame < 0 || Time.frameCount <= stopAfterFrame) return;
+            stopAfterFrame = -1;
+            director.Stop(); // 送出 stopped → Finish
         }
 
         // Timeline 上 SkipTarget 標記的時間；沒有就是結尾

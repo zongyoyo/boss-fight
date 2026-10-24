@@ -12,6 +12,9 @@ namespace BossFight.UI
         public const string KeyboardGroup = "Keyboard&Mouse";
         public const string GamepadGroup = "Gamepad";
 
+        /// <summary>按鍵提示用的控制組：手把或鍵鼠（InputHintDevice.OnDeviceChanged 的參數）。</summary>
+        public static string Group(bool gamepad) => gamepad ? GamepadGroup : KeyboardGroup;
+
         /// <summary>
         /// 動作在 group 裡第 slot 個綁定（0 = 主要、1 = 次要）的索引；compositePart 不是空的時找組合鍵裡同名的部分（Move 的 up／down／left／right）。
         /// 找不到時回傳 -1。

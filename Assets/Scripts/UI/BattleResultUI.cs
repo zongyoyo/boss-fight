@@ -10,7 +10,7 @@ namespace BossFight.UI
     /// 勝利與失敗畫面。只訂閱 BattleManager.OnBattleResult：暗幕淡入，顯示標題、副標、戰鬥資訊與按鈕。
     /// 勝利：通關時間、第幾次挑戰，按鈕「再挑戰」；失敗：Boss 剩餘血量、戰鬥時間、第幾次挑戰，按鈕「重試」。
     /// 按鈕呼叫 BattleManager.Retry（重新載入場景，之後開場可以長按跳過）；出現時把按鈕設為選取，Enter／手把 A 也能按。
-    /// Boss 名稱來自開場字卡（CutsceneDirector.OnTitleCard），沒有時用 BattleUIData.fallbackBossName。
+    /// Boss 名稱來自開場字卡（CutsceneDirector.OnTitleCard），沒有時用 BattleUIData.fallbackBossName。按鈕下面的提示跟著目前裝置（InputHintDevice）換鍵鼠或手把的字。
     /// </summary>
     [DisallowMultipleComponent]
     public class BattleResultUI : MonoBehaviour
@@ -28,6 +28,8 @@ namespace BossFight.UI
         [SerializeField] Text hintText;
         [Tooltip("出現時把按鈕設為選取（Enter／手把 A 可以按）")]
         [SerializeField] EventSystem eventSystem;
+        [Tooltip("目前用鍵鼠還是手把（按鈕下面的提示）；留空時一律鍵鼠")]
+        [SerializeField] InputHintDevice hintDevice;
 
         string bossName;
         float shownAt = -1f;
@@ -38,7 +40,7 @@ namespace BossFight.UI
             group.alpha = 0f;
             group.interactable = false;
             group.blocksRaycasts = false;
-            hintText.text = data.buttonHint;
+            hintText.text = data.buttonHintKeyboard;
         }
 
         void OnEnable()
@@ -46,6 +48,7 @@ namespace BossFight.UI
             if (battle != null) battle.OnBattleResult += Show;
             if (intro != null) intro.OnTitleCard += HandleTitleCard;
             retryButton.onClick.AddListener(Retry);
+            if (hintDevice != null) hintDevice.OnDeviceChanged += HandleDeviceChanged;
         }
 
         void OnDisable()
@@ -53,7 +56,10 @@ namespace BossFight.UI
             if (battle != null) battle.OnBattleResult -= Show;
             if (intro != null) intro.OnTitleCard -= HandleTitleCard;
             retryButton.onClick.RemoveListener(Retry);
+            if (hintDevice != null) hintDevice.OnDeviceChanged -= HandleDeviceChanged;
         }
+
+        void HandleDeviceChanged(bool gamepad) => hintText.text = gamepad ? data.buttonHintGamepad : data.buttonHintKeyboard;
 
         void HandleTitleCard(TitleCardInfo info)
         {

@@ -29,15 +29,22 @@ MonoBehaviour:
   lockMarkerPopTime: 0.15
   lockMarkerPulse: 0.1
   lockMarkerPulseRate: 1.5
+  executionMarkerColor: {r: 1, g: 0.15, b: 0.12, a: 0.95}
+  executionMarkerPopScale: 2.2
+  executionMarkerPopTime: 0.2
+  executionMarkerPulse: 0.15
+  executionMarkerPulseRate: 2.5
   playerHealthColor: {r: 0.86, g: 0.2, b: 0.2, a: 1}
   staminaColor: {r: 0.35, g: 0.85, b: 0.4, a: 1}
   staminaEmptyColor: {r: 1, g: 0.85, b: 0.3, a: 1}
+  staminaBoostColor: {r: 0.55, g: 1, b: 0.95, a: 1}
   bossHealthColor: {r: 0.72, g: 0.18, b: 0.85, a: 1}
   trailColor: {r: 1, g: 0.9, b: 0.65, a: 1}
   staggerColor: {r: 1, g: 0.78, b: 0.2, a: 1}
   stunnedColor: {r: 1, g: 1, b: 0.75, a: 1}
   boneColor: {r: 0.98, g: 0.93, b: 0.82, a: 1}
   boneUsedColor: {r: 0.3, g: 0.3, b: 0.3, a: 0.6}
+  boneProgressColor: {r: 0.98, g: 0.8, b: 0.45, a: 1}
   stunnedLabel: "\u982D\u6688\u4E2D\uFF01\u9760\u8FD1\u6309 {0} \u8655\u6C7A"
   victoryTitle: "\u52DD\u5229"
   victorySubtitle: "{0} \u8A0E\u4F10\u6210\u529F"
@@ -45,6 +52,7 @@ MonoBehaviour:
   defeatSubtitle: "\u5200\u76FE\u72D7\u5012\u4E0B\u4E86"
   victoryButton: "\u518D\u6311\u6230"
   defeatButton: "\u91CD\u8A66"
-  buttonHint: "Enter\uFF0F\u624B\u628A A"
+  buttonHintKeyboard: "Enter \u78BA\u8A8D"
+  buttonHintGamepad: "A \u78BA\u8A8D"
   victoryColor: {r: 1, g: 0.85, b: 0.4, a: 1}
   defeatColor: {r: 0.85, g: 0.25, b: 0.25, a: 1}

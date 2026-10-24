@@ -16,7 +16,7 @@ namespace BossFight.EditorTools
     /// Tools > UI > Build Pause Menu：建立 ESC 選單（T13）。
     /// 1. 數值資產（沒有才建）：ScriptableObjects/UI/PauseMenuData.asset（文字、顏色、改鍵清單；試聽音效空著時填 Sfx_Combat_Block）、
     ///    ScriptableObjects/UI/InputNameData.asset（按鍵顯示名稱）、ScriptableObjects/Options/GameOptionsData.asset（設定的預設值）。
-    /// 2. GameOptions 物件（沒有才建）：GameOptions（設定存檔）與 GamePause（暫停）。
+    /// 2. GameOptions 物件（沒有才建）：GameOptions（設定存檔）、GamePause（暫停）與 InputHintDevice（按鍵提示顯示鍵鼠還是手把）。
     /// 3. PauseMenu Canvas（每次重建，排在所有 UI 上面）：暗幕與 7 頁（主選單、設定、按鍵設定、鍵鼠、控制器、音量、確認）。
     ///    頁面上的固定文字、按鈕顏色、改鍵頁的大小依 PauseMenuData 建立，改了要重跑這裡。
     /// 4. 接線（Wire，Tools > UI > Wire Pause Menu 也可以單獨跑）：AudioManager（GameOptions、選單試聽的 Ui AudioSource、演出 Timeline 音軌的 AudioSource）、
@@ -44,6 +44,7 @@ namespace BossFight.EditorTools
         static Font font;
         static Sprite roundSprite, knobSprite;
         static PauseMenuData data;
+        static readonly List<Text> navigationHints = new List<Text>(); // Window 建的每一頁下方返回提示
 
         [MenuItem("Tools/UI/Build Pause Menu")]
         public static void BuildFromMenu()
@@ -80,6 +81,7 @@ namespace BossFight.EditorTools
 
             var old = GameObject.Find(MenuName);
             if (old != null) Undo.DestroyObjectImmediate(old);
+            navigationHints.Clear();
 
             font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf"); // 內建字型會借用系統字型顯示中文
             roundSprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/UISprite.psd");
@@ -160,6 +162,7 @@ namespace BossFight.EditorTools
             so.FindProperty("confirmText").objectReferenceValue = message;
             Set(so, "confirmYesButton", MenuButton("Yes", confirm, data.confirmYes, new Vector2(-130f, -100f), new Vector2(220f, 76f)));
             Set(so, "confirmNoButton", MenuButton("No", confirm, data.confirmNo, new Vector2(130f, -100f), new Vector2(220f, 76f)));
+            IntroCutsceneBuilder.SetArray(so.FindProperty("navigationHints"), navigationHints);
 
             so.ApplyModifiedPropertiesWithoutUndo();
 
@@ -189,6 +192,7 @@ namespace BossFight.EditorTools
                 return;
             }
             var inputNames = AssetDatabase.LoadAssetAtPath<InputNameData>(InputNamesPath);
+            var hintDevice = DaoDunDogBuilder.GetOrAdd<InputHintDevice>(options.gameObject);
             var battle = Object.FindAnyObjectByType<BattleManager>();
             var audio = Object.FindAnyObjectByType<AudioManager>();
 
@@ -226,13 +230,24 @@ namespace BossFight.EditorTools
                 so.ApplyModifiedProperties();
             }
 
-            // 按鍵提示跟著改鍵
+            // 按鍵提示跟著改鍵、跟著目前的裝置（鍵鼠／手把）
             foreach (var hud in Object.FindObjectsByType<BossHudUI>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            {
                 DaoDunDogBuilder.SetReference(hud, "inputNames", inputNames);
+                DaoDunDogBuilder.SetReference(hud, "hintDevice", hintDevice);
+            }
+            foreach (var hud in Object.FindObjectsByType<PlayerHudUI>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            {
+                DaoDunDogBuilder.SetReference(hud, "inputNames", inputNames);
+                DaoDunDogBuilder.SetReference(hud, "hintDevice", hintDevice);
+            }
+            foreach (var result in Object.FindObjectsByType<BattleResultUI>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                DaoDunDogBuilder.SetReference(result, "hintDevice", hintDevice);
             foreach (var skip in Object.FindObjectsByType<SkipPromptUI>(FindObjectsInactive.Include, FindObjectsSortMode.None))
             {
                 var so = new SerializedObject(skip);
                 so.FindProperty("inputNames").objectReferenceValue = inputNames;
+                so.FindProperty("hintDevice").objectReferenceValue = hintDevice;
                 var label = so.FindProperty("label");
                 if (label.objectReferenceValue == null)
                 {
@@ -251,6 +266,7 @@ namespace BossFight.EditorTools
                 so.FindProperty("audioManager").objectReferenceValue = audio;
                 so.FindProperty("options").objectReferenceValue = options;
                 so.FindProperty("pause").objectReferenceValue = pause;
+                so.FindProperty("hintDevice").objectReferenceValue = hintDevice;
                 so.ApplyModifiedPropertiesWithoutUndo();
             }
 
@@ -460,7 +476,8 @@ namespace BossFight.EditorTools
                 var t = Label("Title", rt, title, 56, FontStyle.Bold, data.titleColor, TextAnchor.MiddleCenter);
                 PlaceTop(t.rectTransform, -65f, new Vector2(size.x - 80f, 80f));
             }
-            var hint = Label("Hint", rt, data.navigationHint, 24, FontStyle.Normal, data.hintColor, TextAnchor.MiddleCenter);
+            var hint = Label("Hint", rt, data.navigationHintKeyboard, 24, FontStyle.Normal, data.hintColor, TextAnchor.MiddleCenter);
+            navigationHints.Add(hint);
             hint.rectTransform.anchorMin = hint.rectTransform.anchorMax = hint.rectTransform.pivot = new Vector2(0.5f, 0f);
             hint.rectTransform.sizeDelta = new Vector2(size.x - 80f, 30f);
             hint.rectTransform.anchoredPosition = new Vector2(0f, 14f);

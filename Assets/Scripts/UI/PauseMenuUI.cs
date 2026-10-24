@@ -43,6 +43,10 @@ namespace BossFight.UI
         [SerializeField] EventSystem eventSystem;
         [Tooltip("整個選單（暗幕與所有頁面）")]
         [SerializeField] CanvasGroup group;
+        [Tooltip("目前用鍵鼠還是手把（每一頁下方的返回提示）；留空時一律鍵鼠")]
+        [SerializeField] InputHintDevice hintDevice;
+        [Tooltip("每一頁下方的返回提示")]
+        [SerializeField] Text[] navigationHints;
 
         [Header("主選單")]
         [SerializeField] GameObject mainPage;
@@ -144,6 +148,7 @@ namespace BossFight.UI
             }
             keyboardPage.OnBack += Back;
             gamepadPage.OnBack += Back;
+            if (hintDevice != null) hintDevice.OnDeviceChanged += HandleDeviceChanged;
         }
 
         void OnDisable()
@@ -155,7 +160,18 @@ namespace BossFight.UI
             }
             keyboardPage.OnBack -= Back;
             gamepadPage.OnBack -= Back;
+            if (hintDevice != null) hintDevice.OnDeviceChanged -= HandleDeviceChanged;
             if (IsOpen) Close();
+        }
+
+        void HandleDeviceChanged(bool gamepad)
+        {
+            if (navigationHints == null) return;
+            string text = gamepad ? data.navigationHintGamepad : data.navigationHintKeyboard;
+            foreach (var hint in navigationHints)
+            {
+                if (hint != null) hint.text = text;
+            }
         }
 
         void Update()

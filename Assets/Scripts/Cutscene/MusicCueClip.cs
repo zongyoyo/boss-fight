@@ -19,13 +19,13 @@ namespace BossFight.Cutscene
 
     /// <summary>
     /// 片段開始時叫 AudioManager 對戰鬥音樂（OIIA 音樂）做一個動作；音樂由 AudioManager 播，演出結束後繼續。
-    /// 跳過開場直接跳進片段中間也會執行；每個片段只執行一次。
+    /// 跳過開場直接跳進片段中間也會執行；每個片段只執行一次。片段設成 Hold 時延伸到之後也算（轉階段的「Restart」：跳過演出時在結尾補上重播）。
     /// </summary>
     public class MusicCueClip : PlayableAsset, ITimelineClipAsset
     {
         public MusicCueBehaviour template = new MusicCueBehaviour();
 
-        public ClipCaps clipCaps => ClipCaps.None;
+        public ClipCaps clipCaps => ClipCaps.Extrapolation;
 
         public override Playable CreatePlayable(PlayableGraph graph, GameObject owner) =>
             ScriptPlayable<MusicCueBehaviour>.Create(graph, template);

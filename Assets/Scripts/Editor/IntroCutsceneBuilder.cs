@@ -618,7 +618,7 @@ namespace BossFight.EditorTools
             fill.raycastTarget = false;
             var skipUi = skip.gameObject.AddComponent<SkipPromptUI>();
             var sso = new SerializedObject(skipUi);
-            sso.FindProperty("source").objectReferenceValue = cutscene;
+            SetArray(sso.FindProperty("sources"), new List<CutsceneDirector> { cutscene }); // 轉階段演出由 TransitionCutsceneBuilder 加進來
             sso.FindProperty("group").objectReferenceValue = skipGroup;
             sso.FindProperty("fill").objectReferenceValue = fill;
             sso.ApplyModifiedPropertiesWithoutUndo();

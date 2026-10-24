@@ -6,6 +6,7 @@ namespace BossFight.UI
     /// <summary>
     /// 一條橫向的量條（血量、耐力、失衡值）：主條追到目前的比例；扣的時候後面留一段淺色的「延遲扣血」，停 trailDelay 秒再縮過去，看得出這一下扣了多少。
     /// 長度用 RectTransform 的 anchorMax.x 控制（不需要 Filled 的 sprite）。不訂閱事件，由擁有它的 UI 元件呼叫 Set。時間用真實時間（慢動作、畫面停頓時照跑）。
+    /// 置中模式（SetCentered，Boss 頭暈倒數）：主條改成從中間往左右兩邊長，比例直接套用、不追趕，延遲扣血藏起來。
     /// </summary>
     [DisallowMultipleComponent]
     public class ResourceBar : MonoBehaviour
@@ -19,7 +20,8 @@ namespace BossFight.UI
         [SerializeField] bool useTrail = true;
 
         float target = 1f, shown = 1f, trailValue = 1f, trailHoldUntil;
-        bool initialized;
+        bool initialized, centered;
+        float fillMinX;
 
         /// <summary>主條的 Image（擁有者用來換顏色、閃爍）；沒有時為 null。</summary>
         public Image FillImage { get; private set; }
@@ -27,6 +29,7 @@ namespace BossFight.UI
         void Awake()
         {
             FillImage = fill != null ? fill.GetComponent<Image>() : null;
+            if (fill != null) fillMinX = fill.anchorMin.x;
             if (trail == null) return;
             trail.gameObject.SetActive(useTrail);
             var trailImage = trail.GetComponent<Image>();
@@ -52,8 +55,20 @@ namespace BossFight.UI
             target = ratio;
         }
 
+        /// <summary>
+        /// 切換置中模式：開著時 Set 的比例是從中間往兩邊的長度（1 = 整條、0 = 收到中間），直接套用不追趕；延遲扣血藏起來。
+        /// 關掉時回到從左邊長出來，直接跳到 ratio。
+        /// </summary>
+        public void SetCentered(bool on, float ratio)
+        {
+            centered = on;
+            if (trail != null) trail.gameObject.SetActive(useTrail && !on);
+            Set(ratio, true);
+        }
+
         void Update()
         {
+            if (centered) return;
             float dt = Time.unscaledDeltaTime;
             shown = Mathf.MoveTowards(shown, target, data.fillSpeed * dt);
             if (trailValue < shown || !useTrail) trailValue = shown; // 回血：延遲條直接跟上
@@ -63,7 +78,17 @@ namespace BossFight.UI
 
         void Apply()
         {
-            if (fill != null) fill.anchorMax = new Vector2(shown, fill.anchorMax.y);
+            if (fill != null && centered)
+            {
+                fill.anchorMin = new Vector2(0.5f - shown * 0.5f, fill.anchorMin.y);
+                fill.anchorMax = new Vector2(0.5f + shown * 0.5f, fill.anchorMax.y);
+                return;
+            }
+            if (fill != null)
+            {
+                fill.anchorMin = new Vector2(fillMinX, fill.anchorMin.y);
+                fill.anchorMax = new Vector2(shown, fill.anchorMax.y);
+            }
             if (trail != null) trail.anchorMax = new Vector2(trailValue, trail.anchorMax.y);
         }
     }

@@ -32,6 +32,7 @@ namespace BossFight.EditorTools
         const string DataPath = "Assets/ScriptableObjects/UI/BattleUIData.asset";
         const string UiName = "BattleUI";
         const string EventSystemName = "EventSystem";
+        const string RingSpritePath = "Assets/Models/UI/Ui_Ring.png";
 
         static Font font;
         static Sprite roundSprite, knobSprite;
@@ -106,6 +107,8 @@ namespace BossFight.EditorTools
             var hud = Node("Hud", root.transform, typeof(CanvasGroup));
             IntroCutsceneBuilder.Stretch(hud);
             var marker = BuildLockMarker(hud, data, player, mainCamera);
+            var execution = BuildExecutionMarker(hud, data, boss, mainCamera);
+            DaoDunDogBuilder.SetReference(marker.parent.GetComponent<LockOnMarkerUI>(), "executionMarker", execution);
             BuildPlayerHud(hud, data, playerHealth, stamina);
 
             // ---------- Boss ----------
@@ -113,7 +116,71 @@ namespace BossFight.EditorTools
             IntroCutsceneBuilder.Stretch(bossRoot);
             var bossPanel = BuildBossHud(bossRoot, data, bossHealth, stagger, intro);
 
-            // ---------- 勝敗畫面 ----------
+            // ---------- 處決標記 ----------
+
+        // 頭暈時 Boss 胸口的紅色圓環加中心點；外面一圈深色描邊，亮的背景上也看得到
+        static ExecutionMarkerUI BuildExecutionMarker(RectTransform parent, BattleUIData data, BossController boss, Camera mainCamera)
+        {
+            var area = Node("Execution", parent);
+            IntroCutsceneBuilder.Stretch(area);
+            var marker = Node("Marker", area);
+            marker.anchorMin = marker.anchorMax = marker.pivot = new Vector2(0.5f, 0.5f);
+            marker.sizeDelta = new Vector2(72f, 72f);
+            var ring = GetRingSprite();
+            var outline = Img("Outline", marker, ring, new Color(0f, 0f, 0f, 0.6f));
+            Place(outline.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(64f, 64f));
+            var circle = Img("Ring", marker, ring, data.executionMarkerColor);
+            Place(circle.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(56f, 56f));
+            var dotOutline = Img("DotOutline", marker, knobSprite, new Color(0f, 0f, 0f, 0.6f));
+            Place(dotOutline.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(18f, 18f));
+            var dot = Img("Dot", marker, knobSprite, data.executionMarkerColor);
+            Place(dot.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(12f, 12f));
+
+            var lockOn = boss.GetComponent<LockOnTarget>();
+            var ui = area.gameObject.AddComponent<ExecutionMarkerUI>();
+            var so = new SerializedObject(ui);
+            so.FindProperty("data").objectReferenceValue = data;
+            so.FindProperty("target").objectReferenceValue = boss.GetComponent<ExecutionTarget>();
+            so.FindProperty("aimPoint").objectReferenceValue = lockOn != null ? lockOn.AimPoint : boss.transform;
+            so.FindProperty("viewCamera").objectReferenceValue = mainCamera;
+            so.FindProperty("marker").objectReferenceValue = marker;
+            IntroCutsceneBuilder.SetArray(so.FindProperty("tinted"), new List<Image> { circle, dot });
+            so.ApplyModifiedPropertiesWithoutUndo();
+            return ui;
+        }
+
+        // 圓環 sprite（白色、邊緣反鋸齒，UI 用 Image 的顏色上色）；只在不存在時產生
+        static Sprite GetRingSprite()
+        {
+            var sprite = AssetDatabase.LoadAssetAtPath<Sprite>(RingSpritePath);
+            if (sprite != null) return sprite;
+            DaoDunDogBuilder.EnsureFolder("Assets/Models/UI");
+            const int size = 128;
+            const float outer = size * 0.5f - 1f, inner = outer - size * 0.12f;
+            var tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
+            var pixels = new Color32[size * size];
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    float d = Vector2.Distance(new Vector2(x + 0.5f, y + 0.5f), new Vector2(size * 0.5f, size * 0.5f));
+                    float a = Mathf.Clamp01(outer - d + 0.5f) * Mathf.Clamp01(d - inner + 0.5f);
+                    pixels[y * size + x] = new Color32(255, 255, 255, (byte)(a * 255f));
+                }
+            }
+            tex.SetPixels32(pixels);
+            System.IO.File.WriteAllBytes(RingSpritePath, tex.EncodeToPNG());
+            Object.DestroyImmediate(tex);
+            AssetDatabase.ImportAsset(RingSpritePath);
+            var importer = (TextureImporter)AssetImporter.GetAtPath(RingSpritePath);
+            importer.textureType = TextureImporterType.Sprite;
+            importer.alphaIsTransparency = true;
+            importer.mipmapEnabled = false;
+            importer.SaveAndReimport();
+            return AssetDatabase.LoadAssetAtPath<Sprite>(RingSpritePath);
+        }
+
+        // ---------- 勝敗畫面 ----------
             BuildResult(root.transform, data, battle, intro, eventSystem);
 
             var ui = root.AddComponent<BattleUI>();
@@ -150,7 +217,7 @@ namespace BossFight.EditorTools
             var healthText = Label("Value", healthBar.transform, "100 / 100", 22, FontStyle.Bold, Color.white, TextAnchor.MiddleRight);
             Stretch(healthText.rectTransform, new Vector2(0f, 0f), new Vector2(-10f, 0f));
 
-            // 骨頭：「R」按鍵提示 + 每場次數的骨頭圖示（執行時依次數複製）
+            // 骨頭：啃骨頭鍵（執行時讀 Player/Heal 目前裝置的鍵）+ 每場次數的骨頭圖示（執行時依次數複製）
             var bones = Node("Bones", panel);
             bones.anchorMin = bones.anchorMax = bones.pivot = Vector2.zero;
             bones.sizeDelta = new Vector2(420f, 40f);
@@ -180,6 +247,7 @@ namespace BossFight.EditorTools
             so.FindProperty("boneTemplate").objectReferenceValue = template;
             so.FindProperty("healthText").objectReferenceValue = healthText;
             so.FindProperty("boneProgressBar").objectReferenceValue = boneProgress;
+            so.FindProperty("healKeyText").objectReferenceValue = keyText;
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 
@@ -302,7 +370,7 @@ namespace BossFight.EditorTools
             button.colors = colors;
             var label = Label("Label", buttonImage.transform, data.defeatButton, 40, FontStyle.Bold, Color.white, TextAnchor.MiddleCenter);
             Stretch(label.rectTransform, Vector2.zero, Vector2.zero);
-            var hint = Label("Hint", result, data.buttonHint, 24, FontStyle.Normal, new Color(1f, 1f, 1f, 0.7f), TextAnchor.MiddleCenter);
+            var hint = Label("Hint", result, data.buttonHintKeyboard, 24, FontStyle.Normal, new Color(1f, 1f, 1f, 0.7f), TextAnchor.MiddleCenter);
             Place(hint.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, -240f), new Vector2(600f, 36f));
 
             var ui = result.gameObject.AddComponent<BattleResultUI>();

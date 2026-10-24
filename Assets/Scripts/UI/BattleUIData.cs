@@ -21,7 +21,7 @@ namespace BossFight.UI
         [Min(0.01f)] public float fillSpeed = 6f;
         [Tooltip("耐力歸零時耐力條閃爍的秒數")]
         [Min(0f)] public float emptyFlashTime = 0.6f;
-        [Tooltip("閃爍每秒幾下（耐力歸零、Boss 頭暈）")]
+        [Tooltip("閃爍每秒幾下（耐力歸零）")]
         [Min(0.1f)] public float flashRate = 6f;
 
         [Header("出現與淡出（秒，真實時間）")]
@@ -44,6 +44,18 @@ namespace BossFight.UI
         [Tooltip("呼吸每秒幾下")]
         [Min(0f)] public float lockMarkerPulseRate = 1.5f;
 
+        [Header("處決標記（Boss 頭暈中）")]
+        [Tooltip("紅色圓環與中心點的顏色")]
+        public Color executionMarkerColor = new Color(1f, 0.15f, 0.12f, 0.95f);
+        [Tooltip("出現時從幾倍大縮回 1")]
+        [Min(1f)] public float executionMarkerPopScale = 2.2f;
+        [Tooltip("縮回 1 的時間（秒）")]
+        [Min(0.01f)] public float executionMarkerPopTime = 0.2f;
+        [Tooltip("脈動縮放的幅度（0.15 = ±15%）")]
+        [Range(0f, 0.5f)] public float executionMarkerPulse = 0.15f;
+        [Tooltip("脈動每秒幾下")]
+        [Min(0f)] public float executionMarkerPulseRate = 2.5f;
+
         [Header("顏色")]
         public Color playerHealthColor = new Color(0.86f, 0.2f, 0.2f);
         public Color staminaColor = new Color(0.35f, 0.85f, 0.4f);
@@ -55,7 +67,7 @@ namespace BossFight.UI
         [Tooltip("延遲扣血（淺色）")]
         public Color trailColor = new Color(1f, 0.9f, 0.65f);
         public Color staggerColor = new Color(1f, 0.78f, 0.2f);
-        [Tooltip("頭暈中失衡條閃爍的顏色")]
+        [Tooltip("頭暈中失衡條（倒數）的顏色")]
         public Color stunnedColor = new Color(1f, 1f, 0.75f);
         [Tooltip("剩下的骨頭")]
         public Color boneColor = new Color(0.98f, 0.93f, 0.82f);
@@ -65,7 +77,7 @@ namespace BossFight.UI
         public Color boneProgressColor = new Color(0.98f, 0.8f, 0.45f);
 
         [Header("文字")]
-        [Tooltip("頭暈中顯示在失衡條上；{0} = 處決鍵（Player/Execute 目前的鍵鼠按鍵）")]
+        [Tooltip("頭暈中顯示在失衡條上；{0} = 處決鍵（Player/Execute 目前裝置的按鍵）")]
         public string stunnedLabel = "頭暈中！靠近按 {0} 處決";
         public string victoryTitle = "勝利";
         [Tooltip("{0} = Boss 名稱")]
@@ -74,8 +86,10 @@ namespace BossFight.UI
         public string defeatSubtitle = "刀盾狗倒下了";
         public string victoryButton = "再挑戰";
         public string defeatButton = "重試";
-        [Tooltip("按鈕下面的鍵盤／手把提示")]
-        public string buttonHint = "Enter／手把 A";
+        [Tooltip("按鈕下面的提示（用鍵鼠時）")]
+        public string buttonHintKeyboard = "Enter 確認";
+        [Tooltip("按鈕下面的提示（用手把時）")]
+        public string buttonHintGamepad = "A 確認";
         public Color victoryColor = new Color(1f, 0.85f, 0.4f);
         public Color defeatColor = new Color(0.85f, 0.25f, 0.25f);
     }
