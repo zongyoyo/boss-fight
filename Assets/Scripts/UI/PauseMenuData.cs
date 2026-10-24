@@ -72,6 +72,7 @@ namespace BossFight.UI
         public string resumeLabel = "繼續";
         public string settingsLabel = "設定";
         public string retryLabel = "重新挑戰";
+        public string returnToHubLabel = "返回休息區";
         public string quitLabel = "退出遊戲";
         [Tooltip("主選單的按鈕與難度頁的標題")]
         public string difficultyLabel = "難度";
@@ -84,6 +85,8 @@ namespace BossFight.UI
         public string onText = "開";
         public string offText = "關";
         public string backLabel = "返回";
+        [Tooltip("開發者模式開著時，開關下面多一個按鈕")]
+        public string resetSaveLabel = "重置存檔";
         [Tooltip("每一頁下方的操作提示（用鍵鼠時）")]
         public string navigationHintKeyboard = "Esc 返回";
         [Tooltip("每一頁下方的操作提示（用手把時）")]
@@ -156,6 +159,8 @@ namespace BossFight.UI
         [Header("確認")]
         public string retryConfirm = "重新挑戰？\n這場戰鬥的進度會消失。";
         public string quitConfirm = "退出遊戲？";
+        public string returnToHubConfirm = "返回休息區？\n這場戰鬥的進度會消失。";
+        public string resetSaveConfirm = "重置存檔？\n擊敗紀錄等所有進度都會清空，並回到休息區。";
         public string confirmYes = "確定";
         public string confirmNo = "取消";
 

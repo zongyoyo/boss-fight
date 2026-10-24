@@ -92,6 +92,8 @@ namespace BossFight.UI
         public string defeatStatsSeparator = "　　";
         public string victoryButton = "再挑戰";
         public string defeatButton = "重試";
+        [Tooltip("重試按鈕右邊的按鈕（勝敗共用）")]
+        public string returnToHubButton = "返回休息區";
         public Color victoryColor = new Color(1f, 0.85f, 0.4f);
         [Tooltip("戰敗大字剛出現的顏色")]
         public Color defeatTitleStartColor = Color.white;

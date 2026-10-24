@@ -22,7 +22,7 @@ namespace BossFight.EditorTools
     ///    頁面上的固定文字、按鈕顏色、改鍵頁的大小依 PauseMenuData 建立，改了要重跑這裡。
     /// 4. 接線（Wire，Tools > UI > Wire Pause Menu 也可以單獨跑）：AudioManager（GameOptions、選單試聽的 Ui AudioSource、演出 Timeline 音軌的 AudioSource）、
     ///    BattleManager 的 GamePause、GameOptions 與 Difficulty、DebugTools 的 DeveloperMode（開發者模式開關 BossDebugTools、BalanceDebugPanel、PlayerDebugOverlay）、
-    ///    Boss 血條與跳過提示的按鍵名稱。
+    ///    Boss 血條與跳過提示的按鍵名稱；最後跑 SceneFlowBuilder.Build（換場景的 SceneFlow 與黑幕，接上 BattleManager 與選單）。
     /// BattleUIBuilder（Build Intro 最後會跑）結束時會呼叫 Build；TransitionCutsceneBuilder、BossBuilder 結束時呼叫 Wire。
     /// </summary>
     public static class PauseMenuBuilder
@@ -125,25 +125,29 @@ namespace BossFight.EditorTools
             so.FindProperty("group").objectReferenceValue = group;
 
             // ---------- 主選單 ----------
-            var main = Window("Main", root.transform, new Vector2(620f, 690f), data.pauseTitle);
-            var mainButtons = ButtonColumn(main, 175f, data.resumeLabel, data.settingsLabel, data.difficultyLabel, data.retryLabel, data.quitLabel);
+            var main = Window("Main", root.transform, new Vector2(620f, 690f + ButtonGap), data.pauseTitle);
+            var mainButtons = ButtonColumn(main, 175f + ButtonGap * 0.5f, data.resumeLabel, data.settingsLabel, data.difficultyLabel, data.retryLabel,
+                                           data.returnToHubLabel, data.quitLabel);
             so.FindProperty("mainPage").objectReferenceValue = main.gameObject;
             Set(so, "resumeButton", mainButtons[0]);
             Set(so, "settingsButton", mainButtons[1]);
             Set(so, "difficultyButton", mainButtons[2]);
             Set(so, "retryButton", mainButtons[3]);
-            Set(so, "quitButton", mainButtons[4]);
+            Set(so, "hubButton", mainButtons[4]);
+            Set(so, "quitButton", mainButtons[5]);
 
             // ---------- 設定 ----------
-            var settings = Window("Settings", root.transform, new Vector2(620f, 600f), data.settingsLabel);
-            var settingButtons = ButtonColumn(settings, 130f, data.controlsLabel, data.volumeLabel,
-                                              string.Format(data.developerModeFormat, data.onText), data.backLabel);
+            // 開發者模式、重置存檔沒顯示時 PauseMenuUI 把「返回」往上補
+            var settings = Window("Settings", root.transform, new Vector2(620f, 600f + ButtonGap), data.settingsLabel);
+            var settingButtons = ButtonColumn(settings, 130f + ButtonGap * 0.5f, data.controlsLabel, data.volumeLabel,
+                                              string.Format(data.developerModeFormat, data.onText), data.resetSaveLabel, data.backLabel);
             so.FindProperty("settingsPage").objectReferenceValue = settings.gameObject;
             Set(so, "controlsButton", settingButtons[0]);
             Set(so, "volumeButton", settingButtons[1]);
             Set(so, "developerButton", settingButtons[2]);
             so.FindProperty("developerLabel").objectReferenceValue = settingButtons[2].GetComponentInChildren<Text>();
-            Set(so, "settingsBackButton", settingButtons[3]);
+            Set(so, "resetSaveButton", settingButtons[3]);
+            Set(so, "settingsBackButton", settingButtons[4]);
 
             // ---------- 按鍵設定 ----------
             var controls = Window("Controls", root.transform, new Vector2(620f, 510f), data.controlsLabel);
@@ -304,6 +308,8 @@ namespace BossFight.EditorTools
                 so.ApplyModifiedPropertiesWithoutUndo();
             }
 
+            SceneFlowBuilder.Build();
+
             EditorSceneManager.MarkSceneDirty(options.gameObject.scene);
             string missing = (audio == null ? " AudioManager" : "") + (battle == null ? " BattleManager" : "") +
                              (bossTools == null ? " DebugTools" : "") + (menu == null ? " PauseMenu" : "");
@@ -312,7 +318,7 @@ namespace BossFight.EditorTools
 
         // ---------- 場景物件 ----------
 
-        static GameOptions EnsureOptions(GameOptionsData optionsData, out GamePause pause)
+        internal static GameOptions EnsureOptions(GameOptionsData optionsData, out GamePause pause)
         {
             var options = Object.FindAnyObjectByType<GameOptions>();
             GameObject go;

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using BossFight.Battle;
 using BossFight.Core;
+using BossFight.Progression;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
@@ -27,9 +28,11 @@ namespace BossFight.UI
     /// <summary>
     /// ESC 選單（T13）：Player/Pause（Esc、手把 Start）開關，開場、轉階段、勝敗畫面時都能開。開著時 GamePause 暫停遊戲；
     /// 玩家與鏡頭的輸入、游標由 BattleManager 看 GamePause 處理，Debug 面板由 DeveloperMode 藏起來。
-    /// 頁面：主選單（繼續、設定、難度、重新挑戰、退出遊戲）→ 設定（按鍵設定、音量設定、開發者模式）→ 按鍵設定（鍵鼠、控制器，KeyBindingPageUI）／音量設定（主音量、音樂、音效）；
+    /// 頁面：主選單（繼續、設定、難度、重新挑戰、返回休息區、退出遊戲）→ 設定（按鍵設定、音量設定、開發者模式、重置存檔）→ 按鍵設定（鍵鼠、控制器，KeyBindingPageUI）／音量設定（主音量、音樂、音效）；
     /// 難度（困難、簡單，標出目前的難度；選另一個先確認，確定後存進 GameOptions 並重新挑戰，新的難度在重新載入的場景才套用）。
-    /// 返回：Esc、Start、手把 B（UI/Cancel）回上一層，在主選單就關閉；改鍵等待按鍵時不算。重新挑戰、退出遊戲、換難度先問一次。
+    /// 返回：Esc、Start、手把 B（UI/Cancel）回上一層，在主選單就關閉；改鍵等待按鍵時不算。重新挑戰、返回休息區、退出遊戲、換難度、重置存檔先問一次。
+    /// 返回休息區（BattleManager.ReturnToHub）與重置存檔（SceneFlow.ResetProfile：清空存檔、回到休息區的啟動出生點）確定後藏起選單、維持暫停，黑幕淡出完由 SceneFlow 解除暫停再換場景。
+    /// 重置存檔只在開發者模式開著時顯示（開關下面），沒顯示時「返回」補到它的位置。
     /// 設定值都在 GameOptions：訂閱它的事件更新滑桿與開關，改的時候呼叫它的 Set。
     /// 開發者模式開關：只在有 Debug 程式的 build（Editor、Development Build 或定義了 BOSSFIGHT_DEV_TOOLS）才可能出現，而且要開發者模式已經開著，
     /// 或這次執行在選單裡輸入過秘技（PauseMenuData.developerUnlockCode，↑↑↓↓←←→→ A B；記在 BattleManager／BattleSession，重試後還在）；
@@ -43,8 +46,10 @@ namespace BossFight.UI
         [SerializeField] PauseMenuData data;
         [SerializeField] GameOptions options;
         [SerializeField] GamePause pause;
-        [Tooltip("重新挑戰")]
+        [Tooltip("重新挑戰、返回休息區")]
         [SerializeField] BattleManager battle;
+        [Tooltip("重置存檔後回休息區")]
+        [SerializeField] SceneFlow sceneFlow;
         [Tooltip("調音效音量時試聽；可留空")]
         [SerializeField] AudioManager audioManager;
         [SerializeField] EventSystem eventSystem;
@@ -61,6 +66,7 @@ namespace BossFight.UI
         [SerializeField] Button settingsButton;
         [SerializeField] Button difficultyButton;
         [SerializeField] Button retryButton;
+        [SerializeField] Button hubButton;
         [SerializeField] Button quitButton;
 
         [Header("設定")]
@@ -69,6 +75,8 @@ namespace BossFight.UI
         [SerializeField] Button volumeButton;
         [SerializeField] Button developerButton;
         [SerializeField] Text developerLabel;
+        [Tooltip("開發者模式開著時才顯示")]
+        [SerializeField] Button resetSaveButton;
         [SerializeField] Button settingsBackButton;
 
         [Header("按鍵設定")]
@@ -110,7 +118,7 @@ namespace BossFight.UI
         public PauseMenuPage Page { get; private set; }
         public bool IsOpen => Page != PauseMenuPage.None;
 
-        enum ConfirmAction { Retry, Quit, Difficulty }
+        enum ConfirmAction { Retry, Quit, Difficulty, ReturnToHub, ResetSave }
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || BOSSFIGHT_DEV_TOOLS
         static readonly bool HasDeveloperTools = true;
@@ -120,11 +128,11 @@ namespace BossFight.UI
 
         InputAction pauseAction, cancelAction;
         GameObject previousSelection;
-        bool developerMode, developerVisible;
+        bool developerMode, developerVisible, leaving;
         ConfirmAction confirmAction;
         Difficulty difficulty, pendingDifficulty;
         float nextPreviewTime;
-        Vector2 settingsBackPosition, developerPosition;
+        Vector2 settingsBackPosition, developerPosition, resetSavePosition;
 
         // 秘技：最近的輸入（最多 code 的長度）、目前對到第幾個、輸入中暫時取消的選取
         readonly List<MenuCodeInput> codeInputs = new List<MenuCodeInput>();
@@ -151,6 +159,7 @@ namespace BossFight.UI
             settingsButton.onClick.AddListener(() => ShowPage(PauseMenuPage.Settings, controlsButton));
             difficultyButton.onClick.AddListener(() => ShowPage(PauseMenuPage.Difficulty, null));
             retryButton.onClick.AddListener(() => ShowConfirm(ConfirmAction.Retry));
+            hubButton.onClick.AddListener(() => ShowConfirm(ConfirmAction.ReturnToHub));
             quitButton.onClick.AddListener(() => ShowConfirm(ConfirmAction.Quit));
             hardButton.onClick.AddListener(() => ChooseDifficulty(Difficulty.Hard));
             easyButton.onClick.AddListener(() => ChooseDifficulty(Difficulty.Easy));
@@ -158,6 +167,7 @@ namespace BossFight.UI
             controlsButton.onClick.AddListener(() => ShowPage(PauseMenuPage.Controls, keyboardButton));
             volumeButton.onClick.AddListener(() => ShowPage(PauseMenuPage.Volume, masterSlider));
             developerButton.onClick.AddListener(ToggleDeveloperMode);
+            resetSaveButton.onClick.AddListener(() => ShowConfirm(ConfirmAction.ResetSave));
             settingsBackButton.onClick.AddListener(Back);
             // 改鍵頁第一次打開時才 Awake、建立各列，第一格在換頁之後才拿得到（DefaultSelectable）
             keyboardButton.onClick.AddListener(() => ShowPage(PauseMenuPage.Keyboard, null));
@@ -171,6 +181,7 @@ namespace BossFight.UI
             sfxSlider.onValueChanged.AddListener(v => SetVolume(VolumeChannel.Sfx, v));
             settingsBackPosition = ((RectTransform)settingsBackButton.transform).anchoredPosition;
             developerPosition = ((RectTransform)developerButton.transform).anchoredPosition;
+            resetSavePosition = ((RectTransform)resetSaveButton.transform).anchoredPosition;
             ApplyDeveloperVisible();
             if (noticeText != null) noticeText.enabled = false;
 
@@ -222,6 +233,7 @@ namespace BossFight.UI
         void Update()
         {
             UpdateNotice();
+            if (leaving) return; // 換場景中（黑幕淡出）
             bool pausePressed = pauseAction != null && pauseAction.WasPressedThisFrame();
             if (!IsOpen)
             {
@@ -278,6 +290,8 @@ namespace BossFight.UI
                     {
                         case ConfirmAction.Quit: ShowPage(PauseMenuPage.Main, quitButton); break;
                         case ConfirmAction.Difficulty: ShowPage(PauseMenuPage.Difficulty, pendingDifficulty == Difficulty.Easy ? easyButton : hardButton); break;
+                        case ConfirmAction.ReturnToHub: ShowPage(PauseMenuPage.Main, hubButton); break;
+                        case ConfirmAction.ResetSave: ShowPage(PauseMenuPage.Settings, resetSaveButton); break;
                         default: ShowPage(PauseMenuPage.Main, retryButton); break;
                     }
                     break;
@@ -327,7 +341,7 @@ namespace BossFight.UI
             group.blocksRaycasts = visible;
         }
 
-        // ---------- 重新挑戰、退出、換難度 ----------
+        // ---------- 重新挑戰、返回休息區、退出、換難度、重置存檔 ----------
 
         void ShowConfirm(ConfirmAction action)
         {
@@ -336,6 +350,8 @@ namespace BossFight.UI
             {
                 case ConfirmAction.Quit: confirmText.text = data.quitConfirm; break;
                 case ConfirmAction.Difficulty: confirmText.text = string.Format(data.difficultyConfirmFormat, DifficultyName(pendingDifficulty)); break;
+                case ConfirmAction.ReturnToHub: confirmText.text = data.returnToHubConfirm; break;
+                case ConfirmAction.ResetSave: confirmText.text = data.resetSaveConfirm; break;
                 default: confirmText.text = data.retryConfirm; break;
             }
             ShowPage(PauseMenuPage.Confirm, confirmNoButton);
@@ -351,6 +367,22 @@ namespace BossFight.UI
 #else
                 Application.Quit();
 #endif
+                return;
+            }
+            if (confirmAction == ConfirmAction.ReturnToHub || confirmAction == ConfirmAction.ResetSave)
+            {
+                // 維持暫停：黑幕淡出時畫面停住，全黑時 SceneFlow 才解除暫停、換場景
+                leaving = true;
+                ShowPage(PauseMenuPage.None, null);
+                SetVisible(false);
+                if (confirmAction == ConfirmAction.ResetSave)
+                {
+                    if (sceneFlow != null) sceneFlow.ResetProfile();
+                }
+                else if (battle != null)
+                {
+                    battle.ReturnToHub();
+                }
                 return;
             }
             if (pause != null) pause.SetPaused(false);
@@ -387,6 +419,7 @@ namespace BossFight.UI
             developerMode = on;
             developerLabel.text = string.Format(data.developerModeFormat, on ? data.onText : data.offText);
             if (on) ShowDeveloperOption();
+            ApplyDeveloperVisible();
         }
 
         void HandleDeveloperOptionsUnlocked() => ShowDeveloperOption();
@@ -399,10 +432,13 @@ namespace BossFight.UI
             ApplyDeveloperVisible();
         }
 
+        // 開發者模式開關、重置存檔沒顯示時，「返回」往上補到空出來的位置
         void ApplyDeveloperVisible()
         {
+            bool reset = developerVisible && developerMode;
             developerButton.gameObject.SetActive(developerVisible);
-            ((RectTransform)settingsBackButton.transform).anchoredPosition = developerVisible ? settingsBackPosition : developerPosition;
+            resetSaveButton.gameObject.SetActive(reset);
+            ((RectTransform)settingsBackButton.transform).anchoredPosition = reset ? settingsBackPosition : developerVisible ? resetSavePosition : developerPosition;
         }
 
         // ---------- 秘技 ----------

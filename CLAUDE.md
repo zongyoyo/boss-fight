@@ -4,7 +4,8 @@
 
 - 一場可獨立遊玩的 Boss 戰：玩家操作刀盾狗，在半徑 12 m 的圓形競技場挑戰兩階段的 OIIA 貓，目標通關時間 4–5 分鐘。
 - 用途是先驗證戰鬥系統、Boss AI 框架與過場演出流程，之後接回關卡挑戰制的主遊戲；所以系統之間要好拆。
-- **規格以 `docs/boss-oiia.md` 為準。** 數值、招式、分鏡都照企劃書做；發現企劃書與程式衝突，或企劃書沒寫清楚時，先問，不要自行改規格。
+- T17 起接上主遊戲的外圍：休息區（Hub）、存檔、角色切換、數值管線、裝備、技能樹、任務，規格在 `docs/hub-progression.md`。
+- **規格以 `docs/boss-oiia.md`（Boss 戰）與 `docs/hub-progression.md`（休息區與成長系統）為準。** 數值、招式、分鏡都照企劃書做；發現企劃書與程式衝突，或企劃書沒寫清楚時，先問，不要自行改規格。
 
 ## 環境
 
@@ -12,7 +13,7 @@
 - Input System 1.20：使用 Project-wide Actions `Assets/InputSystem_Actions.inputactions` 的 `Player` map，不用舊版 Input Manager
 - Cinemachine 3.1：namespace 是 `Unity.Cinemachine`，元件是 `CinemachineCamera`（不是 2.x 的 `CinemachineVirtualCamera`）
 - Timeline 1.8
-- 主場景：`Assets/Scenes/BossArena.unity`（Build Settings 第 0 個）
+- 場景：`Assets/Scenes/Hub.unity`（休息區，Build Settings 第 0 個，啟動遊戲先進這裡）、`Assets/Scenes/BossArena.unity`（Boss 戰，第 1 個）；兩邊都靠 Progression 的 SceneFlow 換場景
 - 單位：距離為公尺、時間為秒、角度為度。俯視角度 0 = 北（+Z），順時針遞增；玩家從南側（180°）進場，Boss 在場地中心。
 
 ## 資料夾
@@ -22,6 +23,8 @@
 | `Assets/Scripts/Battle` | 最上層的流程指揮：BattleManager（戰鬥流程狀態機 Intro → Phase1 → Transition → Phase2 → Ultimate → Berserk → Victory／Defeat），指揮 Boss、玩家與演出（播轉階段演出、結束時呼叫 `BossController.CompleteTransition`、換階段改音樂速度；勝利時慢動作與音樂淡出、送 `OnBattleResult`、`Retry` 重新載入場景；ESC 選單暫停時鎖住玩家與鏡頭、放開游標；Awake 時把難度修正交給玩家與 Boss；ESC 選單秘技的解鎖記在 BattleSession）；BattleSettings（勝敗節奏） |
 | `Assets/Scripts/Core` | 跨系統共用（最底層，不引用其他系統）：BattleSession（這次執行的挑戰次數、「看過開場」「看過轉階段」與「秘技解鎖了開發者模式開關」）、事件、傷害系統（DamageInfo、Hitbox、Hurtbox、IDamageable）、畫面停頓（HitStop）、AudioManager（戰鬥音樂與變速、音效）、競技場（ArenaData、ArenaGenerator、天色 ArenaAtmosphere／AtmosphereData）、LockOnTarget、可處決目標（ExecutionTarget）、打擊回饋的資料與播放（CombatFeedbackData、FeedbackEmitter：音效＋Cinemachine Impulse 鏡頭震動；Core 只有這裡用到 Unity.Cinemachine）、玩家設定（GameOptions／GameOptionsData：音量、開發者模式、改鍵、難度，存 PlayerPrefs）、難度（Difficulty、DifficultyData／DifficultyModifiers：簡單模式的修正值）、暫停（GamePause：timeScale 0、音效暫停） |
 | `Assets/Scripts/Player` | PlayerController、PlayerAttack、PlayerHealth、PlayerStamina、PlayerStats 定義、DaoDunDogAnimator、打擊回饋（PlayerFeedback：揮刀、命中、格擋、盾反、受擊等的音效與震動） |
+| `Assets/Scripts/Progression` | 跨場景的進度與流程：SceneFlow（換場景、黑幕淡出淡入、依這次的出生點擺玩家）、SceneFlowData；之後的 CharacterDefinition、CharacterRoster、StatModifier、PlayerEffect、EquipmentData、EquipmentSlotType、SkillTreeData、QuestData、BossDefinition、RewardData、GameDatabase、PlayerSpawner、PlayerLoadout、ProgressRecorder 也放這裡 |
+| `Assets/Scripts/Hub` | 休息區：傳送門 Portal（T17 是站在觸發區按 Interact 的暫時版，T20 換成 Interactable）；之後的 HubManager、Interactable、InteractionScanner、Campfire、Blacksmith、VillageChief、HubLayoutData |
 | `Assets/Scripts/Camera` | CameraController（Cinemachine 第三人稱與鎖定鏡頭；鎖定哪個目標由 PlayerController 決定，鏡頭訂閱 `OnLockTargetChanged`） |
 | `Assets/Scripts/Boss` | BossController 狀態機與選招、BossHealth、失衡值／頭暈／處決（BossStagger）、BossMove 基底類別、BossStats／BossMoveData／BossPhaseData 定義、預兆閃光（BossTelegraphFlash）、佔位模型的程序化姿勢（OiiaCatPoser）、命中火花（BossHitFeedback，Boss 打到玩家）、受擊反饋（BossDamageFeedback，玩家打到 Boss：火花、閃白、後仰、傷害數字）、頭暈星星（BossStunVisual）、強化階段外觀（BossPhaseVisual：紅色電光與殘影）、幻影分身的幻影（BossPhantom，一擊即碎）、招式衝擊與預兆的音效與震動（BossImpactFeedback，訂閱 `OnMoveTelegraph`／`OnMoveImpact`） |
 | `Assets/Scripts/Boss/Moves` | 每招一個 BossMove 子類別；招式特有的數值寫成 BossMoveData 的子類別放在同一個資料夾；PounceRunner 是一次飛撲（扭屁股飛撲與幻影分身共用） |
@@ -29,12 +32,12 @@
 | `Assets/Scripts/Cutscene` | CutsceneDirector（播一段演出的 Timeline、鎖輸入、長按跳過、字卡事件；開場與轉階段各一個物件）、CutsceneStage（轉階段時依玩家位置擺演出鏡頭）、IntroCutsceneSettings、Timeline 自訂 Track／Clip（CurveClip 加 CurveTrack／StormTrack／BossSpinTrack／MagicCircleTrack／ElectricArcsTrack、ActorWalk、ActorPush、BossActor、CameraMove、MusicCue、CutsceneEventMarker）、演出物件（ScreenFlash、IntroLightning、SmokePuffs、CameraShaker、ExpandingRing） |
 | `Assets/Scripts/UI` | 只訂閱事件（uGUI）：BattleUI（HUD 何時出現、Boss 血條滑入）、PlayerHudUI（左下血條、耐力、骨頭）、BossHudUI（下方置中 Boss 名稱、血條與刻度、失衡條、頭暈倒數）、LockOnMarkerUI、處決標記（ExecutionMarkerUI）、BattleResultUI（勝敗畫面與重試按鈕；勝利、戰敗各一組文字）、ResourceBar（量條與延遲扣血，置中模式給頭暈倒數）、BattleUIData；開場的字卡（TitleCardUI）、跳過提示（SkipPromptUI，開場與轉階段共用）；ESC 選單（PauseMenuUI：含難度頁與解鎖開發者模式的秘技；改鍵頁 KeyBindingPageUI／KeyBindingRowUI、PauseMenuData）、按鍵顯示名稱（InputNameData、BindingText）、按鍵提示顯示鍵鼠還是手把（InputHintDevice，放在 GameOptions 物件上） |
 | `Assets/Scripts/Debug` | Debug 快捷鍵 F1–F7 與右上角的 Boss 面板（BossDebugTools，F5 重新挑戰＝`BattleManager.Retry`、F6 Boss 血量歸零、F7 玩家血量歸零）、平衡面板（BalanceDebugPanel，F12：執行期覆寫 SO 數值、計時與統計，見下方「平衡面板」）、左上角的玩家狀態（PlayerDebugOverlay）、開發者模式開關（DeveloperMode：開關上面三個元件，ESC 選單開著時也先停用）、測試木樁（TrainingDummy） |
-| `Assets/Scripts/Editor` | 編輯器工具（ArenaBuilder、DaoDunDogBuilder、CameraRigBuilder、TrainingDummyBuilder、BossBuilder、HazardBuilder、IntroCutsceneBuilder、TransitionCutsceneBuilder、BattleUIBuilder、PlaceholderAudioBuilder、BalancePanelBuilder、CombatFeedbackBuilder、PauseMenuBuilder），不會進 build |
-| `Assets/ScriptableObjects` | 數值資產（`.asset`），依系統分子資料夾：`Arena/`（ArenaData、Atmosphere 天色）、`Player/`、`Boss/`（BossStats）、`Boss/Phases/`、`Boss/Moves/Phase1/`（第一階段 5 招）、`Boss/Moves/Phase2/`（第二階段 4 個強化招，和第一階段同一招共用類別；新招龍捲風、幻影分身與終極技大迴旋）、`Cutscene/`（IntroCutsceneSettings）、`Battle/`（BattleSettings）、`UI/`（BattleUIData：血條刻度、動畫時間、顏色、文字；PauseMenuData：ESC 選單的文字、顏色、改鍵清單；InputNameData：按鍵顯示名稱）、`Options/`（GameOptionsData：玩家設定的預設值；Difficulty：各難度的修正值）、`Feedback/`（CombatFeedback：打擊回饋的音效、音量、鏡頭震動）、`Debug/`（測試木樁） |
+| `Assets/Scripts/Editor` | 編輯器工具（ArenaBuilder、DaoDunDogBuilder、CameraRigBuilder、TrainingDummyBuilder、BossBuilder、HazardBuilder、IntroCutsceneBuilder、TransitionCutsceneBuilder、BattleUIBuilder、PlaceholderAudioBuilder、BalancePanelBuilder、CombatFeedbackBuilder、PauseMenuBuilder、SceneFlowBuilder、HubBuilder），不會進 build |
+| `Assets/ScriptableObjects` | 數值資產（`.asset`），依系統分子資料夾：`Arena/`（ArenaData、Atmosphere 天色）、`Player/`、`Boss/`（BossStats）、`Boss/Phases/`、`Boss/Moves/Phase1/`（第一階段 5 招）、`Boss/Moves/Phase2/`（第二階段 4 個強化招，和第一階段同一招共用類別；新招龍捲風、幻影分身與終極技大迴旋）、`Cutscene/`（IntroCutsceneSettings）、`Battle/`（BattleSettings）、`UI/`（BattleUIData：血條刻度、動畫時間、顏色、文字；PauseMenuData：ESC 選單的文字、顏色、改鍵清單；InputNameData：按鍵顯示名稱）、`Options/`（GameOptionsData：玩家設定的預設值；Difficulty：各難度的修正值）、`Feedback/`（CombatFeedback：打擊回饋的音效、音量、鏡頭震動）、`Debug/`（測試木樁）、`Progression/`（SceneFlowData；之後的 GameDatabase、CharacterRoster，以及 `Characters/`、`Equipment/`、`SkillTrees/`、`Quests/`、`Bosses/`）、`Hub/`（T20 起：HubLayoutData、休息區天色、HubUIData） |
 | `Assets/Timelines` | Timeline 資產：`Intro.playable`（開場 14.5 秒）、`Transition.playable`（轉階段 5.0 秒）；鏡頭與各效果的時間點都在這裡調 |
-| `Assets/Prefabs` | 玩家、Boss（`OiiaCat`、幻影 `OiiaCatPhantom`，BossBuilder 產生）、UI 的 prefab；`Prefabs/Hazards` 是地面提示、Hazard 與特效，由 HazardBuilder 產生，重建會覆寫 |
+| `Assets/Prefabs` | 玩家（T18 起移到 `Prefabs/Characters/`）、Boss（`OiiaCat`、幻影 `OiiaCatPhantom`，BossBuilder 產生）、UI 的 prefab；`Prefabs/Hazards` 是地面提示、Hazard 與特效，由 HazardBuilder 產生，重建會覆寫 |
 | `Assets/Shaders` | 自製 shader（都是手寫 JSON 的 URP Decal Shader Graph，Custom Function 用 UV 畫圖）：`TelegraphDecal.shadergraph`（地面範圍提示：圓、環、長方形）、`MagicCircleDecal.shadergraph`（魔法陣：雙環、符文帶、倒五芒星，由中心描繪、外圈分段點亮；`_Holes` 加上 Size.y、Params.w 是大迴旋安全區的熄滅區） |
-| `Assets/Scenes` | `BossArena.unity`（`SampleScene` 是範本殘留） |
+| `Assets/Scenes` | `Hub.unity`（休息區，HubBuilder 產生）、`BossArena.unity`（`SampleScene` 是範本殘留，不在 Build Settings） |
 | `Assets/Audio` | BGM 與音效；OIIA 音樂放 `Assets/Audio/oiia_bgm`，放進來後在場景 `AudioManager` 的 battleMusic 指定（重跑 IntroCutsceneBuilder 也會自動找路徑含 oiia_bgm 的音檔）；`Audio/Placeholder` 是 PlaceholderAudioBuilder 合成的佔位音效（戰鬥音效是 `Sfx_Combat_*`），重建會覆寫 |
 | `Assets/Models` | 模型、網格、材質；`Models/Arena`、`Models/DaoDunDog`、`Models/TrainingDummy`、`Models/OiiaCat`、`Models/Hazards`、`Models/Cutscene` 由 Builder 自動產生，重建會覆寫網格；`Models/UI` 是 BattleUIBuilder 產生的 UI 圖（處決標記的圓環），只在不存在時產生 |
 | `Assets/Settings` | URP 與 Volume 設定（範本自帶）；`PC_Renderer` 加了 Decal Renderer Feature（T4，地面範圍提示用） |
@@ -61,9 +64,10 @@ ScriptableObject 的「類別」寫在 `Scripts/` 對應的系統資料夾，「
 - 引用用 `[SerializeField]` 在 Inspector 接好；同一個 GameObject 上的元件可以在 `Awake` 用 `GetComponent` 取。
 - **執行期程式禁用** `FindObjectOfType`、`FindAnyObjectByType`、`FindFirstObjectByType`、`FindObjectsByType`、`GameObject.Find`、`FindWithTag`，也不用 static singleton 互相存取。`Scripts/Editor` 底下的編輯器工具不受此限。
 - 依賴方向只能往下，不能互相引用（之後接回主遊戲、加 asmdef 才拆得開）：
-  Core（最底層）← Hazards ← Player ← Camera ← Boss ← Cutscene ← Battle ← UI／Debug。Boss 不引用 Player、Player 不引用 Camera、Core 不引用任何系統。
+  Core（最底層）← Hazards ← Player ← Camera ← Boss ← Cutscene ← Progression ← Battle／Hub ← UI／Debug。Boss 不引用 Player、Player 不引用 Camera、Core 不引用任何系統；Battle 與 Hub 互不引用，兩邊都只靠 Progression 的 SceneFlow 換場景。休息區的介面放 `BossFight.UI`，只訂閱 Hub 與 Progression 的事件。
   需要反方向的資訊時，由下層發事件或把結果放進回傳值（例如盾反失衡值走 `DamageOutcome`／`HitReport`）。新增 `using BossFight.*` 前先確認方向。
-- 唯一的 static 例外是 `Core/BattleSession`（第幾次挑戰、看過開場沒有、看過轉階段沒有、ESC 選單的秘技解鎖了沒有）：重新載入場景後元件都是新的，跨場景的資料要放在活得比場景久的地方。它只放這四個值、不放元件引用，進 Play 模式時清空；只有 BattleManager 讀寫，其他系統透過 BattleManager 的事件或參數得知（選單呼叫 `BattleManager.UnlockDeveloperOptions`、訂閱 `OnDeveloperOptionsUnlocked`）。
+- 第一個 static 例外是 `Core/BattleSession`（第幾次挑戰、看過開場沒有、看過轉階段沒有、ESC 選單的秘技解鎖了沒有）：重新載入場景後元件都是新的，跨場景的資料要放在活得比場景久的地方。它只放這四個值、不放元件引用，進 Play 模式時清空；只有 BattleManager 讀寫，其他系統透過 BattleManager 的事件或參數得知（選單呼叫 `BattleManager.UnlockDeveloperOptions`、訂閱 `OnDeveloperOptionsUnlocked`）。
+- 第二個 static 例外是 `Core/ProfileStore`（存檔）：只放純資料，存的是 id 字串，不放 SO 或元件引用（之後 Progression 用 GameDatabase 把 id 換回資產）。存在 `Application.persistentDataPath/save.json`（JsonUtility），有變動就存、離開遊戲再存一次；讀檔失敗時把壞檔改名成 `save.bak.json`、開新檔並在 Console 警告。第一次讀到時才載入，進 Play 模式時清掉載入狀態（Domain Reload 關閉時也會重新讀檔）。「這次要在哪個出生點出現」（`ArrivalPoint`）只活在這次執行、不寫進檔案。玩家設定照舊存 PlayerPrefs（GameOptions），兩者分開。
   Debug 另有一個例外：`Debug/BalanceDebugPanel` 用 static 欄位保留 SO 複本與每場紀錄，讓 F12 的調整值在重試後還在；整個檔案包在 Debug 程式的編譯條件裡（見下方「其他」），進 Play 模式時清空、離開時銷毀複本。遊戲程式不能讀它。
 
 ### 命名空間
@@ -81,6 +85,8 @@ ScriptableObject 的「類別」寫在 `Scripts/` 對應的系統資料夾，「
 
 ### 其他
 
+- 玩家（T18 起）由 `PlayerSpawner` 生成：要用玩家的元件實作 `IPlayerBinding`，不再用 `[SerializeField]` 直接接玩家；`BindPlayer` 要能處理換人（元件已啟用時先退訂舊角色、再訂閱新角色）。
+- 角色、裝備、技能的數值（T19 起）只能透過 `StatModifier` 改，不在玩家元件裡加特例。
 - 輸入只用新版 Input System，從 `InputSystem.actions` 讀 `Player` map；新動作加進 `InputSystem_Actions.inputactions`。`Player/SkipCutscene`（Space、手把 A）是長按跳過開場與轉階段用的，和 Jump 同鍵；演出期間 PlayerController／CameraController 被 `SetInputLocked` 鎖住，不會跳起來。
 - `Player/Pause`（Esc、手把 Start）開關 ESC 選單，不在改鍵清單裡、也不能被綁到別的動作；選單裡的返回另外讀 `UI/Cancel`（Esc、手把 B）。CameraController 不再處理 Esc（以前 Esc 放開游標）。
 - 改鍵是 `InputSystem.actions` 的 binding override，由 GameOptions 存成 PlayerPrefs 的 JSON、Awake 時套回去；遊戲程式照常 `FindAction` 就會拿到改過的鍵。鍵鼠頁的「次要」欄是 Keyboard&Mouse 控制組裡的第 2 個綁定，所以只有一個鍵鼠綁定的動作在 `.inputactions` 裡補了空綁定（path 空字串）；改鍵清單（PauseMenuData.bindings）加新動作時也要補。畫面上的按鍵提示用 `BindingText.FirstDisplay` 讀目前的鍵，不要寫死鍵名；控制組用 `BindingText.Group(gamepad)`，gamepad 來自 `InputHintDevice.OnDeviceChanged`（只顯示目前裝置的鍵，不要同時列鍵鼠與手把）。
@@ -141,21 +147,29 @@ ScriptableObject 的「類別」寫在 `Scripts/` 對應的系統資料夾，「
   - 秘技（`PauseMenuData.developerUnlockCode`）：選單開著、不在等改鍵時，鍵盤方向鍵與 A、B 字母鍵，或手把十字鍵與 A（South）、B（East）。結尾能對上秘技開頭幾個就算幾個（↑↑↑ 還是對到 2）；其他按鍵歸零、換頁或關選單也歸零。8 個方向輸完後先取消選取（手把 A 不會按下按鈕），這時按的 A、B 都算秘技、不當成返回；輸完或輸錯就還原選取。解鎖時選單下方顯示提示、播 `developerUnlockSfx`（佔位用 Sfx_Combat_BoneEarned），記在 BattleSession（重試後還顯示，重開遊戲要重輸）。開發者模式開著（例如存檔是開）時開關一直顯示；開關出現後這個場景不再藏起來。沒顯示時設定頁的「返回」補到它的位置。
   - 背景驗收：秘技是用 `InputSystem.QueueStateEvent` 加 `InputSystem.Update()` 模擬鍵盤與虛擬手把（`InputSystem.AddDevice<Gamepad>`）後反射呼叫 PauseMenuUI 驗的；實體鍵盤、手把要在前景手動試。
 - 戰敗畫面（T16，alpha 1.0.0 測試回饋）：BattleUIBuilder 在 Result 底下建 `Victory`、`Defeat` 兩組文字，BattleResultUI 依勝敗只開一組，重試按鈕共用；按鈕下面沒有「Enter 確認」按鍵提示（勝敗都沒有）。戰敗：大字「菜」defeatColorDelay 秒後花 defeatColorTime 秒從 defeatTitleStartColor 轉成 defeatColor（真實時間，SmoothStep）、中字「就多練」，重試按鈕下面是剩餘血量／戰鬥時間／挑戰次數排成的一行小字（defeatStatsSeparator 隔開），再下面是灰色小字 defeatHint（`BattleResult.difficulty` 是簡單時隱藏）。「菜」與「就多練」的高度照字形實際範圍（TextGenerator 的 verts）算成：「菜」下緣到「就多練」上緣 = 「就多練」下緣到重試按鈕上緣 = 51（目前 defeatTitleY 176、defeatSubtitleY -44；改字級或字型時要重算）。戰敗的文字、顏色、字級與各行高度（defeatTitleY／SubtitleY／StatsY／HintY，畫面中心 = 0）都在 BattleUIData，Builder 建立時用、BattleResultUI 在 Awake 再套用一次（改資產不用重建）；重試按鈕的位置（-170、高 84）仍是 Builder 寫死、勝敗共用。勝利畫面版面沒變。背景驗收時 MCP 指令往返要好幾秒，「菜」剛出現的白色是用反射設定 shownAt 再呼叫 Update 檢查顏色曲線（0–0.6 秒白、約 2.6 秒全紅），沒有截到白色的畫面。
+- 存檔與場景流程（T17，`docs/hub-progression.md`；選項是計畫確認過的預設）：
+  - 休息區 `Hub.unity` 由 HubBuilder（Tools > Hub > Build Hub (T17)）整個重建：地板、隱形牆、紫色傳送門方塊、出生點 `Start`（之後營火的位置）與 `Portal`（傳送門前 5 m、面向北），以及刀盾狗 prefab、鏡頭、GameOptions、AudioManager（沒有音樂）、SceneFlow；也把 Build Settings 設成 Hub 0、BossArena 1。T20 照 HubLayoutData 擴充。休息區還沒有 ESC 選單（T20 做「繼續、設定、退出」），也沒有 HUD。
+  - 傳送門是暫時版（`Hub/Portal`）：站在門北側的觸發區按 `Player/Interact`，用 `WasPressedThisFrame`，所以 Interact 的 Hold 互動還在（T20 換成 Interactable 時拿掉）；沒有互動提示。
+  - SceneFlow（SceneFlowBuilder，Tools > Progression > Build Scene Flow；PauseMenuBuilder.Wire 最後也會跑）：黑幕淡出 0.2 秒、淡入 0.2 秒（SceneFlowData），一幀最多推進 1/30 秒（載入後頭幾幀會卡約 0.45 秒，不夾的話淡入整段被吃掉）。ESC 選單的返回休息區與重置存檔在淡出期間維持暫停，全黑時 SceneFlow 才解除暫停、換場景。直接按 Play 與重試不淡入。換場景進來時 SceneFlow 在 Start 用 `PlayerController.Teleport` 把玩家擺到出生點、`CameraController.ResetBehind`（T18 起交給 PlayerSpawner）。
+  - 擊敗紀錄：Boss 一倒下 BattleManager 就把 `BattleSettings.bossId`（`oiia_cat`）記進 ProfileStore（F6 也算）；T24 改走 ProgressRecorder 並發首通獎勵。
+  - 勝敗畫面：重試與「返回休息區」左右並排（x ±200、y −170），返回休息區不先確認；ESC 主選單在重新挑戰下面加「返回休息區」（先確認）；設定頁的「重置存檔」只在開發者模式開著時顯示（開關下面），確定後清空存檔、回休息區的 `Start`。
+  - 背景驗收：傳送門是 `InputSystem.QueueStateEvent` 模擬 E 鍵後反射呼叫 `Portal.Update`；選單、勝敗按鈕用反射呼叫 onClick；黑幕用 `Application.onBeforeRender` 每幀記 alpha。實際按 E、Esc 要在前景手動試。
 - 測試木樁 `TrainingDummy` 已經在 T3 從場景移除（程式與 `TrainingDummyData.asset` 還在 `Scripts/Debug`、`ScriptableObjects/Debug`）。要練格擋或盾反時用 Tools > Debug > Build Training Dummy 重建，它會自己加進鎖定清單；正式 build 前要刪掉物件，否則會變成 Missing Script。
 
 ## 工作流程
 
-1. 一個任務開一次對話。開始前先讀這份檔案，以及 `docs/boss-oiia.md` 的對應章節。
+1. 一個任務開一次對話。開始前先讀這份檔案，以及 `docs/boss-oiia.md`（T0–T16）或 `docs/hub-progression.md`（T17 起）的對應章節。
 2. 先列計畫，確認後再實作。
 3. 實作完依序確認：Unity 編譯沒有錯誤 → 進 Play 模式驗收（下表）→ 通過後 commit，訊息格式 `T<n>: <摘要>`，然後才做下一個任務。
 4. 每個任務收尾都要檢查：
    - Console 沒有新的錯誤或警告。
    - 新程式沒有寫死的玩法數值。
    - 執行期程式沒有 Find 系列呼叫：`rg "Find(Any|First)?Object(s)?(OfType|ByType)|GameObject\.Find|FindWithTag" Assets/Scripts --glob "!Editor/**"` 應該沒有結果。
+   - T17 起：T0–T16 的驗收沒有壞掉（照 `docs/playtest-checklist.md` 快速跑一輪）。
 
 ## 任務驗收
 
-全部在 `BossArena` 場景進 Play 模式驗收。
+T0–T16 在 `BossArena` 場景進 Play 模式驗收；T17 起從 `Hub` 場景進 Play（要進 BossArena 時走傳送門）。
 
 | # | 任務 | 驗收方式 |
 | --- | --- | --- |
@@ -176,6 +190,14 @@ ScriptableObject 的「類別」寫在 `Scripts/` 對應的系統資料夾，「
 | T14 | 戰鬥提示與演出（alpha 1.0.0 回饋） | Boss 頭暈時失衡條從左右往中間收縮，收到中間時頭暈剛好結束；頭暈時 Boss 胸口出現紅色處決標記（鎖定菱形先藏起來）；按鍵盤或滑鼠時處決、啃骨頭、跳過、選單返回的提示是鍵鼠的鍵，按手把時換成手把的鍵，改鍵後跟著變；轉階段第一次不能跳過，同一次執行第二次起可以長按跳過，跳過後法陣全紅、電光、音樂 1.2 倍、玩家在 10 m、進入第二階段；大迴旋兩個安全區中央各有一面漂浮盾牌 |
 | T15 | 難度（簡單模式）與選單秘技（alpha 1.0.0 回饋） | 預設困難，行為與 alpha 1.0.0 相同；ESC 主選單「難度」頁標出目前難度（不列差異說明），選另一個先確認（確認框文字不超出面板）、確定後重新挑戰；重進 Play 難度還在；簡單模式下翻滾無敵 +0.1、盾反 +0.05、失衡值累積 ×1.15、衰減 ×0.85、出招預兆 +0.15（貓掌第一下 +0.2）、龍捲風速度 ×0.9、雙重衝擊波間隔 +0.1；開發者模式預設關、設定頁沒有開關，選單裡輸入 ↑↑↓↓←←→→ A B（鍵盤或手把）後出現開關與提示、重試後還在；player 編譯（有 `BOSSFIGHT_DEV_TOOLS`）包含 Debug 程式 |
 | T16 | 戰敗畫面（alpha 1.0.0 回饋） | F7 讓玩家倒下：中央大字「菜」剛出現白色、逐漸轉紅；下面中字「就多練」（白），「菜」到「就多練」與「就多練」到重試按鈕的間距相等；重試按鈕下面是橫排成一行小字的剩餘血量、戰鬥時間、挑戰次數，再下面是灰色小字「真打不過我們選單裡有簡單模式喔 :))」（簡單模式不顯示）；勝敗畫面都沒有「Enter 確認」提示；沒有「刀盾狗倒下了」；重試照常；F6 勝利畫面版面不變 |
+| T17 | 存檔與場景流程 | 新增空的 Hub 場景（地板＋傳送門方塊）；Build Settings Hub 0、BossArena 1；從 Hub 走到傳送門按 E 進 BossArena；勝利後 `save.json` 記錄擊敗 OIIA 貓；勝敗畫面與 ESC 選單「返回休息區」可回到 Hub、出生在傳送門前；關掉重開紀錄還在；壞檔會備份並開新檔；開發者模式可重置存檔 |
+| T18 | 角色 prefab 化與生成接線 | 刀盾狗變成 prefab，BossArena 與 Hub 都由 PlayerSpawner 生成；T0–T13 驗收全部照舊（開場、轉階段演出、鎖定、處決、HUD、F12、ESC 選單）；Timeline 編輯模式仍可預覽；執行期沒有 Find 系列呼叫 |
+| T19 | 角色定義與數值管線 | CharacterRoster、CharacterDefinition、StatModifier、PlayerEffect；刀盾狗從定義載入；Debug 加一個測試修正（血量 +20、跑速 ×1.2）時 HUD 血條上限、實際跑速、F12 面板都反映；關掉後回到原值；`PlayerStats.asset` 沒有被改到 |
+| T20 | 休息區場景 | HubBuilder 照草圖建出邊界、樹木、隱形牆、四個站點佔位、小路、傍晚天色與營火光；走不出邊界；靠近站點出現互動提示（顯示目前的鍵），離開消失；開介面時輸入鎖定、游標放開、鏡頭切到站點鏡頭；休息區 ESC 選單只有繼續、設定、退出 |
+| T21 | 營火與角色切換 | 按 E 坐下、鏡頭拉近；「角色」頁列出已解鎖角色（開發者模式多出測試狗）；切換後外觀、數值、HUD 都換成新角色，位置不變；存檔記住目前角色，重開與進 BossArena 都用它 |
+| T22 | 裝備系統與鐵匠鋪 | 鐵匠鋪介面顯示目前角色的欄位（刀盾狗 2 格、測試狗 1 格）；Debug 解鎖兩件測試裝備後可穿脫；厚皮項圈讓血量上限 +20；反擊護符盾反回 5 HP（F12 木樁或 Boss 驗證）；換角色後各自的穿戴保留；數值差異預覽正確 |
+| T23 | 技能樹 | 營火「技能樹」頁顯示刀盾狗 5 個節點與連線；前置與點數不足時不能學；學「骨頭收藏家」後持有上限 4；重置退回全部點數；測試狗的樹與點數使用分開記錄 |
+| T24 | 村長任務與首通獎勵 | 第一次進休息區村長自動講開場；之後村長頭上「!」；接「轉暈那隻貓」→ 打贏 OIIA 貓 → 勝利畫面顯示首通獎勵（技能點 ×3、厚皮項圈）→ 回休息區村長「?」→ 回報拿到技能點 ×2、反擊護符；第二次打贏不再給首通獎勵；鐵匠鋪新裝備標「新」 |
 
 
 ## Skill 使用規則

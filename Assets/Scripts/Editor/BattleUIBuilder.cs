@@ -371,20 +371,9 @@ namespace BossFight.EditorTools
             var defeatHint = Label("Hint", defeat, data.defeatHint, data.defeatHintSize, FontStyle.Normal, data.defeatHintColor, TextAnchor.MiddleCenter);
             Place(defeatHint.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, data.defeatHintY), new Vector2(1400f, 36f));
 
-            var buttonImage = Img("RetryButton", result, roundSprite, Color.white);
-            buttonImage.type = Image.Type.Sliced;
-            buttonImage.raycastTarget = true;
-            Place(buttonImage.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, -170f), new Vector2(360f, 84f));
-            var button = buttonImage.gameObject.AddComponent<Button>();
-            button.targetGraphic = buttonImage;
-            var colors = button.colors;
-            colors.normalColor = new Color(0.2f, 0.2f, 0.24f, 0.95f);
-            colors.highlightedColor = new Color(0.45f, 0.38f, 0.2f, 1f);
-            colors.selectedColor = new Color(0.45f, 0.38f, 0.2f, 1f);
-            colors.pressedColor = new Color(0.7f, 0.58f, 0.25f, 1f);
-            button.colors = colors;
-            var label = Label("Label", buttonImage.transform, data.defeatButton, 40, FontStyle.Bold, Color.white, TextAnchor.MiddleCenter);
-            Stretch(label.rectTransform, Vector2.zero, Vector2.zero);
+            // 重試與返回休息區左右並排（高度不變，戰敗文字的間距照舊）
+            var button = ResultButton("RetryButton", result, data.defeatButton, new Vector2(-200f, -170f), out var label);
+            var hubButton = ResultButton("HubButton", result, data.returnToHubButton, new Vector2(200f, -170f), out var hubLabel);
 
             var ui = result.gameObject.AddComponent<BattleResultUI>();
             var so = new SerializedObject(ui);
@@ -403,8 +392,29 @@ namespace BossFight.EditorTools
             so.FindProperty("defeatStatsText").objectReferenceValue = defeatStats;
             so.FindProperty("retryButton").objectReferenceValue = button;
             so.FindProperty("retryLabel").objectReferenceValue = label;
+            so.FindProperty("hubButton").objectReferenceValue = hubButton;
+            so.FindProperty("hubLabel").objectReferenceValue = hubLabel;
             so.FindProperty("eventSystem").objectReferenceValue = eventSystem;
             so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        static Button ResultButton(string name, Transform parent, string text, Vector2 pos, out Text label)
+        {
+            var buttonImage = Img(name, parent, roundSprite, Color.white);
+            buttonImage.type = Image.Type.Sliced;
+            buttonImage.raycastTarget = true;
+            Place(buttonImage.rectTransform, new Vector2(0.5f, 0.5f), pos, new Vector2(360f, 84f));
+            var button = buttonImage.gameObject.AddComponent<Button>();
+            button.targetGraphic = buttonImage;
+            var colors = button.colors;
+            colors.normalColor = new Color(0.2f, 0.2f, 0.24f, 0.95f);
+            colors.highlightedColor = new Color(0.45f, 0.38f, 0.2f, 1f);
+            colors.selectedColor = new Color(0.45f, 0.38f, 0.2f, 1f);
+            colors.pressedColor = new Color(0.7f, 0.58f, 0.25f, 1f);
+            button.colors = colors;
+            label = Label("Label", buttonImage.transform, text, 40, FontStyle.Bold, Color.white, TextAnchor.MiddleCenter);
+            Stretch(label.rectTransform, Vector2.zero, Vector2.zero);
+            return button;
         }
 
         // ---------- 共用 ----------

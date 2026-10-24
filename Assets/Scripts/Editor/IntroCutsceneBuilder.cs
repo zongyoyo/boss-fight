@@ -507,7 +507,7 @@ namespace BossFight.EditorTools
             return atmosphere;
         }
 
-        static AudioManager BuildAudioManager(AudioClip music)
+        internal static AudioManager BuildAudioManager(AudioClip music)
         {
             var root = new GameObject(AudioName);
             Undo.RegisterCreatedObjectUndo(root, "Build Intro Cutscene");

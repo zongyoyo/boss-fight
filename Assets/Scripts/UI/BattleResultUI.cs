@@ -14,6 +14,7 @@ namespace BossFight.UI
     /// 按鈕下面是一行小字的 Boss 剩餘血量／戰鬥時間／第幾次挑戰，再下面是灰色小字「選單裡有簡單模式」（簡單模式戰敗時不顯示，看 BattleResult.difficulty）。
     /// 戰敗的文字、顏色、字級、高度都讀 BattleUIData（Awake 時套用，改資產不用重建）。
     /// 按鈕呼叫 BattleManager.Retry（重新載入場景，之後開場可以長按跳過）；出現時把按鈕設為選取，Enter／手把 A 也能按。
+    /// 右邊的「返回休息區」呼叫 BattleManager.ReturnToHub（不先確認，跟重試一樣直接走；勝敗共用）。
     /// Boss 名稱來自開場字卡（CutsceneDirector.OnTitleCard），沒有時用 BattleUIData.fallbackBossName。按鈕下面不放按鍵提示（勝敗都一樣）。
     /// </summary>
     [DisallowMultipleComponent]
@@ -44,6 +45,9 @@ namespace BossFight.UI
         [Header("按鈕")]
         [SerializeField] Button retryButton;
         [SerializeField] Text retryLabel;
+        [Tooltip("重試按鈕右邊的「返回休息區」")]
+        [SerializeField] Button hubButton;
+        [SerializeField] Text hubLabel;
         [Tooltip("出現時把按鈕設為選取（Enter／手把 A 可以按）")]
         [SerializeField] EventSystem eventSystem;
 
@@ -80,6 +84,7 @@ namespace BossFight.UI
             if (battle != null) battle.OnBattleResult += Show;
             if (intro != null) intro.OnTitleCard += HandleTitleCard;
             retryButton.onClick.AddListener(Retry);
+            if (hubButton != null) hubButton.onClick.AddListener(ReturnToHub);
         }
 
         void OnDisable()
@@ -87,6 +92,7 @@ namespace BossFight.UI
             if (battle != null) battle.OnBattleResult -= Show;
             if (intro != null) intro.OnTitleCard -= HandleTitleCard;
             retryButton.onClick.RemoveListener(Retry);
+            if (hubButton != null) hubButton.onClick.RemoveListener(ReturnToHub);
         }
 
         void HandleTitleCard(TitleCardInfo info)
@@ -117,6 +123,7 @@ namespace BossFight.UI
                                        $"戰鬥時間 {FormatTime(result.battleTime)}{gap}第 {result.attempt} 次挑戰";
                 retryLabel.text = data.defeatButton;
             }
+            if (hubLabel != null) hubLabel.text = data.returnToHubButton;
             shownAt = Time.unscaledTime;
             group.interactable = true;
             group.blocksRaycasts = true;
@@ -132,6 +139,11 @@ namespace BossFight.UI
         void Retry()
         {
             if (battle != null) battle.Retry();
+        }
+
+        void ReturnToHub()
+        {
+            if (battle != null) battle.ReturnToHub();
         }
 
         void Update()
