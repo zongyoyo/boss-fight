@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 824983bd08d837f4fa5684049eacab24, type: 3}
+  m_Name: HubUIData
+  m_EditorClassIdentifier: Assembly-CSharp::BossFight.UI.HubUIData
+  promptFormat: "\u6309 [{0}] {1}"
+  stations:
+  - kind: 0
+    verb: "\u5C0D\u8A71"
+    title: "\u6751\u9577"
+  - kind: 1
+    verb: "\u935B\u9020"
+    title: "\u9435\u5320\u92EA"
+  - kind: 2
+    verb: "\u4F11\u606F"
+    title: "\u71DF\u706B"
+  - kind: 3
+    verb: "\u51FA\u767C"
+    title: "\u9078\u64C7\u6311\u6230"
+  promptColor: {r: 1, g: 1, b: 1, a: 1}
+  promptFontSize: 34
+  promptY: 150
+  emptyStationText: "\uFF08\u6E96\u5099\u4E2D\uFF09"
+  closeHintKeyboard: "Esc \u8FD4\u56DE"
+  closeHintGamepad: "B \u8FD4\u56DE"
+  panelColor: {r: 0.08, g: 0.07, b: 0.06, a: 0.92}
+  titleColor: {r: 1, g: 0.85, b: 0.6, a: 1}
+  textColor: {r: 1, g: 1, b: 1, a: 1}
+  hintColor: {r: 1, g: 1, b: 1, a: 0.6}
+  buttonColor: {r: 0.22, g: 0.2, b: 0.18, a: 1}
+  buttonHighlightColor: {r: 0.45, g: 0.36, b: 0.24, a: 1}
+  bossLabel: "OIIA \u8C93"
+  departConfirmFormat: "\u8981\u51FA\u767C\u6311\u6230 {0} \u55CE\uFF1F"
+  departYes: "\u51FA\u767C"
+  departNo: "\u53D6\u6D88"

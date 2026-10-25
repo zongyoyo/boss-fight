@@ -3,6 +3,7 @@ using BossFight.Battle;
 using BossFight.Core;
 using BossFight.Cutscene;
 using BossFight.DebugTools;
+using BossFight.Hub;
 using BossFight.UI;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -24,6 +25,8 @@ namespace BossFight.EditorTools
     ///    BattleManager 的 GamePause、GameOptions 與 Difficulty、DebugTools 的 DeveloperMode（開發者模式開關 BossDebugTools、BalanceDebugPanel、PlayerDebugOverlay）、
     ///    Boss 血條與跳過提示的按鍵名稱；最後跑 SceneFlowBuilder.Build（換場景的 SceneFlow 與黑幕，接上 BattleManager 與選單）。
     /// BattleUIBuilder（Build Intro 最後會跑）結束時會呼叫 Build；TransitionCutsceneBuilder、BossBuilder 結束時呼叫 Wire。
+    /// 休息區（T20，場景裡有 HubManager、沒有 BattleManager）：主選單只建繼續、設定、退出遊戲，不建難度頁；選單與 HubManager 接上 GamePause、選單接上 HubManager。
+    /// HubBuilder 會呼叫 Build。
     /// </summary>
     public static class PauseMenuBuilder
     {
@@ -62,9 +65,10 @@ namespace BossFight.EditorTools
         public static GameObject Build()
         {
             var battle = Object.FindAnyObjectByType<BattleManager>();
-            if (battle == null)
+            var hub = battle == null ? Object.FindAnyObjectByType<HubManager>() : null;
+            if (battle == null && hub == null)
             {
-                Debug.LogError("[PauseMenu] 需要場景裡的 BattleManager（Tools > Cutscene > Build Intro）。");
+                Debug.LogError("[PauseMenu] 需要場景裡的 BattleManager（Tools > Cutscene > Build Intro）或休息區的 HubManager（Tools > Hub > Build Hub）。");
                 return null;
             }
 
@@ -120,21 +124,35 @@ namespace BossFight.EditorTools
             so.FindProperty("options").objectReferenceValue = options;
             so.FindProperty("pause").objectReferenceValue = pause;
             so.FindProperty("battle").objectReferenceValue = battle;
+            so.FindProperty("hub").objectReferenceValue = hub;
             so.FindProperty("audioManager").objectReferenceValue = Object.FindAnyObjectByType<AudioManager>();
             so.FindProperty("eventSystem").objectReferenceValue = eventSystem;
             so.FindProperty("group").objectReferenceValue = group;
 
             // ---------- 主選單 ----------
-            var main = Window("Main", root.transform, new Vector2(620f, 690f + ButtonGap), data.pauseTitle);
-            var mainButtons = ButtonColumn(main, 175f + ButtonGap * 0.5f, data.resumeLabel, data.settingsLabel, data.difficultyLabel, data.retryLabel,
-                                           data.returnToHubLabel, data.quitLabel);
+            // 休息區少了難度、重新挑戰、返回休息區三顆：視窗矮三格，上下留白不變
+            float mainLess = battle != null ? 0f : 3f;
+            var main = Window("Main", root.transform, new Vector2(620f, 690f + ButtonGap - ButtonGap * mainLess), data.pauseTitle);
+            float mainTop = 175f + ButtonGap * 0.5f - ButtonGap * mainLess * 0.5f;
             so.FindProperty("mainPage").objectReferenceValue = main.gameObject;
-            Set(so, "resumeButton", mainButtons[0]);
-            Set(so, "settingsButton", mainButtons[1]);
-            Set(so, "difficultyButton", mainButtons[2]);
-            Set(so, "retryButton", mainButtons[3]);
-            Set(so, "hubButton", mainButtons[4]);
-            Set(so, "quitButton", mainButtons[5]);
+            if (battle != null)
+            {
+                var mainButtons = ButtonColumn(main, mainTop, data.resumeLabel, data.settingsLabel, data.difficultyLabel, data.retryLabel,
+                                               data.returnToHubLabel, data.quitLabel);
+                Set(so, "resumeButton", mainButtons[0]);
+                Set(so, "settingsButton", mainButtons[1]);
+                Set(so, "difficultyButton", mainButtons[2]);
+                Set(so, "retryButton", mainButtons[3]);
+                Set(so, "hubButton", mainButtons[4]);
+                Set(so, "quitButton", mainButtons[5]);
+            }
+            else
+            {
+                var mainButtons = ButtonColumn(main, mainTop, data.resumeLabel, data.settingsLabel, data.quitLabel);
+                Set(so, "resumeButton", mainButtons[0]);
+                Set(so, "settingsButton", mainButtons[1]);
+                Set(so, "quitButton", mainButtons[2]);
+            }
 
             // ---------- 設定 ----------
             // 開發者模式、重置存檔沒顯示時 PauseMenuUI 把「返回」往上補
@@ -167,18 +185,9 @@ namespace BossFight.EditorTools
             VolumeRow(so, volume, -60f, "Sfx", data.sfxLabel, "sfxSlider", "sfxValue");
             Set(so, "volumeBackButton", MenuButton("Back", volume, data.backLabel, new Vector2(0f, -170f), ButtonSize));
 
-            // ---------- 難度 ----------
+            // ---------- 難度（休息區沒有） ----------
             // 兩排（困難／簡單、返回），間距同按鍵設定頁
-            var difficulty = Window("Difficulty", root.transform, new Vector2(840f, 510f - ButtonGap), data.difficultyLabel);
-            so.FindProperty("difficultyPage").objectReferenceValue = difficulty.gameObject;
-            float difficultyY = 100f - ButtonGap * 0.5f;
-            var hard = MenuButton("Hard", difficulty, string.Format(data.currentDifficultyFormat, data.hardLabel), new Vector2(-190f, difficultyY), new Vector2(340f, 76f));
-            var easy = MenuButton("Easy", difficulty, data.easyLabel, new Vector2(190f, difficultyY), new Vector2(340f, 76f));
-            Set(so, "hardButton", hard);
-            so.FindProperty("hardLabel").objectReferenceValue = hard.GetComponentInChildren<Text>();
-            Set(so, "easyButton", easy);
-            so.FindProperty("easyLabel").objectReferenceValue = easy.GetComponentInChildren<Text>();
-            Set(so, "difficultyBackButton", MenuButton("Back", difficulty, data.backLabel, new Vector2(0f, difficultyY - ButtonGap), ButtonSize));
+            if (battle != null) BuildDifficultyPage(so, root.transform);
 
             // ---------- 確認 ----------
             // 最長的是切換難度（第二行 22 字 × 38 = 836）：面板加寬到放得下一行，超過時在面板內自動換行
@@ -216,6 +225,20 @@ namespace BossFight.EditorTools
             return root;
         }
 
+        static void BuildDifficultyPage(SerializedObject so, Transform root)
+        {
+            var difficulty = Window("Difficulty", root, new Vector2(840f, 510f - ButtonGap), data.difficultyLabel);
+            so.FindProperty("difficultyPage").objectReferenceValue = difficulty.gameObject;
+            float difficultyY = 100f - ButtonGap * 0.5f;
+            var hard = MenuButton("Hard", difficulty, string.Format(data.currentDifficultyFormat, data.hardLabel), new Vector2(-190f, difficultyY), new Vector2(340f, 76f));
+            var easy = MenuButton("Easy", difficulty, data.easyLabel, new Vector2(190f, difficultyY), new Vector2(340f, 76f));
+            Set(so, "hardButton", hard);
+            so.FindProperty("hardLabel").objectReferenceValue = hard.GetComponentInChildren<Text>();
+            Set(so, "easyButton", easy);
+            so.FindProperty("easyLabel").objectReferenceValue = easy.GetComponentInChildren<Text>();
+            Set(so, "difficultyBackButton", MenuButton("Back", difficulty, data.backLabel, new Vector2(0f, difficultyY - ButtonGap), ButtonSize));
+        }
+
         /// <summary>接好 ESC 選單以外會用到設定、暫停與按鍵名稱的元件；重建 AudioManager、演出、Boss、BattleManager 之後要再跑一次。</summary>
         public static void Wire()
         {
@@ -229,6 +252,7 @@ namespace BossFight.EditorTools
             var inputNames = AssetDatabase.LoadAssetAtPath<InputNameData>(InputNamesPath);
             var hintDevice = DaoDunDogBuilder.GetOrAdd<InputHintDevice>(options.gameObject);
             var battle = Object.FindAnyObjectByType<BattleManager>();
+            var hub = Object.FindAnyObjectByType<HubManager>();
             var audio = Object.FindAnyObjectByType<AudioManager>();
 
             // 音量：選單試聽的 AudioSource、演出 Timeline 音軌的 AudioSource
@@ -250,6 +274,7 @@ namespace BossFight.EditorTools
                 DaoDunDogBuilder.SetReference(battle, "options", options);
                 DaoDunDogBuilder.SetReference(battle, "difficultyData", AssetDatabase.LoadAssetAtPath<DifficultyData>(DifficultyPath));
             }
+            if (hub != null) DaoDunDogBuilder.SetReference(hub, "pause", pause);
 
             // 開發者模式
             var bossTools = Object.FindAnyObjectByType<BossDebugTools>();
@@ -301,6 +326,7 @@ namespace BossFight.EditorTools
             {
                 var so = new SerializedObject(menu);
                 so.FindProperty("battle").objectReferenceValue = battle;
+                so.FindProperty("hub").objectReferenceValue = hub;
                 so.FindProperty("audioManager").objectReferenceValue = audio;
                 so.FindProperty("options").objectReferenceValue = options;
                 so.FindProperty("pause").objectReferenceValue = pause;
@@ -312,8 +338,8 @@ namespace BossFight.EditorTools
             PlayerSpawnerBuilder.Wire(); // 選單相關的接收者（BattleManager 等）與 AudioManager 重接
 
             EditorSceneManager.MarkSceneDirty(options.gameObject.scene);
-            string missing = (audio == null ? " AudioManager" : "") + (battle == null ? " BattleManager" : "") +
-                             (bossTools == null ? " DebugTools" : "") + (menu == null ? " PauseMenu" : "");
+            string missing = (audio == null ? " AudioManager" : "") + (battle == null && hub == null ? " BattleManager／HubManager" : "") +
+                             (bossTools == null && hub == null ? " DebugTools" : "") + (menu == null ? " PauseMenu" : "");
             Debug.Log("[PauseMenu] 設定、暫停與按鍵名稱已接上" + (missing.Length > 0 ? $"；缺少：{missing}" : ""));
         }
 

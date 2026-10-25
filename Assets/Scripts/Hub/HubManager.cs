@@ -1,0 +1,137 @@
+using System;
+using BossFight.Cameras;
+using BossFight.Core;
+using BossFight.Player;
+using UnityEngine;
+using UnityEngine.InputSystem;
+
+namespace BossFight.Hub
+{
+    /// <summary>
+    /// 休息區的狀態（T20）：自由走動，或某個站點的介面開著。
+    /// 自由走動時玩家在站點範圍內（InteractionScanner 的焦點）按 Player/Interact（按一下就觸發）打開那個站點：
+    /// 站點鏡頭的優先度調高（Cinemachine 混過去）、玩家用 ScriptedMoveTo 以 HubLayoutData.approachSpeed 走到站位點並面向站點，送 OnStationOpened。
+    /// 介面（HubStationUI）讀 UI/Cancel（Esc、手把 B）後呼叫 CloseStation：鏡頭優先度還原、自由視角擺到玩家背後面向站點，送 OnStationClosed。
+    /// 輸入鎖定：介面開著或 ESC 選單暫停（GamePause）時鎖住玩家與鏡頭、放開游標；跟 BattleManager 一樣在 LateUpdate 鎖／解鎖，
+    /// 解除那一幀玩家的 Update 已經跑完，關介面用的手把 B（翻滾）不會被當成動作。介面開著時 ESC 選單不開（PauseMenuUI 訂閱這裡的事件）。
+    /// 也提供 ESC 選單秘技的解鎖（UnlockDeveloperOptions，記在 BattleSession，跟 Boss 戰共用）。
+    /// </summary>
+    [DisallowMultipleComponent]
+    public class HubManager : MonoBehaviour, IPlayerBinding
+    {
+        [SerializeField] HubLayoutData layout;
+        [SerializeField] InteractionScanner scanner;
+        [SerializeField] CameraController cameraController;
+        [SerializeField] GamePause pause;
+        [Tooltip("介面開著時站點鏡頭的優先度（要比自由視角、鎖定鏡頭高）")]
+        [SerializeField] int stationCameraPriority = 20;
+
+        /// <summary>打開某個站點的介面。</summary>
+        public event Action<Interactable> OnStationOpened;
+        /// <summary>關掉某個站點的介面。</summary>
+        public event Action<Interactable> OnStationClosed;
+        /// <summary>這次執行在 ESC 選單輸入過秘技（Start 時也會送一次）。</summary>
+        public event Action OnDeveloperOptionsUnlocked;
+
+        /// <summary>目前開著的站點；自由走動時 null。</summary>
+        public Interactable Current { get; private set; }
+        public bool IsStationOpen => Current != null;
+
+        PlayerController player;
+        InputAction interactAction;
+        bool locked;
+        int savedPriority;
+
+        /// <summary>PlayerSpawner 生成（或換）角色時呼叫；介面開著時換的新角色一樣鎖住。</summary>
+        public void BindPlayer(PlayerRig rig)
+        {
+            player = rig != null ? rig.Controller : null;
+            if (locked && player != null) player.SetInputLocked(true);
+        }
+
+        void Awake()
+        {
+            var actions = InputSystem.actions;
+            if (actions != null) interactAction = actions.FindAction("Player/Interact", true);
+            else Debug.LogError("[Hub] 找不到 Project-wide Input Actions，站點不能互動。", this);
+        }
+
+        void OnEnable() => interactAction?.Enable();
+
+        void Start()
+        {
+            if (BattleSession.DeveloperOptionsUnlocked) OnDeveloperOptionsUnlocked?.Invoke();
+        }
+
+        void Update()
+        {
+            if (Current != null)
+            {
+                Approach();
+                return;
+            }
+            if (interactAction == null || !interactAction.WasPressedThisFrame()) return;
+            if ((pause != null && pause.IsPaused) || player == null || player.IsDead || !player.IsGrounded) return;
+            var target = scanner != null ? scanner.Focus : null;
+            if (target != null) Open(target);
+        }
+
+        // 介面開著或暫停時鎖住輸入、放開游標
+        void LateUpdate()
+        {
+            bool shouldLock = Current != null || (pause != null && pause.IsPaused);
+            if (shouldLock == locked) return;
+            locked = shouldLock;
+            if (player != null) player.SetInputLocked(locked);
+            if (cameraController != null)
+            {
+                cameraController.SetInputLocked(locked);
+                cameraController.SetCursorReleased(locked);
+            }
+        }
+
+        void Open(Interactable target)
+        {
+            Current = target;
+            var cam = target.StationCamera;
+            if (cam != null)
+            {
+                savedPriority = cam.Priority.Value;
+                cam.Priority = stationCameraPriority;
+            }
+            player.ClearLockTarget();
+            OnStationOpened?.Invoke(target);
+        }
+
+        /// <summary>關掉目前的介面（HubStationUI 按返回時呼叫）；沒有開著時不做事。</summary>
+        public void CloseStation()
+        {
+            if (Current == null) return;
+            var closed = Current;
+            Current = null;
+            var cam = closed.StationCamera;
+            if (cam != null) cam.Priority = savedPriority;
+            if (cameraController != null && player != null) cameraController.ResetBehind(closed.transform.position);
+            OnStationClosed?.Invoke(closed);
+        }
+
+        /// <summary>ESC 選單的秘技：記在 BattleSession（Boss 戰與休息區共用，重開遊戲要重輸）。</summary>
+        public void UnlockDeveloperOptions()
+        {
+            if (BattleSession.DeveloperOptionsUnlocked) return;
+            BattleSession.MarkDeveloperOptionsUnlocked();
+            OnDeveloperOptionsUnlocked?.Invoke();
+        }
+
+        // 照腳本走到站位點、面向站點（輸入在 LateUpdate 鎖住後才生效）
+        void Approach()
+        {
+            if (player == null || layout == null) return;
+            Vector3 stand = Current.StandPoint.position;
+            Vector3 from = player.transform.position;
+            Vector3 next = Vector3.MoveTowards(new Vector3(from.x, stand.y, from.z), stand, layout.approachSpeed * Time.deltaTime);
+            next.y = from.y;
+            player.ScriptedMoveTo(next, Current.transform.position - stand);
+        }
+    }
+}

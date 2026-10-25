@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using BossFight.Battle;
 using BossFight.Core;
+using BossFight.Hub;
 using BossFight.Progression;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -38,6 +39,8 @@ namespace BossFight.UI
     /// 或這次執行在選單裡輸入過秘技（PauseMenuData.developerUnlockCode，↑↑↓↓←←→→ A B；記在 BattleManager／BattleSession，重試後還在）；
     /// 出現之後這個場景裡就不再藏起來。沒顯示時「返回」補到它的位置。秘技輸到第一個 A／B 之前先取消選取，手把的 A、B 不會按下按鈕或返回。
     /// 文字、顏色、改鍵清單在 PauseMenuData；頁面上固定的文字由 PauseMenuBuilder 建立時寫入。
+    /// 休息區（T20）：主選單只有繼續、設定、退出遊戲（PauseMenuBuilder 不建難度、重新挑戰、返回休息區，欄位留空），沒有 BattleManager；
+    /// 暫停時的輸入鎖定由 HubManager 處理；站點介面開著（含關掉的那一幀，Esc 是拿來關介面的）時不開選單；秘技記在 HubManager（一樣是 BattleSession）。
     /// 關掉時把選取還給開選單前的物件（勝敗畫面的按鈕）。
     /// </summary>
     [DisallowMultipleComponent]
@@ -48,6 +51,8 @@ namespace BossFight.UI
         [SerializeField] GamePause pause;
         [Tooltip("重新挑戰、返回休息區")]
         [SerializeField] BattleManager battle;
+        [Tooltip("休息區：站點介面開著時不開選單、秘技的解鎖；Boss 戰留空")]
+        [SerializeField] HubManager hub;
         [Tooltip("重置存檔後回休息區")]
         [SerializeField] SceneFlow sceneFlow;
         [Tooltip("調音效音量時試聽；可留空")]
@@ -64,6 +69,7 @@ namespace BossFight.UI
         [SerializeField] GameObject mainPage;
         [SerializeField] Button resumeButton;
         [SerializeField] Button settingsButton;
+        [Tooltip("難度、重新挑戰、返回休息區：休息區沒有，留空")]
         [SerializeField] Button difficultyButton;
         [SerializeField] Button retryButton;
         [SerializeField] Button hubButton;
@@ -128,7 +134,8 @@ namespace BossFight.UI
 
         InputAction pauseAction, cancelAction;
         GameObject previousSelection;
-        bool developerMode, developerVisible, leaving;
+        bool developerMode, developerVisible, leaving, stationOpen;
+        int stationClosedFrame = -1;
         ConfirmAction confirmAction;
         Difficulty difficulty, pendingDifficulty;
         float nextPreviewTime;
@@ -157,13 +164,16 @@ namespace BossFight.UI
 
             resumeButton.onClick.AddListener(Close);
             settingsButton.onClick.AddListener(() => ShowPage(PauseMenuPage.Settings, controlsButton));
-            difficultyButton.onClick.AddListener(() => ShowPage(PauseMenuPage.Difficulty, null));
-            retryButton.onClick.AddListener(() => ShowConfirm(ConfirmAction.Retry));
-            hubButton.onClick.AddListener(() => ShowConfirm(ConfirmAction.ReturnToHub));
+            if (difficultyButton != null) difficultyButton.onClick.AddListener(() => ShowPage(PauseMenuPage.Difficulty, null));
+            if (retryButton != null) retryButton.onClick.AddListener(() => ShowConfirm(ConfirmAction.Retry));
+            if (hubButton != null) hubButton.onClick.AddListener(() => ShowConfirm(ConfirmAction.ReturnToHub));
             quitButton.onClick.AddListener(() => ShowConfirm(ConfirmAction.Quit));
-            hardButton.onClick.AddListener(() => ChooseDifficulty(Difficulty.Hard));
-            easyButton.onClick.AddListener(() => ChooseDifficulty(Difficulty.Easy));
-            difficultyBackButton.onClick.AddListener(Back);
+            if (difficultyPage != null)
+            {
+                hardButton.onClick.AddListener(() => ChooseDifficulty(Difficulty.Hard));
+                easyButton.onClick.AddListener(() => ChooseDifficulty(Difficulty.Easy));
+                difficultyBackButton.onClick.AddListener(Back);
+            }
             controlsButton.onClick.AddListener(() => ShowPage(PauseMenuPage.Controls, keyboardButton));
             volumeButton.onClick.AddListener(() => ShowPage(PauseMenuPage.Volume, masterSlider));
             developerButton.onClick.AddListener(ToggleDeveloperMode);
@@ -200,6 +210,12 @@ namespace BossFight.UI
                 options.OnDifficultyChanged += HandleDifficultyChanged;
             }
             if (battle != null) battle.OnDeveloperOptionsUnlocked += HandleDeveloperOptionsUnlocked;
+            if (hub != null)
+            {
+                hub.OnDeveloperOptionsUnlocked += HandleDeveloperOptionsUnlocked;
+                hub.OnStationOpened += HandleStationOpened;
+                hub.OnStationClosed += HandleStationClosed;
+            }
             keyboardPage.OnBack += Back;
             gamepadPage.OnBack += Back;
             if (hintDevice != null) hintDevice.OnDeviceChanged += HandleDeviceChanged;
@@ -214,10 +230,24 @@ namespace BossFight.UI
                 options.OnDifficultyChanged -= HandleDifficultyChanged;
             }
             if (battle != null) battle.OnDeveloperOptionsUnlocked -= HandleDeveloperOptionsUnlocked;
+            if (hub != null)
+            {
+                hub.OnDeveloperOptionsUnlocked -= HandleDeveloperOptionsUnlocked;
+                hub.OnStationOpened -= HandleStationOpened;
+                hub.OnStationClosed -= HandleStationClosed;
+            }
             keyboardPage.OnBack -= Back;
             gamepadPage.OnBack -= Back;
             if (hintDevice != null) hintDevice.OnDeviceChanged -= HandleDeviceChanged;
             if (IsOpen) Close();
+        }
+
+        void HandleStationOpened(Interactable station) => stationOpen = true;
+
+        void HandleStationClosed(Interactable station)
+        {
+            stationOpen = false;
+            stationClosedFrame = Time.frameCount;
         }
 
         void HandleDeviceChanged(bool gamepad)
@@ -237,7 +267,8 @@ namespace BossFight.UI
             bool pausePressed = pauseAction != null && pauseAction.WasPressedThisFrame();
             if (!IsOpen)
             {
-                if (pausePressed) Open();
+                // 休息區：站點介面開著或這一幀剛關掉時，Esc 是介面的返回，不開選單
+                if (pausePressed && !stationOpen && stationClosedFrame != Time.frameCount) Open();
                 return;
             }
             if (Busy) return;
@@ -309,7 +340,7 @@ namespace BossFight.UI
             gamepadPage.gameObject.SetActive(page == PauseMenuPage.Gamepad);
             volumePage.SetActive(page == PauseMenuPage.Volume);
             confirmPage.SetActive(page == PauseMenuPage.Confirm);
-            difficultyPage.SetActive(page == PauseMenuPage.Difficulty);
+            if (difficultyPage != null) difficultyPage.SetActive(page == PauseMenuPage.Difficulty);
             if (page != PauseMenuPage.None) Select(select != null ? select : DefaultSelectable(page));
         }
 
@@ -401,6 +432,7 @@ namespace BossFight.UI
         void HandleDifficultyChanged(Difficulty value)
         {
             difficulty = value;
+            if (difficultyPage == null) return; // 休息區沒有難度頁
             hardLabel.text = value == Difficulty.Hard ? string.Format(data.currentDifficultyFormat, data.hardLabel) : data.hardLabel;
             easyLabel.text = value == Difficulty.Easy ? string.Format(data.currentDifficultyFormat, data.easyLabel) : data.easyLabel;
         }
@@ -560,6 +592,7 @@ namespace BossFight.UI
             if (audioManager != null && data.developerUnlockSfx != null) audioManager.PlayUiSfx(data.developerUnlockSfx, data.developerUnlockVolume);
             ShowDeveloperOption();
             if (battle != null) battle.UnlockDeveloperOptions(); // 記在 BattleSession：重試後選單還是顯示開關
+            if (hub != null) hub.UnlockDeveloperOptions();
         }
 
         void UpdateNotice()

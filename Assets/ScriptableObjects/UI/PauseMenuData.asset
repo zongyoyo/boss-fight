@@ -79,6 +79,12 @@ MonoBehaviour:
     keyboard: 1
     gamepad: 1
     checkConflict: 1
+  - action: Player/Interact
+    compositePart: 
+    label: "互動"
+    keyboard: 1
+    gamepad: 1
+    checkConflict: 0
   - action: Player/SkipCutscene
     compositePart: 
     label: "\u9577\u6309\u8DF3\u904E\u958B\u5834"

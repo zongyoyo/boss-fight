@@ -34,7 +34,7 @@ namespace BossFight.UI
             public bool keyboard = true;
             [Tooltip("出現在控制器頁")]
             public bool gamepad = true;
-            [Tooltip("改鍵時和其他動作同鍵就互換；長按跳過開場本來就和跳躍同鍵，不檢查")]
+            [Tooltip("改鍵時和其他動作同鍵就互換；長按跳過開場本來就和跳躍同鍵、互動（休息區）和處決（Boss 戰）手把同鍵，不檢查")]
             public bool checkConflict = true;
 
             public BindingEntry() { }
@@ -64,6 +64,7 @@ namespace BossFight.UI
             new BindingEntry("Player/LockOn", "", "鎖定", true, true, true),
             new BindingEntry("Player/Heal", "", "啃骨頭", true, true, true),
             new BindingEntry("Player/Execute", "", "處決", true, true, true),
+            new BindingEntry("Player/Interact", "", "互動", true, true, false),
             new BindingEntry("Player/SkipCutscene", "", "長按跳過開場", true, true, false),
         };
 
