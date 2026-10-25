@@ -18,6 +18,8 @@ namespace BossFight.Core
         public List<string> defeatedBosses = new List<string>();
         [Tooltip("目前的角色（CharacterDefinition 的 id）；空字串 = 名冊的預設角色")]
         public string currentCharacter = "";
+        [Tooltip("之後解鎖的角色（id）；一開始就能用的角色（CharacterDefinition.unlockedByDefault）不記在這裡")]
+        public List<string> unlockedCharacters = new List<string>();
     }
 
     /// <summary>
@@ -69,6 +71,18 @@ namespace BossFight.Core
 
         /// <summary>目前的角色 id；空字串 = 用名冊的預設角色（PlayerSpawner 依它生成）。</summary>
         public static string CurrentCharacter => Data.currentCharacter ?? string.Empty;
+
+        /// <summary>這個角色是不是解鎖過（只看存檔；一開始就能用的角色另外看 CharacterDefinition.unlockedByDefault）。</summary>
+        public static bool IsCharacterUnlocked(string id) => !string.IsNullOrEmpty(id) && Data.unlockedCharacters.Contains(id);
+
+        /// <summary>解鎖角色並存檔（之後的獎勵用）；回傳 true = 這次才解鎖。</summary>
+        public static bool UnlockCharacter(string id)
+        {
+            if (string.IsNullOrEmpty(id) || Data.unlockedCharacters.Contains(id)) return false;
+            Data.unlockedCharacters.Add(id);
+            Save();
+            return true;
+        }
 
         /// <summary>設定目前的角色並存檔（T21 營火切換角色用）。</summary>
         public static void SetCurrentCharacter(string id)
@@ -122,6 +136,7 @@ namespace BossFight.Core
                 if (loaded == null) throw new FormatException("檔案是空的");
                 if (loaded.defeatedBosses == null) loaded.defeatedBosses = new List<string>();
                 if (loaded.currentCharacter == null) loaded.currentCharacter = string.Empty;
+                if (loaded.unlockedCharacters == null) loaded.unlockedCharacters = new List<string>();
                 data = loaded;
             }
             catch (Exception e)

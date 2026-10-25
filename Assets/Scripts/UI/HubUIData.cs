@@ -5,7 +5,7 @@ using UnityEngine;
 namespace BossFight.UI
 {
     /// <summary>
-    /// 休息區介面的文字與顏色（T20）：互動提示、站點面板（T21–T24 在這裡加各站點的內容）、傳送門的挑戰清單。
+    /// 休息區介面的文字與顏色（T20）：互動提示、站點面板（T21–T24 在這裡加各站點的內容）、營火（T21）、傳送門的挑戰清單。
     /// HubUIBuilder 建立介面時用版面與顏色，執行時的文字（提示、站點名稱、確認訊息）直接讀資產。資產在 Assets/ScriptableObjects/Hub/HubUIData.asset。
     /// </summary>
     [CreateAssetMenu(fileName = "HubUIData", menuName = "BossFight/Hub/Hub UI Data")]
@@ -48,6 +48,19 @@ namespace BossFight.UI
         public Color hintColor = new Color(1f, 1f, 1f, 0.6f);
         public Color buttonColor = new Color(0.22f, 0.2f, 0.18f, 1f);
         public Color buttonHighlightColor = new Color(0.45f, 0.36f, 0.24f, 1f);
+
+        [Header("營火")]
+        [Tooltip("頁籤的字")]
+        public string campfireCharactersTab = "角色";
+        public string campfireSkillTreeTab = "技能樹";
+        [Tooltip("角色清單裡目前角色那一列：{0} = 角色名稱")]
+        public string currentCharacterFormat = "{0}（目前）";
+        [Tooltip("目前角色那一列的字色")]
+        public Color currentCharacterColor = new Color(1f, 0.85f, 0.6f);
+        [Tooltip("目前這一頁的頁籤底色")]
+        public Color tabActiveColor = new Color(0.62f, 0.45f, 0.24f, 1f);
+        [Tooltip("角色清單每列的間距（Canvas 單位）")]
+        [Min(0f)] public float characterRowSpacing = 14f;
 
         [Header("傳送門")]
         [Tooltip("挑戰清單（目前只有 OIIA 貓一列；T24 改讀 BossDefinition）")]

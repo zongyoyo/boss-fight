@@ -6494,6 +6494,12 @@ MonoBehaviour:
   deathFallTime: 0.5
   deathSink: 0.1
   rollPivot: {x: 0, y: 0.6, z: 0}
+  sitHeight: 0.27
+  sitLegPose: {x: -80, y: 0, z: 12}
+  sitArmRPose: {x: -25, y: 0, z: 8}
+  sitArmLPose: {x: -10, y: 0, z: -12}
+  sitLean: -6
+  sitBlendSpeed: 4
 --- !u!114 &5548504988614100955
 MonoBehaviour:
   m_ObjectHideFlags: 0

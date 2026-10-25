@@ -7,7 +7,8 @@ using UnityEngine.UI;
 namespace BossFight.UI
 {
     /// <summary>
-    /// 休息區的站點面板（T20）：HubManager.OnStationOpened 時出現、寫上站點名稱（HubUIData）。村長、鐵匠鋪、營火先是空面板（內容在 T21–T24），
+    /// 休息區的站點面板（T20）：HubManager.OnStationOpened 時出現、寫上站點名稱（HubUIData）。村長、鐵匠鋪先是空面板（內容在 T22–T24），
+    /// 營火（T21）有自己的 CampfireUI，這裡不顯示；
     /// 傳送門是挑戰清單（目前只有 OIIA 貓一列）→ 確認 → Portal.Depart 換場景（黑幕淡出期間面板維持開著、不再收輸入）。
     /// 返回讀 UI/Cancel（Esc、手把 B）：確認框開著時回到清單，否則呼叫 HubManager.CloseStation。面板下方的返回提示依 InputHintDevice 換鍵鼠或手把的字。
     /// 由 HubUIBuilder 建立與接線。
@@ -90,6 +91,7 @@ namespace BossFight.UI
 
         void HandleStationOpened(Interactable target)
         {
+            if (target is Campfire) return; // CampfireUI 負責
             current = target;
             confirming = departing = false;
             var text = data != null ? data.Get(target.Kind) : null;

@@ -1,3 +1,4 @@
+using BossFight.Core;
 using BossFight.Player;
 using UnityEngine;
 
@@ -6,6 +7,7 @@ namespace BossFight.Progression
     /// <summary>
     /// 一個可操作的角色（企劃書「角色系統」）：id、名稱、prefab、基礎數值。PlayerSpawner 依存檔的目前角色（id）從 CharacterRoster 找到這份，
     /// 生成 prefab，再由 PlayerLoadout 把 baseStats 複製一份、套上修正後交給角色（baseStats 本身不會被改）。
+    /// 營火的角色清單（T21）：一開始就能用（unlockedByDefault）或存檔裡解鎖過的角色；developerOnly 的只在開發者模式開著時列出。
     /// 裝備欄（T22）與技能樹（T23）之後加在這裡。
     /// </summary>
     [CreateAssetMenu(menuName = "BossFight/Progression/Character Definition", fileName = "Character")]
@@ -18,11 +20,16 @@ namespace BossFight.Progression
         public string displayName;
         [Tooltip("只有開發者模式開著時才出現在營火清單（測試角色）")]
         public bool developerOnly;
+        [Tooltip("一開始就能用；沒勾的要在存檔裡解鎖過（ProfileStore.UnlockCharacter）才出現在營火清單")]
+        public bool unlockedByDefault;
 
         [Header("角色")]
         [Tooltip("角色 prefab（根物件掛 PlayerRig）")]
         public PlayerRig prefab;
         [Tooltip("基礎數值；執行時複製一份再套用裝備與技能的修正，這份資產不會被改")]
         public PlayerStats baseStats;
+
+        /// <summary>可以選這個角色了沒有：一開始就能用，或存檔裡解鎖過（不看 developerOnly）。</summary>
+        public bool IsUnlocked => unlockedByDefault || ProfileStore.IsCharacterUnlocked(id);
     }
 }

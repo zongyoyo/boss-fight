@@ -37,6 +37,7 @@ namespace BossFight.Hub
         public Interactable Current { get; private set; }
         public bool IsStationOpen => Current != null;
 
+        PlayerRig rig;
         PlayerController player;
         InputAction interactAction;
         bool locked;
@@ -45,6 +46,7 @@ namespace BossFight.Hub
         /// <summary>PlayerSpawner 生成（或換）角色時呼叫；介面開著時換的新角色一樣鎖住。</summary>
         public void BindPlayer(PlayerRig rig)
         {
+            this.rig = rig;
             player = rig != null ? rig.Controller : null;
             if (locked && player != null) player.SetInputLocked(true);
         }
@@ -100,6 +102,7 @@ namespace BossFight.Hub
                 cam.Priority = stationCameraPriority;
             }
             player.ClearLockTarget();
+            target.Opened(rig);
             OnStationOpened?.Invoke(target);
         }
 
@@ -112,6 +115,7 @@ namespace BossFight.Hub
             var cam = closed.StationCamera;
             if (cam != null) cam.Priority = savedPriority;
             if (cameraController != null && player != null) cameraController.ResetBehind(closed.transform.position);
+            closed.Closed(rig);
             OnStationClosed?.Invoke(closed);
         }
 
@@ -123,15 +127,19 @@ namespace BossFight.Hub
             OnDeveloperOptionsUnlocked?.Invoke();
         }
 
-        // 照腳本走到站位點、面向站點（輸入在 LateUpdate 鎖住後才生效）
+        // 照腳本走到站位點、面向站點（輸入在 LateUpdate 鎖住後才生效）；走到了就告訴站點（營火坐下）
         void Approach()
         {
             if (player == null || layout == null) return;
             Vector3 stand = Current.StandPoint.position;
             Vector3 from = player.transform.position;
-            Vector3 next = Vector3.MoveTowards(new Vector3(from.x, stand.y, from.z), stand, layout.approachSpeed * Time.deltaTime);
+            Vector3 flat = new Vector3(from.x, stand.y, from.z);
+            float step = layout.approachSpeed * Time.deltaTime;
+            bool arrived = (flat - stand).sqrMagnitude <= step * step;
+            Vector3 next = Vector3.MoveTowards(flat, stand, step);
             next.y = from.y;
             player.ScriptedMoveTo(next, Current.transform.position - stand);
+            Current.Tick(rig, arrived);
         }
     }
 }

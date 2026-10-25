@@ -15,5 +15,6 @@ MonoBehaviour:
   id: daodun_dog
   displayName: "\u5200\u76FE\u72D7"
   developerOnly: 0
+  unlockedByDefault: 1
   prefab: {fileID: 4060941524532905949, guid: ba4551dbd87fc6645aa6a8c52c387733, type: 3}
   baseStats: {fileID: 11400000, guid: 12bf5db703747934abe53be7fd3d0c45, type: 2}

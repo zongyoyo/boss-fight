@@ -1,0 +1,135 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 554b62e949510da4f981af473eb070e7, type: 3}
+  m_Name: TestDogStats
+  m_EditorClassIdentifier: Assembly-CSharp::BossFight.Player.PlayerStats
+  moveSpeed: 6
+  acceleration: 40
+  turnSpeed: 720
+  blockMoveSpeedMultiplier: 0.4
+  gravity: -25
+  jumpHeight: 1.2
+  jumpStaminaCost: 0
+  rollDistance: 3
+  rollDuration: 0.5
+  rollInvulnerableTime: 0.3
+  rollStaminaCost: 25
+  rollCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 2
+      outSlope: 2
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  maxStamina: 75
+  staminaRegen: 12
+  staminaRegenBlocking: 30
+  blockRegenDelay: 1
+  maxHealth: 80
+  hitInvulnerableTime: 0.5
+  lightCombo:
+  - damage: 10
+    imbalance: 3
+    duration: 0.5
+    hitStart: 0.15
+    hitEnd: 0.25
+    cancelTime: 0.3
+    lungeDistance: 0
+    lungeStart: 0
+    lungeEnd: 0
+    reach: 1.8
+    width: 1.6
+  - damage: 10
+    imbalance: 3
+    duration: 0.5
+    hitStart: 0.15
+    hitEnd: 0.25
+    cancelTime: 0.3
+    lungeDistance: 0
+    lungeStart: 0
+    lungeEnd: 0
+    reach: 1.8
+    width: 1.6
+  - damage: 16
+    imbalance: 3
+    duration: 0.7
+    hitStart: 0.21
+    hitEnd: 0.35
+    cancelTime: 0.45
+    lungeDistance: 0.8
+    lungeStart: 0.05
+    lungeEnd: 0.3
+    reach: 1.8
+    width: 1.6
+  heavyChargeTime: 0.8
+  heavyStaminaCost: 30
+  heavyAttack:
+    damage: 35
+    imbalance: 15
+    duration: 0.7
+    hitStart: 0.1
+    hitEnd: 0.22
+    cancelTime: 0.45
+    lungeDistance: 0
+    lungeStart: 0
+    lungeEnd: 0
+    reach: 2
+    width: 2
+  attackHitboxHeight: 1.6
+  blockAngle: 120
+  blockDamageReduction: 0.8
+  blockStaminaPerDamage: 1
+  guardBreakDuration: 1
+  parryWindow: 0.15
+  parryHitStop: 0.1
+  parryImbalance: 25
+  executeRange: 3
+  executeAttack:
+    damage: 150
+    imbalance: 0
+    duration: 1
+    hitStart: 0.4
+    hitEnd: 0.5
+    cancelTime: 1
+    lungeDistance: 1
+    lungeStart: 0.05
+    lungeEnd: 0.3
+    reach: 2.2
+    width: 2
+  executeInvulnerable: 1
+  boneCount: 3
+  boneGainPerHit: 0.05
+  boneGainPerExecution: 0.3
+  boneGainWhenHurt: 0.02
+  boneHealAmount: 40
+  boneDuration: 1
+  lockOnRange: 20
+  mouseSensitivity: 0.12
+  stickSensitivity: 200
+  invertY: 0

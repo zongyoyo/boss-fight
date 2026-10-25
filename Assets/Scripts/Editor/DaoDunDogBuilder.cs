@@ -13,6 +13,7 @@ namespace BossFight.EditorTools
     /// 右手短刀，左手金邊黑底的鳶形盾（中間金色太陽紋），嘴裡藏著啃骨頭時才出現的骨頭。
     /// 存成 Assets/Prefabs/Characters/DaoDunDog.prefab（掛好 PlayerRig、PlayerController、PlayerStamina、PlayerHealth、PlayerAttack、HitStop 與 PlayerStats，
     /// 以及 Hurtbox 與刀的 Hitbox；T18 以前在 Assets/Prefabs，第一次跑時用 AssetDatabase.MoveAsset 搬過去、保留 GUID）。
+    /// 接著重建測試狗（T21）的 prefab variant Assets/Prefabs/Characters/DaoDunDog_Test.prefab（BuildTestVariant：只換材質）。
     /// 場景裡不放角色，改放 PlayerSpawner（PlayerSpawnerBuilder，底下有 EditorOnly 的預覽模型），再用 CameraRigBuilder 建立 Cinemachine 鏡頭。
     /// 選單 Tools > Player > Build DaoDun Dog；重建時沿用場景中舊 spawner（或 T17 以前的舊角色）的位置，都沒有時放在 PlayerSpawn。
     /// 只想補上攻防用的元件、不重建角色與鏡頭：Tools > Player > Add Combat Parts（可重複執行）。
@@ -25,6 +26,7 @@ namespace BossFight.EditorTools
         const string MeshDir = ModelDir + "/Meshes";
         const string PrefabDir = "Assets/Prefabs/Characters";
         public const string PrefabPath = PrefabDir + "/DaoDunDog.prefab";
+        public const string TestDogPrefabPath = PrefabDir + "/DaoDunDog_Test.prefab";
         const string LegacyPrefabPath = "Assets/Prefabs/DaoDunDog.prefab"; // T17 以前的位置
         const string StatsPath = ProgressionBuilder.DaoDunDogStatsPath; // T19 起由 ProgressionBuilder 管（T18 以前在 ScriptableObjects/Player）
         internal const string HurtboxLayer = "Hurtbox";
@@ -119,6 +121,7 @@ namespace BossFight.EditorTools
             var root = BuildModel(m, meshes);
             PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
             Object.DestroyImmediate(root);
+            BuildTestVariant();
 
             var spawner = PlayerSpawnerBuilder.Build(pos, rot);
             var preview = PlayerSpawnerBuilder.Preview();
@@ -130,6 +133,48 @@ namespace BossFight.EditorTools
 
             Debug.Log($"[Player] 刀盾狗已建立：{PrefabPath}，PlayerSpawner 位置 {pos}");
             return spawner != null ? spawner.gameObject : null;
+        }
+
+        /// <summary>
+        /// 測試狗（T21）：刀盾狗 prefab 的 variant，只把毛色換成灰藍、盾面換成暗紅（材質 Models/DaoDunDog/Materials/TestDog_*，只在不存在時建立）。
+        /// 重建刀盾狗後子物件的 fileID 會變、舊 variant 的覆寫會斷，所以每次跟著重建；存在同一個路徑，GUID 不變（CharacterDefinition 的引用不會斷）。
+        /// 刀盾狗 prefab 不存在時回傳 null。
+        /// </summary>
+        public static PlayerRig BuildTestVariant()
+        {
+            var basePrefab = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath);
+            if (basePrefab == null) return null;
+            var fur = new Color(0.5f, 0.6f, 0.72f);
+            var swap = new Dictionary<string, Material>
+            {
+                { "DaoDunDog_Fur", GetMat("TestDog_Fur", fur, 0f, 0.35f) },
+                { "DaoDunDog_Legs", GetMat("TestDog_Legs", fur, 0f, 0.35f) },
+                { "DaoDunDog_EarInner", GetMat("TestDog_EarInner", new Color(0.34f, 0.4f, 0.52f), 0f, 0.3f) },
+                { "DaoDunDog_ShieldFace", GetMat("TestDog_ShieldFace", new Color(0.42f, 0.05f, 0.06f), 0f, 0.7f) },
+            };
+            var instance = (GameObject)PrefabUtility.InstantiatePrefab(basePrefab);
+            try
+            {
+                foreach (var r in instance.GetComponentsInChildren<Renderer>(true))
+                {
+                    var mats = r.sharedMaterials;
+                    bool changed = false;
+                    for (int i = 0; i < mats.Length; i++)
+                    {
+                        if (mats[i] == null || !swap.TryGetValue(mats[i].name, out var replacement)) continue;
+                        mats[i] = replacement;
+                        changed = true;
+                    }
+                    if (changed) r.sharedMaterials = mats;
+                }
+                var saved = PrefabUtility.SaveAsPrefabAsset(instance, TestDogPrefabPath);
+                Debug.Log($"[Player] 測試狗已建立：{TestDogPrefabPath}");
+                return saved != null ? saved.GetComponent<PlayerRig>() : null;
+            }
+            finally
+            {
+                Object.DestroyImmediate(instance);
+            }
         }
 
         // T17 以前 prefab 在 Assets/Prefabs：搬到 Characters，保留 GUID（場景與其他資產的引用不會斷）

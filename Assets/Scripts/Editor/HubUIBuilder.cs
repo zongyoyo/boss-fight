@@ -12,8 +12,9 @@ namespace BossFight.EditorTools
     /// <summary>
     /// Tools > UI > Build Hub UI：休息區的介面（T20），HubBuilder 結束前會呼叫。
     /// 資產 ScriptableObjects/Hub/HubUIData.asset（沒有才建）；HubUI Canvas（每次重建，sortingOrder 5，在 ESC 選單與黑幕下面）：
-    /// 下方的互動提示（InteractionPromptUI）、中央的站點面板（HubStationUI：標題、空內容、返回提示；傳送門的挑戰清單與確認框）。
-    /// 接上 HubManager、InteractionScanner、EventSystem、GameOptions 物件上的 InputHintDevice 與按鍵名稱。版面、顏色在建立時照 HubUIData 寫進場景，改了要重跑。
+    /// 下方的互動提示（InteractionPromptUI）、右邊的站點面板（HubStationUI：標題、空內容、返回提示；傳送門的挑戰清單與確認框）、
+    /// 同一個位置的營火面板（CampfireUI，T21：「角色」「技能樹」頁籤、角色清單的樣板列、技能樹的「（準備中）」）。
+    /// 接上 HubManager、InteractionScanner、Campfire、EventSystem、GameOptions 物件上的 InputHintDevice 與按鍵名稱。版面、顏色在建立時照 HubUIData 寫進場景，改了要重跑。
     /// </summary>
     public static class HubUIBuilder
     {
@@ -25,6 +26,8 @@ namespace BossFight.EditorTools
         static readonly Vector2 PanelSize = new Vector2(760f, 560f);
         static readonly Vector2 PanelPosition = new Vector2(-80f, 0f);
         static readonly Vector2 ButtonSize = new Vector2(440f, 76f);
+        static readonly Vector2 TabSize = new Vector2(220f, 64f);
+        static readonly Vector2 RowSize = new Vector2(440f, 70f);
 
         static Font font;
         static Sprite roundSprite;
@@ -137,9 +140,74 @@ namespace BossFight.EditorTools
             so.FindProperty("confirmNoButton").objectReferenceValue = no;
             so.ApplyModifiedPropertiesWithoutUndo();
 
+            var campfire = Object.FindAnyObjectByType<Campfire>();
+            if (campfire != null) BuildCampfirePanel(root.transform, hub, campfire, eventSystem, hintDevice);
+            else Debug.LogWarning("[HubUI] 場景裡沒有 Campfire，沒有建營火面板（Tools > Hub > Build Hub）。");
+
             EditorSceneManager.MarkSceneDirty(root.scene);
             Debug.Log($"[HubUI] 休息區介面已建立：{DataPath}" + (hintDevice == null ? "；場景裡沒有 GameOptions，按鍵提示一律顯示鍵鼠" : ""));
             return root;
+        }
+
+        // 營火面板（T21）：跟站點面板同一個位置與大小
+        static void BuildCampfirePanel(Transform root, HubManager hub, Campfire campfire, UnityEngine.EventSystems.EventSystem eventSystem, InputHintDevice hintDevice)
+        {
+            var panel = Img("CampfirePanel", root, roundSprite, data.panelColor);
+            panel.type = Image.Type.Sliced;
+            panel.raycastTarget = true;
+            Place(panel.rectTransform, new Vector2(1f, 0.5f), PanelPosition, PanelSize);
+            var group = panel.gameObject.AddComponent<CanvasGroup>();
+            group.alpha = 0f;
+            group.interactable = false;
+            group.blocksRaycasts = false;
+            var station = data.Get(HubStationKind.Campfire);
+            var title = Label("Title", panel.transform, station != null ? station.title : "", 56, FontStyle.Bold, data.titleColor, TextAnchor.MiddleCenter);
+            Place(title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -25f), new Vector2(PanelSize.x - 80f, 80f));
+            var charactersTab = MenuButton("Tab_Characters", panel.transform, data.campfireCharactersTab, Vector2.zero, TabSize);
+            Place(charactersTab.GetComponent<RectTransform>(), new Vector2(0.5f, 1f), new Vector2(-120f, -125f), TabSize);
+            var skillTreeTab = MenuButton("Tab_SkillTree", panel.transform, data.campfireSkillTreeTab, Vector2.zero, TabSize);
+            Place(skillTreeTab.GetComponent<RectTransform>(), new Vector2(0.5f, 1f), new Vector2(120f, -125f), TabSize);
+            var hint = Label("Hint", panel.transform, data.closeHintKeyboard, 24, FontStyle.Normal, data.hintColor, TextAnchor.MiddleCenter);
+            Place(hint.rectTransform, new Vector2(0.5f, 0f), new Vector2(0f, 29f), new Vector2(PanelSize.x - 80f, 30f));
+
+            // 角色頁：一列一個按鈕，由上往下排
+            var charactersPage = Rect("CharactersPage", panel.transform);
+            Place(charactersPage, new Vector2(0.5f, 1f), new Vector2(0f, -195f), new Vector2(PanelSize.x - 80f, PanelSize.y - 265f));
+            var rows = Rect("Rows", charactersPage, typeof(VerticalLayoutGroup));
+            rows.anchorMin = Vector2.zero;
+            rows.anchorMax = Vector2.one;
+            rows.offsetMin = rows.offsetMax = Vector2.zero;
+            var layout = rows.GetComponent<VerticalLayoutGroup>();
+            layout.spacing = data.characterRowSpacing;
+            layout.childAlignment = TextAnchor.UpperCenter;
+            layout.childControlWidth = layout.childControlHeight = false;
+            layout.childForceExpandWidth = layout.childForceExpandHeight = false;
+            var template = MenuButton("RowTemplate", rows, "", Vector2.zero, RowSize);
+            template.gameObject.SetActive(false);
+
+            // 技能樹頁（T23）
+            var skillTreePage = Rect("SkillTreePage", panel.transform);
+            Place(skillTreePage, new Vector2(0.5f, 1f), new Vector2(0f, -195f), new Vector2(PanelSize.x - 80f, PanelSize.y - 265f));
+            var empty = Label("Empty", skillTreePage, data.emptyStationText, 34, FontStyle.Normal, data.hintColor, TextAnchor.MiddleCenter);
+            Place(empty.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(PanelSize.x - 80f, 60f));
+            skillTreePage.gameObject.SetActive(false);
+
+            var ui = panel.gameObject.AddComponent<CampfireUI>();
+            var so = new SerializedObject(ui);
+            so.FindProperty("data").objectReferenceValue = data;
+            so.FindProperty("hub").objectReferenceValue = hub;
+            so.FindProperty("campfire").objectReferenceValue = campfire;
+            so.FindProperty("eventSystem").objectReferenceValue = eventSystem;
+            so.FindProperty("hintDevice").objectReferenceValue = hintDevice;
+            so.FindProperty("group").objectReferenceValue = group;
+            so.FindProperty("closeHint").objectReferenceValue = hint;
+            so.FindProperty("charactersTab").objectReferenceValue = charactersTab;
+            so.FindProperty("skillTreeTab").objectReferenceValue = skillTreeTab;
+            so.FindProperty("charactersPage").objectReferenceValue = charactersPage.gameObject;
+            so.FindProperty("skillTreePage").objectReferenceValue = skillTreePage.gameObject;
+            so.FindProperty("rowTemplate").objectReferenceValue = template;
+            so.FindProperty("rowContainer").objectReferenceValue = rows;
+            so.ApplyModifiedPropertiesWithoutUndo();
         }
 
         // ---------- 工具 ----------

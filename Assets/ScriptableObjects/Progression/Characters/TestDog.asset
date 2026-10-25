@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0e80aa3169dc82e4c8e7ed8b2b9a1742, type: 3}
+  m_Name: TestDog
+  m_EditorClassIdentifier: Assembly-CSharp::BossFight.Progression.CharacterDefinition
+  id: test_dog
+  displayName: "\u6E2C\u8A66\u72D7"
+  developerOnly: 1
+  unlockedByDefault: 1
+  prefab: {fileID: 7895925794042017906, guid: c3fd32be0b0e3f04580a4dd933d3881b, type: 3}
+  baseStats: {fileID: 11400000, guid: ef3de5ad78b46c848b108fc020d197bd, type: 2}

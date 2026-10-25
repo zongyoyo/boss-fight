@@ -1,3 +1,4 @@
+using BossFight.Player;
 using Unity.Cinemachine;
 using UnityEngine;
 
@@ -6,7 +7,8 @@ namespace BossFight.Hub
     /// <summary>
     /// 休息區的站點（T20）：物件的位置是互動點，玩家的水平距離在 HubLayoutData 的 interactRadius 內時 InteractionScanner 會選到它。
     /// 按 Player/Interact 後 HubManager 打開介面：玩家走到 standPoint、面向互動點，stationCamera 提高優先度。
-    /// 傳送門是子類別 Portal；營火、鐵匠鋪、村長在 T21–T24 換成各自的子類別。由 HubBuilder 建立與接線。
+    /// 介面開著時 HubManager 依序呼叫 Opened → 每幀 Tick（arrived = 走到站位點了）→ Closed，子類別覆寫來做站點自己的事（營火坐下）。
+    /// 傳送門是子類別 Portal、營火是 Campfire（T21）；鐵匠鋪、村長在 T22–T24 換成各自的子類別。由 HubBuilder 建立與接線。
     /// </summary>
     [DisallowMultipleComponent]
     public class Interactable : MonoBehaviour
@@ -40,5 +42,14 @@ namespace BossFight.Hub
             float r = InteractRadius;
             return sqrDistance <= r * r;
         }
+
+        /// <summary>HubManager 打開這個站點時呼叫（鏡頭已切過去、OnStationOpened 之前）。</summary>
+        public virtual void Opened(PlayerRig rig) { }
+
+        /// <summary>介面開著時每幀呼叫；arrived = 玩家已經走到站位點。介面開著時換了角色，rig 就是新的角色。</summary>
+        public virtual void Tick(PlayerRig rig, bool arrived) { }
+
+        /// <summary>HubManager 關掉這個站點時呼叫（OnStationClosed 之前）。</summary>
+        public virtual void Closed(PlayerRig rig) { }
     }
 }

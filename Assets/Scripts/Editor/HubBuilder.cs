@@ -16,7 +16,8 @@ namespace BossFight.EditorTools
     ///    材質在 Models/Hub/Materials（只在不存在時建立）、網格在 Models/Hub/Meshes（每次覆寫）。
     /// 2. 場景（T20）：地面；沿邊界折線種 treeRows 排樹（第一排在線上，樹幹有碰撞）、第一排後面一圈隱形牆；中心空地與連到各站點的小路；
     ///    四個站點的佔位模型：中心小屋＋村長、鐵匠鋪（棚子、鐵砧、爐火光）、營火（石圈、柴堆、火焰粒子、閃爍的火光、坐的圓木）、傳送門（石拱門＋旋轉的紫色光面）；
-    ///    每個站點一個 Interactable（傳送門是 Portal）、站位點與一台站點鏡頭（優先度 0，HubManager 打開介面時調高）；傍晚天色與薄霧（HubAtmosphere）。
+    ///    每個站點一個 Interactable（傳送門是 Portal、營火是 Campfire）、站位點與一台站點鏡頭（優先度 0，HubManager 打開介面時調高）；傍晚天色與薄霧（HubAtmosphere）。
+    ///    營火（T21）的坐的圓木橫放在站位點正下方（狗坐在上面），Campfire 接上 PlayerSpawner、GameOptions 與換角色的煙（Prefabs/Hazards/Fx_HitSpark）。
     /// 3. 出生點 Start（營火旁，啟動遊戲時）與 Portal（傳送門前，從 Boss 戰回來時）、PlayerSpawner（預設生成在 Start）與鏡頭（CameraRigBuilder）、
     ///    GameOptions、AudioManager（沒有音樂）、Hub 物件（HubManager、InteractionScanner）、ESC 選單（PauseMenuBuilder 的休息區版：繼續、設定、退出遊戲）、
     ///    互動提示與站點面板（HubUIBuilder）、SceneFlow（PauseMenuBuilder.Wire 最後建）。休息區不建 HUD。
@@ -33,6 +34,8 @@ namespace BossFight.EditorTools
         const string MatDir = "Assets/Models/Hub/Materials";
         const string MeshDir = "Assets/Models/Hub/Meshes";
         const int StationCameraIdlePriority = 0; // 比自由視角（10）與沒在用的鎖定鏡頭（9）低
+        const string SwapFxPath = "Assets/Prefabs/Hazards/Fx_HitSpark.prefab"; // 營火換角色時的煙（佔位）
+        const float SeatLogBehind = 0.05f; // 坐的圓木在站位點後面多少 (m)：狗坐下時屁股的位置
 
         static Material groundMat, pathMat, trunkMat, woodMat, roofMat, wallMat, doorMat, stoneMat, metalMat, emberMat, portalMat, runeMat,
                         robeMat, hatMat, skinMat, fireMat;
@@ -116,10 +119,11 @@ namespace BossFight.EditorTools
                                                    Quaternion.Euler(0f, portalStation.facing, 0f));
 
             // 設定、音效、玩家、鏡頭
-            PauseMenuBuilder.EnsureOptions(AssetDatabase.LoadAssetAtPath<GameOptionsData>(OptionsDataPath), out var pause);
+            var options = PauseMenuBuilder.EnsureOptions(AssetDatabase.LoadAssetAtPath<GameOptionsData>(OptionsDataPath), out var pause);
             IntroCutsceneBuilder.BuildAudioManager(null);
             PlayerSpawnerBuilder.Build(start.position, start.rotation, (flowData.startArrival, start), (flowData.portalArrival, portalSpawn));
             var cameraController = CameraRigBuilder.Build(PlayerSpawnerBuilder.Preview().Controller); // 也會接打擊回饋（CombatFeedbackBuilder.Wire）
+            WireCampfire(interactables, options);
 
             // 休息區狀態與互動
             var hubGo = new GameObject("Hub");
@@ -359,9 +363,9 @@ namespace BossFight.EditorTools
                 Deco(PrimitiveType.Cylinder, root, $"Firewood_{i}", Quaternion.Euler(0f, yaw, 0f) * new Vector3(0f, 0.3f, 0.22f),
                      new Vector3(0.12f, 0.35f, 0.12f), woodMat, Quaternion.Euler(0f, yaw, 0f) * Quaternion.Euler(-35f, 0f, 0f)).isStatic = true;
             }
-            // 坐的圓木：玩家這一邊（站位點旁，避開小路，T21 坐下用）、對面、左邊
-            Deco(PrimitiveType.Cylinder, root, "SeatLog_Front", new Vector3(1.7f, 0.22f, 1.5f), new Vector3(0.44f, 0.8f, 0.44f), woodMat,
-                 Quaternion.Euler(0f, -45f, 90f)).isStatic = true;
+            // 坐的圓木：玩家這一邊（橫放在站位點正下方，T21 坐下用；沒有碰撞，走得上去）、對面、左邊
+            Deco(PrimitiveType.Cylinder, root, "SeatLog_Front", new Vector3(0f, 0.22f, s.standDistance + SeatLogBehind), new Vector3(0.44f, 0.8f, 0.44f), woodMat,
+                 Quaternion.Euler(0f, 0f, 90f)).isStatic = true;
             Deco(PrimitiveType.Cylinder, root, "SeatLog_Back", new Vector3(0f, 0.22f, -2f), new Vector3(0.44f, 0.8f, 0.44f), woodMat,
                  Quaternion.Euler(0f, 0f, 90f)).isStatic = true;
             Deco(PrimitiveType.Cylinder, root, "SeatLog_Side", new Vector3(-2f, 0.22f, 0.2f), new Vector3(0.44f, 0.8f, 0.44f), woodMat,
@@ -377,7 +381,21 @@ namespace BossFight.EditorTools
             fireLight.range = atmosphere.fireRange;
             fireLight.shadows = LightShadows.None; // 點光源陰影要 6 張 shadow map，會擠爆陰影圖集
             DaoDunDogBuilder.SetReference(lightGo.AddComponent<FireFlicker>(), "data", atmosphere);
-            return AddStation<Interactable>(root.gameObject, layout, s);
+            return AddStation<Campfire>(root.gameObject, layout, s);
+        }
+
+        // 營火換角色要的 spawner、開發者模式（GameOptions）與煙
+        static void WireCampfire(List<Interactable> interactables, GameOptions options)
+        {
+            var campfire = interactables.Find(i => i is Campfire) as Campfire;
+            if (campfire == null) return;
+            var so = new SerializedObject(campfire);
+            so.FindProperty("spawner").objectReferenceValue = Object.FindAnyObjectByType<PlayerSpawner>();
+            so.FindProperty("options").objectReferenceValue = options;
+            var fx = AssetDatabase.LoadAssetAtPath<BossFight.Hazards.TimedFx>(SwapFxPath);
+            if (fx == null) Debug.LogWarning($"[Hub] 找不到 {SwapFxPath}（Tools > Hazards > Build Hazards），營火換角色時不冒煙。");
+            so.FindProperty("swapFx").objectReferenceValue = fx;
+            so.ApplyModifiedPropertiesWithoutUndo();
         }
 
         static void BuildFlames(Transform parent)

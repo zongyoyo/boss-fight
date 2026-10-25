@@ -5,7 +5,7 @@ namespace BossFight.Player
 {
     /// <summary>
     /// 刀盾狗的程序化動畫（不用 Animator Controller）：走路擺腿、身體搖擺、舉盾、翻滾、空中收腿、搖尾巴（有尾巴時），
-    /// 以及三段連擊、蓄力與重擊、處決、啃骨頭、破防、受擊、盾反、倒地，受擊後的無敵時間會閃爍。
+    /// 以及三段連擊、蓄力與重擊、處決、啃骨頭、破防、受擊、盾反、倒地，受擊後的無敵時間會閃爍；休息區的營火會叫它坐下（SetSitting，T21）。
     /// 只改各關節 pivot 的 localRotation / localPosition（骨頭另外改大小），pivot 由 Editor/DaoDunDogBuilder 建立並指派。
     /// 狀態讀 PlayerController 與 PlayerAttack；受擊與盾反訂閱 PlayerHealth 的事件。這裡的數字全是視覺參數。
     /// </summary>
@@ -169,10 +169,25 @@ namespace BossFight.Player
         [Tooltip("翻滾時模型繞這個點（角色局部座標）轉一圈，約在身體中心")]
         public Vector3 rollPivot = new Vector3(0f, 0.6f, 0f);
 
+        [Header("坐下（休息區的營火）")]
+        [Tooltip("坐下時模型抬高多少 (m)：坐在圓木上，身體底部對齊圓木頂端")]
+        public float sitHeight = 0.27f;
+        [Tooltip("坐下時右腿的姿勢（相對靜止姿勢的 Euler，負 X 往前抬）；左腿 Y、Z 左右對稱")]
+        public Vector3 sitLegPose = new Vector3(-80f, 0f, 12f);
+        [Tooltip("坐下時右臂的姿勢（相對靜止姿勢的 Euler）：手放到膝上")]
+        public Vector3 sitArmRPose = new Vector3(-25f, 0f, 8f);
+        [Tooltip("坐下時左臂的姿勢（相對靜止姿勢的 Euler）：盾靠在身側")]
+        public Vector3 sitArmLPose = new Vector3(-10f, 0f, -12f);
+        [Tooltip("坐下時身體往後仰（度）")]
+        public float sitLean = -6f;
+        [Tooltip("坐下、站起來的速度（每秒混合多少）")]
+        [Min(0.01f)] public float sitBlendSpeed = 4f;
+
         Quaternion modelRest, bodyRest, headRest, armRRest, armLRest, legRRest, legLRest, tailRest, swordRest, boneRest;
         Quaternion shieldRestInBody;
         Vector3 modelRestPos, bodyRestPos, boneRestScale;
-        float phase, moveWeight, airWeight, blockWeight, guardBreakWeight, healWeight, deathWeight;
+        float phase, moveWeight, airWeight, blockWeight, guardBreakWeight, healWeight, deathWeight, sitWeight;
+        bool sitting;
         float hurtTimer, parryTimer;
         Renderer[] renderers;
         bool blinkHidden;
@@ -225,6 +240,13 @@ namespace BossFight.Player
             health.OnParry -= HandleParry;
         }
 
+        /// <summary>坐下或站起來（休息區的營火，T21）；instant 時直接擺好，不混合（換角色後的新角色）。</summary>
+        public void SetSitting(bool on, bool instant = false)
+        {
+            sitting = on;
+            if (instant) sitWeight = on ? 1f : 0f;
+        }
+
         void HandleAttackStarted(int comboIndex, bool heavy)
         {
             fromArm = lastArm;
@@ -261,6 +283,8 @@ namespace BossFight.Player
             deathWeight = Mathf.MoveTowards(deathWeight, action == PlayerAction.Dead ? 1f : 0f, dt / deathFallTime);
             hurtTimer = Mathf.Max(0f, hurtTimer - dt);
             parryTimer = Mathf.Max(0f, parryTimer - dt);
+            sitWeight = Mathf.MoveTowards(sitWeight, sitting ? 1f : 0f, dt * sitBlendSpeed);
+            float sit = Mathf.SmoothStep(0f, 1f, sitWeight);
 
             phase = Mathf.Repeat(phase + speed / strideLength * dt, 1f);
             float s = Mathf.Sin(phase * 2f * Mathf.PI);
@@ -279,13 +303,13 @@ namespace BossFight.Player
                 float fall = Mathf.SmoothStep(0f, 1f, deathWeight);
                 roll = Quaternion.AngleAxis(-90f * fall, Vector3.forward) * roll;
                 model.localRotation = roll * modelRest;
-                model.localPosition = rollPivot + roll * (modelRestPos - rollPivot) + Vector3.down * (deathSink * fall);
+                model.localPosition = rollPivot + roll * (modelRestPos - rollPivot) + Vector3.down * (deathSink * fall) + Vector3.up * (sitHeight * sit);
             }
 
             // 揮刀或蓄力的右臂、手腕、扭腰
             ArmPose(c, out Quaternion swingArm, out Quaternion swingWrist, out float twist, out float lean);
             float hurt = hurtTimer / hurtRecoverTime;
-            lean += hurtLean * hurt * hurt + guardBreakLean * guardBreakWeight;
+            lean += hurtLean * hurt * hurt + guardBreakLean * guardBreakWeight + sitLean * sit;
 
             // 啃骨頭：頭上下咀嚼、左右歪，身體跟著一抖一抖（從肩後視角也看得出來）
             float chewPhase = Time.time * chewRate * Mathf.PI;
@@ -304,20 +328,24 @@ namespace BossFight.Player
 
             // 腿：前後擺；空中時青蛙腿往前往外張開
             float legAmp = legSwing * moveWeight;
-            legR.localRotation = legRRest * Quaternion.Slerp(Quaternion.Euler(s * legAmp, 0f, 0f), Quaternion.Euler(-35f, 0f, 25f), airWeight);
-            legL.localRotation = legLRest * Quaternion.Slerp(Quaternion.Euler(-s * legAmp, 0f, 0f), Quaternion.Euler(-35f, 0f, -25f), airWeight);
+            // 坐下：雙腿往前抬
+            Quaternion sitLegR = Quaternion.Euler(sitLegPose), sitLegL = Quaternion.Euler(sitLegPose.x, -sitLegPose.y, -sitLegPose.z);
+            legR.localRotation = legRRest * Quaternion.Slerp(Quaternion.Slerp(Quaternion.Euler(s * legAmp, 0f, 0f), Quaternion.Euler(-35f, 0f, 25f), airWeight), sitLegR, sit);
+            legL.localRotation = legLRest * Quaternion.Slerp(Quaternion.Slerp(Quaternion.Euler(-s * legAmp, 0f, 0f), Quaternion.Euler(-35f, 0f, -25f), airWeight), sitLegL, sit);
 
             // 手臂：和腿反向擺；空中時張開。右臂疊上揮刀姿勢，左臂依序疊上舉盾、盾反推盾、破防
             float armAmp = armSwing * moveWeight;
             Quaternion swingR = Quaternion.Slerp(Quaternion.Euler(-s * armAmp, 0f, 0f), Quaternion.Euler(-20f, 0f, 35f), airWeight);
             Quaternion swingL = Quaternion.Slerp(Quaternion.Euler(s * armAmp, 0f, 0f), Quaternion.Euler(-20f, 0f, -35f), airWeight);
-            armR.localRotation = armRRest * Quaternion.Slerp(swingArm * swingR, Quaternion.Euler(healArmRPose), healWeight);
+            Quaternion right = Quaternion.Slerp(swingArm * swingR, Quaternion.Euler(healArmRPose), healWeight);
+            armR.localRotation = armRRest * Quaternion.Slerp(right, Quaternion.Euler(sitArmRPose), sit);
             if (sword != null) sword.localRotation = swordRest * swingWrist;
 
             Quaternion left = Quaternion.Slerp(swingL, Quaternion.Euler(blockArmPose), blockWeight);
             left = Quaternion.Slerp(left, Quaternion.Euler(healArmLPose), healWeight);
             left = Quaternion.Slerp(left, Quaternion.Euler(parryArmPose), Mathf.Sin(parryTimer / parryPoseTime * Mathf.PI * 0.5f));
             left = Quaternion.Slerp(left, Quaternion.Euler(guardBreakArmPose), guardBreakWeight);
+            left = Quaternion.Slerp(left, Quaternion.Euler(sitArmLPose), sit);
             armL.localRotation = armLRest * left;
 
             // 盾面朝向在身體空間插值，抵銷左臂的旋轉；破防時盾跟著手臂被撞開
