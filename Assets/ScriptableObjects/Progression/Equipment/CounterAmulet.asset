@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9b9afca505b44dc4685f2ce942e5ea99, type: 3}
+  m_Name: CounterAmulet
+  m_EditorClassIdentifier: Assembly-CSharp::BossFight.Progression.EquipmentData
+  id: counter_amulet
+  displayName: "\u53CD\u64CA\u8B77\u7B26"
+  description: "\u523B\u8457\u76FE\u7D0B\u7684\u8B77\u7B26\u3002\u76FE\u53CD\u6210\u529F\u6642\u56DE\u5FA9
+    5 HP\u3002"
+  icon: {fileID: 6906197081478259776, guid: 238b5fb4efb51c749b69133716a7b49e, type: 3}
+  sourceHint: "\u6751\u9577\u4EFB\u52D9"
+  slotType: {fileID: 11400000, guid: 47aae42d2e5c9fa4bb421aa3c392a942, type: 2}
+  allowedCharacters: []
+  modifiers: []
+  effects:
+  - {fileID: 11400000, guid: 5fa51ac7dee325243aa3c48f6a7eae98, type: 2}

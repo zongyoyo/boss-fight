@@ -10,7 +10,7 @@ namespace BossFight.EditorTools
     /// <summary>
     /// 檢查 GameDatabase 的 id（企劃書「存檔」：存檔只存 id，所以 id 不能空、同一類不能重複）。
     /// Tools > Progression > Validate Game Database 手動檢查；打包前自動檢查，有錯就停止打包。
-    /// 角色另外檢查 prefab 與 baseStats 有沒有接。新增種類時在 GameDatabase.Entries 加，這裡不用改。
+    /// 角色另外檢查 prefab 與 baseStats 有沒有接、裝備欄有沒有空格；裝備檢查欄位種類（T22）。新增種類時在 GameDatabase.Entries 加，這裡不用改。
     /// </summary>
     public class GameDatabaseValidator : IPreprocessBuildWithReport
     {
@@ -74,6 +74,17 @@ namespace BossFight.EditorTools
                     }
                     if (character.prefab == null) Error($"角色「{character.name}」沒有 prefab。", character);
                     if (character.baseStats == null) Error($"角色「{character.name}」沒有 baseStats。", character);
+                    if (character.equipmentSlots != null && System.Array.IndexOf(character.equipmentSlots, null) >= 0)
+                        Error($"角色「{character.name}」的裝備欄有空的種類。", character);
+                }
+            }
+
+            if (database.equipment != null)
+            {
+                foreach (var item in database.equipment)
+                {
+                    if (item == null) Error("裝備清單裡有空的欄位。", database);
+                    else if (item.slotType == null) Error($"裝備「{item.name}」沒有欄位種類。", item);
                 }
             }
 

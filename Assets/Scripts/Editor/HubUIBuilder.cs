@@ -13,8 +13,9 @@ namespace BossFight.EditorTools
     /// Tools > UI > Build Hub UI：休息區的介面（T20），HubBuilder 結束前會呼叫。
     /// 資產 ScriptableObjects/Hub/HubUIData.asset（沒有才建）；HubUI Canvas（每次重建，sortingOrder 5，在 ESC 選單與黑幕下面）：
     /// 下方的互動提示（InteractionPromptUI）、右邊的站點面板（HubStationUI：標題、空內容、返回提示；傳送門的挑戰清單與確認框）、
-    /// 同一個位置的營火面板（CampfireUI，T21：「角色」「技能樹」頁籤、角色清單的樣板列、技能樹的「（準備中）」）。
-    /// 接上 HubManager、InteractionScanner、Campfire、EventSystem、GameOptions 物件上的 InputHintDevice 與按鍵名稱。版面、顏色在建立時照 HubUIData 寫進場景，改了要重跑。
+    /// 同一個位置的營火面板（CampfireUI，T21：「角色」「技能樹」頁籤、角色清單的樣板列、技能樹的「（準備中）」）、
+    /// 較大的鐵匠鋪面板（BlacksmithUI，T22：左邊裝備欄、右邊裝備格子〔EquipmentCellUI 樣板〕、下方說明與數值差異、右上角 Debug 的「解鎖全部裝備」）。
+    /// 接上 HubManager、InteractionScanner、Campfire、Blacksmith、EventSystem、GameOptions 物件上的 InputHintDevice 與按鍵名稱。版面、顏色在建立時照 HubUIData 寫進場景，改了要重跑。
     /// </summary>
     public static class HubUIBuilder
     {
@@ -28,6 +29,11 @@ namespace BossFight.EditorTools
         static readonly Vector2 ButtonSize = new Vector2(440f, 76f);
         static readonly Vector2 TabSize = new Vector2(220f, 64f);
         static readonly Vector2 RowSize = new Vector2(440f, 70f);
+        // 鐵匠鋪（T22）：面板比較大，仍在畫面右邊
+        static readonly Vector2 SmithPanelSize = new Vector2(980f, 760f);
+        static readonly Vector2 SmithPanelPosition = new Vector2(-60f, 0f);
+        static readonly Vector2 SlotCellSize = new Vector2(300f, 100f);
+        static readonly Vector2 ItemCellSize = new Vector2(132f, 150f);
 
         static Font font;
         static Sprite roundSprite;
@@ -143,6 +149,9 @@ namespace BossFight.EditorTools
             var campfire = Object.FindAnyObjectByType<Campfire>();
             if (campfire != null) BuildCampfirePanel(root.transform, hub, campfire, eventSystem, hintDevice);
             else Debug.LogWarning("[HubUI] 場景裡沒有 Campfire，沒有建營火面板（Tools > Hub > Build Hub）。");
+            var blacksmith = Object.FindAnyObjectByType<Blacksmith>();
+            if (blacksmith != null) BuildBlacksmithPanel(root.transform, hub, blacksmith, eventSystem, hintDevice);
+            else Debug.LogWarning("[HubUI] 場景裡沒有 Blacksmith，沒有建鐵匠鋪面板（Tools > Hub > Build Hub）。");
 
             EditorSceneManager.MarkSceneDirty(root.scene);
             Debug.Log($"[HubUI] 休息區介面已建立：{DataPath}" + (hintDevice == null ? "；場景裡沒有 GameOptions，按鍵提示一律顯示鍵鼠" : ""));
@@ -208,6 +217,156 @@ namespace BossFight.EditorTools
             so.FindProperty("rowTemplate").objectReferenceValue = template;
             so.FindProperty("rowContainer").objectReferenceValue = rows;
             so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        // 鐵匠鋪面板（T22）：左邊欄位、右邊裝備格子、下方說明與差異
+        static void BuildBlacksmithPanel(Transform root, HubManager hub, Blacksmith blacksmith, UnityEngine.EventSystems.EventSystem eventSystem, InputHintDevice hintDevice)
+        {
+            var panel = Img("BlacksmithPanel", root, roundSprite, data.panelColor);
+            panel.type = Image.Type.Sliced;
+            panel.raycastTarget = true;
+            Place(panel.rectTransform, new Vector2(1f, 0.5f), SmithPanelPosition, SmithPanelSize);
+            var group = panel.gameObject.AddComponent<CanvasGroup>();
+            group.alpha = 0f;
+            group.interactable = false;
+            group.blocksRaycasts = false;
+            var station = data.Get(HubStationKind.Blacksmith);
+            var title = Label("Title", panel.transform, station != null ? station.title : "", 56, FontStyle.Bold, data.titleColor, TextAnchor.MiddleCenter);
+            Place(title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -25f), new Vector2(SmithPanelSize.x - 80f, 80f));
+            var hint = Label("Hint", panel.transform, data.closeHintKeyboard, 24, FontStyle.Normal, data.hintColor, TextAnchor.MiddleCenter);
+            Place(hint.rectTransform, new Vector2(0.5f, 0f), new Vector2(0f, 29f), new Vector2(SmithPanelSize.x - 80f, 30f));
+
+            // Debug（開發者模式）：右上角
+            var debugSize = new Vector2(300f, 48f);
+            var debug = MenuButton("Debug_UnlockAll", panel.transform, data.debugUnlockAllLabel, Vector2.zero, debugSize);
+            Place(debug.GetComponent<RectTransform>(), new Vector2(1f, 1f), new Vector2(-24f, -24f), debugSize);
+            debug.GetComponentInChildren<Text>().fontSize = 22;
+            debug.gameObject.SetActive(false);
+
+            // 左：目前角色的欄位
+            var characterLabel = Label("Character", panel.transform, "", 28, FontStyle.Bold, data.titleColor, TextAnchor.MiddleLeft);
+            Place(characterLabel.rectTransform, new Vector2(0f, 1f), new Vector2(40f, -115f), new Vector2(SlotCellSize.x, 40f));
+            var slots = Rect("Slots", panel.transform, typeof(VerticalLayoutGroup));
+            Place(slots, new Vector2(0f, 1f), new Vector2(40f, -165f), new Vector2(SlotCellSize.x, 2f * SlotCellSize.y + 12f));
+            var slotLayout = slots.GetComponent<VerticalLayoutGroup>();
+            slotLayout.spacing = 12f;
+            slotLayout.childAlignment = TextAnchor.UpperLeft;
+            slotLayout.childControlWidth = slotLayout.childControlHeight = false;
+            slotLayout.childForceExpandWidth = slotLayout.childForceExpandHeight = false;
+            var slotTemplate = Cell("SlotTemplate", slots, SlotCellSize, false);
+
+            // 右：所有裝備（一列 4 格）
+            var items = Rect("Items", panel.transform, typeof(GridLayoutGroup));
+            Place(items, new Vector2(0f, 1f), new Vector2(370f, -115f), new Vector2(4f * ItemCellSize.x + 3f * 14f, 2f * ItemCellSize.y + 14f));
+            var grid = items.GetComponent<GridLayoutGroup>();
+            grid.cellSize = ItemCellSize;
+            grid.spacing = new Vector2(14f, 14f);
+            grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+            grid.constraintCount = 4;
+            var itemTemplate = Cell("ItemTemplate", items, ItemCellSize, true);
+
+            // 下：說明與數值差異
+            var detail = Img("Detail", panel.transform, roundSprite, new Color(0f, 0f, 0f, 0.3f));
+            detail.type = Image.Type.Sliced;
+            Place(detail.rectTransform, new Vector2(0.5f, 0f), new Vector2(0f, 64f), new Vector2(SmithPanelSize.x - 80f, 250f));
+            float textWidth = SmithPanelSize.x - 128f;
+            var detailName = Label("Name", detail.transform, "", 30, FontStyle.Bold, data.titleColor, TextAnchor.UpperLeft);
+            Place(detailName.rectTransform, new Vector2(0f, 1f), new Vector2(24f, -14f), new Vector2(textWidth, 40f));
+            var detailBody = Label("Body", detail.transform, "", 24, FontStyle.Normal, data.textColor, TextAnchor.UpperLeft);
+            Place(detailBody.rectTransform, new Vector2(0f, 1f), new Vector2(24f, -58f), new Vector2(textWidth, 60f));
+            detailBody.horizontalOverflow = HorizontalWrapMode.Wrap;
+            var detailDiff = Label("Diff", detail.transform, "", 24, FontStyle.Normal, data.textColor, TextAnchor.UpperLeft);
+            Place(detailDiff.rectTransform, new Vector2(0f, 1f), new Vector2(24f, -118f), new Vector2(textWidth, 120f));
+            detailDiff.horizontalOverflow = HorizontalWrapMode.Wrap;
+            detailDiff.supportRichText = true;
+
+            var ui = panel.gameObject.AddComponent<BlacksmithUI>();
+            var so = new SerializedObject(ui);
+            so.FindProperty("data").objectReferenceValue = data;
+            so.FindProperty("hub").objectReferenceValue = hub;
+            so.FindProperty("blacksmith").objectReferenceValue = blacksmith;
+            so.FindProperty("eventSystem").objectReferenceValue = eventSystem;
+            so.FindProperty("hintDevice").objectReferenceValue = hintDevice;
+            so.FindProperty("group").objectReferenceValue = group;
+            so.FindProperty("closeHint").objectReferenceValue = hint;
+            so.FindProperty("characterLabel").objectReferenceValue = characterLabel;
+            so.FindProperty("slotTemplate").objectReferenceValue = slotTemplate;
+            so.FindProperty("slotContainer").objectReferenceValue = slots;
+            so.FindProperty("itemTemplate").objectReferenceValue = itemTemplate;
+            so.FindProperty("itemContainer").objectReferenceValue = items;
+            so.FindProperty("detailName").objectReferenceValue = detailName;
+            so.FindProperty("detailBody").objectReferenceValue = detailBody;
+            so.FindProperty("detailDiff").objectReferenceValue = detailDiff;
+            so.FindProperty("debugUnlockButton").objectReferenceValue = debug;
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        // 鐵匠鋪的一格（停用的樣板）：item = 右邊的裝備（圖示在上、名稱在下、「新」與「裝備中」），否則左邊的欄位（圖示在左、兩行字）
+        static EquipmentCellUI Cell(string name, Transform parent, Vector2 size, bool item)
+        {
+            var image = Img(name, parent, roundSprite, Color.white);
+            image.type = Image.Type.Sliced;
+            image.raycastTarget = true;
+            Place(image.rectTransform, new Vector2(0f, 1f), Vector2.zero, size);
+            var button = image.gameObject.AddComponent<Button>();
+            button.targetGraphic = image;
+            var colors = button.colors;
+            colors.normalColor = data.buttonColor;
+            colors.highlightedColor = colors.selectedColor = data.buttonHighlightColor;
+            colors.pressedColor = data.buttonHighlightColor * 0.8f;
+            button.colors = colors;
+            var frame = image.gameObject.AddComponent<Outline>();
+            frame.effectDistance = new Vector2(4f, 4f);
+            frame.effectColor = data.equippedColor;
+            frame.enabled = false;
+
+            var icon = Img("Icon", image.transform, null, Color.white);
+            icon.preserveAspect = true;
+            Text label;
+            GameObject badge = null, equipped = null;
+            if (item)
+            {
+                Place(icon.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -12f), new Vector2(88f, 88f));
+                label = Label("Label", image.transform, "", 22, FontStyle.Normal, data.textColor, TextAnchor.MiddleCenter);
+                Place(label.rectTransform, new Vector2(0.5f, 0f), new Vector2(0f, 8f), new Vector2(size.x - 4f, 36f));
+                var newBadge = Img("New", image.transform, roundSprite, data.newBadgeColor);
+                newBadge.type = Image.Type.Sliced;
+                Place(newBadge.rectTransform, new Vector2(1f, 1f), new Vector2(-4f, -4f), new Vector2(44f, 30f));
+                var newText = Label("Text", newBadge.transform, data.newBadgeText, 20, FontStyle.Bold, Color.white, TextAnchor.MiddleCenter);
+                Stretch(newText.rectTransform);
+                badge = newBadge.gameObject;
+                var tag = Label("Equipped", image.transform, data.equippedTagText, 18, FontStyle.Bold, data.equippedColor, TextAnchor.MiddleLeft);
+                Place(tag.rectTransform, new Vector2(0f, 1f), new Vector2(6f, -4f), new Vector2(80f, 26f));
+                tag.gameObject.AddComponent<Outline>().effectColor = new Color(0f, 0f, 0f, 0.8f);
+                equipped = tag.gameObject;
+                badge.SetActive(false);
+                equipped.SetActive(false);
+            }
+            else
+            {
+                Place(icon.rectTransform, new Vector2(0f, 0.5f), new Vector2(14f, 0f), new Vector2(72f, 72f));
+                label = Label("Label", image.transform, "", 26, FontStyle.Normal, data.textColor, TextAnchor.MiddleLeft);
+                Place(label.rectTransform, new Vector2(0f, 0.5f), new Vector2(100f, 0f), new Vector2(size.x - 110f, size.y - 10f));
+            }
+
+            var cell = image.gameObject.AddComponent<EquipmentCellUI>();
+            var so = new SerializedObject(cell);
+            so.FindProperty("button").objectReferenceValue = button;
+            so.FindProperty("icon").objectReferenceValue = icon;
+            so.FindProperty("label").objectReferenceValue = label;
+            so.FindProperty("newBadge").objectReferenceValue = badge;
+            so.FindProperty("equippedTag").objectReferenceValue = equipped;
+            so.FindProperty("frame").objectReferenceValue = frame;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            image.gameObject.SetActive(false);
+            return cell;
+        }
+
+        static void Stretch(RectTransform rt)
+        {
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.offsetMin = rt.offsetMax = Vector2.zero;
         }
 
         // ---------- 工具 ----------

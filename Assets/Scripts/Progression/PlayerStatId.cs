@@ -2,7 +2,7 @@ namespace BossFight.Progression
 {
     /// <summary>
     /// StatModifier 能改的玩家數值（企劃書「數值套用管線」的第一批）。每一項對應 PlayerStats 的欄位，對應寫在 PlayerLoadout.Modify 的 switch；
-    /// 新增時在這裡加一項、switch 加一行。資產裡存的是數字，所以只能往後加，不要插在中間或改順序。
+    /// 新增時在這裡加一項、Modify 與 Read 的 switch 各加一行。資產裡存的是數字，所以只能往後加，不要插在中間或改順序。
     /// </summary>
     public enum PlayerStatId
     {

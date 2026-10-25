@@ -1,0 +1,16 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e054c40a3aabe2c4eb0c41bc1cdd952d, type: 3}
+  m_Name: ParryHeal
+  m_EditorClassIdentifier: Assembly-CSharp::BossFight.Progression.ParryHealEffect
+  displayName: "\u76FE\u53CD\u6210\u529F\u6642\u56DE 5 HP"
+  healAmount: 5

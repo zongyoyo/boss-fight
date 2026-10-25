@@ -23,11 +23,12 @@ namespace BossFight.Progression
     /// 2. 看這次的出生點（ProfileStore.PeekArrival，換場景時 SceneFlow 設定）：spawnPoints 裡有同 id 的就生成在那裡，否則生成在自己的位置與朝向。
     /// 3. 依存檔的目前角色（ProfileStore.CurrentCharacter）從 GameDatabase 的名冊找 CharacterDefinition（空的或找不到時用預設角色），生成它的 prefab，
     ///    把場景物件（Main Camera、鎖定與處決清單、AudioManager）交給 PlayerRig.SetSceneReferences，Boss 呼叫 SetTarget。
-    /// 4. 套用數值（T19，Loadout：baseStats 的複本加上修正 → PlayerRig.ApplyStats、補滿血量與耐力 → 掛效果）。
+    /// 4. 依存檔把這個角色的穿戴登記成 Loadout 的裝備來源（T22，EquipmentLoadout），
+    ///    再套用數值（T19，Loadout：baseStats 的複本加上修正 → PlayerRig.ApplyStats、補滿血量與耐力 → 掛效果）。
     /// 5. 對 receivers（Inspector 接好的 IPlayerBinding）呼叫 BindPlayer，最後送出 OnPlayerSpawned。
     /// 接收者的 Awake／OnEnable 比這裡晚，執行時已經拿到玩家；Inspector 接線不算編譯期依賴，所以可以把玩家交給 UI、Debug 這些上層元件。
     /// ReplaceCharacter 換角色（之後休息區的營火用）：在同一位置生成新角色、銷毀舊的，套用數值後再對所有接收者 BindPlayer 一次。
-    /// ReapplyStats 在執行中重新套用（換裝、點技能、Debug 的測試修正）。
+    /// ReapplyStats 在執行中重新套用（點技能、Debug 的測試修正）；換裝用 ReapplyEquipment（重新讀存檔的穿戴再套用）。
     /// 接線與預覽模型由 PlayerSpawnerBuilder 建立（Builder 會自動收集場景裡的接收者與目標）。
     /// </summary>
     [DefaultExecutionOrder(-1000)]
@@ -69,7 +70,7 @@ namespace BossFight.Progression
         /// <summary>數值套用管線：修正來源在這裡登記（SetSource），再呼叫 ReapplyStats。</summary>
         public PlayerLoadout Loadout { get; } = new PlayerLoadout();
 
-        /// <summary>角色資料（之後營火、鐵匠鋪找角色與裝備用）。</summary>
+        /// <summary>角色與裝備資料（營火、鐵匠鋪用）。</summary>
         public GameDatabase Database => database;
 
         void Awake()
@@ -110,7 +111,15 @@ namespace BossFight.Progression
             if (Current != null) Loadout.Apply(Current, refill);
         }
 
-        /// <summary>換角色：在目前角色的位置與朝向生成新角色的 prefab，銷毀舊的，套用數值後再對所有接收者 BindPlayer。修正來源保留。</summary>
+        /// <summary>重新讀存檔裡目前角色的穿戴、登記成裝備來源，再重新套用並補滿血量、耐力與骨頭（鐵匠鋪換裝後呼叫）。</summary>
+        public void ReapplyEquipment()
+        {
+            if (Current == null) return;
+            EquipmentLoadout.Register(Loadout, database, Loadout.Character);
+            ReapplyStats(true);
+        }
+
+        /// <summary>換角色：在目前角色的位置與朝向生成新角色的 prefab，銷毀舊的，套用數值後再對所有接收者 BindPlayer。修正來源保留（裝備來源換成新角色的穿戴）。</summary>
         public void ReplaceCharacter(CharacterDefinition character)
         {
             if (character == null || character.prefab == null) return;
@@ -137,6 +146,7 @@ namespace BossFight.Progression
             }
             Current = rig;
             Loadout.Character = character;
+            EquipmentLoadout.Register(Loadout, database, character); // 換角色時換成新角色自己的穿戴
             if (!Loadout.Apply(rig, true))
                 Debug.LogWarning($"[PlayerSpawner] 角色 {character.name} 沒有 baseStats，沿用 prefab 上接的數值。", this);
             foreach (var receiver in receivers)

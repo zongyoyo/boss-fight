@@ -16,7 +16,7 @@ namespace BossFight.EditorTools
     ///    材質在 Models/Hub/Materials（只在不存在時建立）、網格在 Models/Hub/Meshes（每次覆寫）。
     /// 2. 場景（T20）：地面；沿邊界折線種 treeRows 排樹（第一排在線上，樹幹有碰撞）、第一排後面一圈隱形牆；中心空地與連到各站點的小路；
     ///    四個站點的佔位模型：中心小屋＋村長、鐵匠鋪（棚子、鐵砧、爐火光）、營火（石圈、柴堆、火焰粒子、閃爍的火光、坐的圓木）、傳送門（石拱門＋旋轉的紫色光面）；
-    ///    每個站點一個 Interactable（傳送門是 Portal、營火是 Campfire）、站位點與一台站點鏡頭（優先度 0，HubManager 打開介面時調高）；傍晚天色與薄霧（HubAtmosphere）。
+    ///    每個站點一個 Interactable（傳送門是 Portal、營火是 Campfire、鐵匠鋪是 Blacksmith〔T22，接上 PlayerSpawner 與 GameOptions〕）、站位點與一台站點鏡頭（優先度 0，HubManager 打開介面時調高）；傍晚天色與薄霧（HubAtmosphere）。
     ///    營火（T21）的坐的圓木橫放在站位點正下方（狗坐在上面），Campfire 接上 PlayerSpawner、GameOptions 與換角色的煙（Prefabs/Hazards/Fx_HitSpark）。
     /// 3. 出生點 Start（營火旁，啟動遊戲時）與 Portal（傳送門前，從 Boss 戰回來時）、PlayerSpawner（預設生成在 Start）與鏡頭（CameraRigBuilder）、
     ///    GameOptions、AudioManager（沒有音樂）、Hub 物件（HubManager、InteractionScanner）、ESC 選單（PauseMenuBuilder 的休息區版：繼續、設定、退出遊戲）、
@@ -124,6 +124,7 @@ namespace BossFight.EditorTools
             PlayerSpawnerBuilder.Build(start.position, start.rotation, (flowData.startArrival, start), (flowData.portalArrival, portalSpawn));
             var cameraController = CameraRigBuilder.Build(PlayerSpawnerBuilder.Preview().Controller); // 也會接打擊回饋（CombatFeedbackBuilder.Wire）
             WireCampfire(interactables, options);
+            WireBlacksmith(interactables, options);
 
             // 休息區狀態與互動
             var hubGo = new GameObject("Hub");
@@ -338,7 +339,7 @@ namespace BossFight.EditorTools
             forgeLight.intensity = atmosphere.forgeIntensity;
             forgeLight.range = atmosphere.forgeRange;
             forgeLight.shadows = LightShadows.None;
-            return AddStation<Interactable>(root.gameObject, layout, s);
+            return AddStation<Blacksmith>(root.gameObject, layout, s);
         }
 
         static Interactable BuildCampfire(Transform parent, HubLayoutData layout, HubAtmosphereData atmosphere)
@@ -382,6 +383,17 @@ namespace BossFight.EditorTools
             fireLight.shadows = LightShadows.None; // 點光源陰影要 6 張 shadow map，會擠爆陰影圖集
             DaoDunDogBuilder.SetReference(lightGo.AddComponent<FireFlicker>(), "data", atmosphere);
             return AddStation<Campfire>(root.gameObject, layout, s);
+        }
+
+        // 鐵匠鋪（T22）換裝要的 spawner、Debug「解鎖全部裝備」看的開發者模式（GameOptions）
+        static void WireBlacksmith(List<Interactable> interactables, GameOptions options)
+        {
+            var blacksmith = interactables.Find(i => i is Blacksmith) as Blacksmith;
+            if (blacksmith == null) return;
+            var so = new SerializedObject(blacksmith);
+            so.FindProperty("spawner").objectReferenceValue = Object.FindAnyObjectByType<PlayerSpawner>();
+            so.FindProperty("options").objectReferenceValue = options;
+            so.ApplyModifiedPropertiesWithoutUndo();
         }
 
         // 營火換角色要的 spawner、開發者模式（GameOptions）與煙

@@ -18,3 +18,6 @@ MonoBehaviour:
   unlockedByDefault: 1
   prefab: {fileID: 4060941524532905949, guid: ba4551dbd87fc6645aa6a8c52c387733, type: 3}
   baseStats: {fileID: 11400000, guid: 12bf5db703747934abe53be7fd3d0c45, type: 2}
+  equipmentSlots:
+  - {fileID: 11400000, guid: 3d2d0a2b297eb1444acceab9a0a502a5, type: 2}
+  - {fileID: 11400000, guid: 47aae42d2e5c9fa4bb421aa3c392a942, type: 2}

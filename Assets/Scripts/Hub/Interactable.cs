@@ -8,7 +8,7 @@ namespace BossFight.Hub
     /// 休息區的站點（T20）：物件的位置是互動點，玩家的水平距離在 HubLayoutData 的 interactRadius 內時 InteractionScanner 會選到它。
     /// 按 Player/Interact 後 HubManager 打開介面：玩家走到 standPoint、面向互動點，stationCamera 提高優先度。
     /// 介面開著時 HubManager 依序呼叫 Opened → 每幀 Tick（arrived = 走到站位點了）→ Closed，子類別覆寫來做站點自己的事（營火坐下）。
-    /// 傳送門是子類別 Portal、營火是 Campfire（T21）；鐵匠鋪、村長在 T22–T24 換成各自的子類別。由 HubBuilder 建立與接線。
+    /// 傳送門是子類別 Portal、營火是 Campfire（T21）、鐵匠鋪是 Blacksmith（T22）；村長在 T24 換成自己的子類別。由 HubBuilder 建立與接線。
     /// </summary>
     [DisallowMultipleComponent]
     public class Interactable : MonoBehaviour

@@ -5,7 +5,17 @@ using UnityEngine;
 
 namespace BossFight.Core
 {
-    /// <summary>存檔的內容（save.json）。只放純資料：id 字串、數字，不放 SO 或元件引用。之後的任務在這裡加欄位（目前角色、裝備、技能點…）。</summary>
+    /// <summary>一個角色的穿戴（T22）：slots 依 CharacterDefinition.equipmentSlots 的順序放裝備 id，空字串 = 沒穿。</summary>
+    [Serializable]
+    public class CharacterEquipmentSave
+    {
+        [Tooltip("角色 id")]
+        public string character = "";
+        [Tooltip("每一格的裝備 id（照角色的欄位順序）；空字串 = 沒穿")]
+        public List<string> slots = new List<string>();
+    }
+
+    /// <summary>存檔的內容（save.json）。只放純資料：id 字串、數字，不放 SO 或元件引用。之後的任務在這裡加欄位（技能點、任務…）；只加欄位時版本不用改（舊檔讀到的是空清單）。</summary>
     [Serializable]
     public class ProfileData
     {
@@ -20,6 +30,12 @@ namespace BossFight.Core
         public string currentCharacter = "";
         [Tooltip("之後解鎖的角色（id）；一開始就能用的角色（CharacterDefinition.unlockedByDefault）不記在這裡")]
         public List<string> unlockedCharacters = new List<string>();
+        [Tooltip("解鎖的裝備（id）")]
+        public List<string> unlockedEquipment = new List<string>();
+        [Tooltip("解鎖後還沒在鐵匠鋪看過的裝備（id，「新」標記）")]
+        public List<string> newEquipment = new List<string>();
+        [Tooltip("各角色的穿戴（換角色時各自保留）")]
+        public List<CharacterEquipmentSave> characterEquipment = new List<CharacterEquipmentSave>();
     }
 
     /// <summary>
@@ -93,6 +109,69 @@ namespace BossFight.Core
             Save();
         }
 
+        // ---------- 裝備 ----------
+
+        /// <summary>這件裝備解鎖了沒有。</summary>
+        public static bool IsEquipmentUnlocked(string id) => !string.IsNullOrEmpty(id) && Data.unlockedEquipment.Contains(id);
+
+        /// <summary>解鎖裝備並標成「新」、存檔（獎勵、Debug 的解鎖全部）；回傳 true = 這次才解鎖。</summary>
+        public static bool UnlockEquipment(string id)
+        {
+            if (string.IsNullOrEmpty(id) || Data.unlockedEquipment.Contains(id)) return false;
+            Data.unlockedEquipment.Add(id);
+            if (!Data.newEquipment.Contains(id)) Data.newEquipment.Add(id);
+            Save();
+            return true;
+        }
+
+        /// <summary>這件裝備有沒有「新」標記（解鎖後還沒在鐵匠鋪看過）。</summary>
+        public static bool IsEquipmentNew(string id) => !string.IsNullOrEmpty(id) && Data.newEquipment.Contains(id);
+
+        /// <summary>清掉所有「新」標記並存檔（關掉鐵匠鋪時）；回傳 true = 有清掉東西。</summary>
+        public static bool ClearNewEquipment()
+        {
+            if (Data.newEquipment.Count == 0) return false;
+            Data.newEquipment.Clear();
+            Save();
+            return true;
+        }
+
+        /// <summary>這個角色第 slot 格穿的裝備 id；沒穿或沒有記錄時空字串（不檢查解鎖與欄位種類，那是 Progression 的事）。</summary>
+        public static string GetEquipped(string character, int slot)
+        {
+            var record = FindEquipment(character);
+            if (record == null || slot < 0 || slot >= record.slots.Count) return string.Empty;
+            return record.slots[slot] ?? string.Empty;
+        }
+
+        /// <summary>設定這個角色第 slot 格穿的裝備（空字串 = 卸下）並存檔。</summary>
+        public static void SetEquipped(string character, int slot, string equipment)
+        {
+            if (string.IsNullOrEmpty(character) || slot < 0) return;
+            equipment = equipment ?? string.Empty;
+            var record = FindEquipment(character);
+            if (record == null)
+            {
+                if (equipment.Length == 0) return;
+                record = new CharacterEquipmentSave { character = character };
+                Data.characterEquipment.Add(record);
+            }
+            while (record.slots.Count <= slot) record.slots.Add(string.Empty);
+            if (record.slots[slot] == equipment) return;
+            record.slots[slot] = equipment;
+            Save();
+        }
+
+        static CharacterEquipmentSave FindEquipment(string character)
+        {
+            if (string.IsNullOrEmpty(character)) return null;
+            foreach (var record in Data.characterEquipment)
+            {
+                if (record != null && record.character == character) return record;
+            }
+            return null;
+        }
+
         // ---------- 整份存檔 ----------
 
         /// <summary>清空存檔（開發者模式的「重置存檔」）並寫檔。</summary>
@@ -137,6 +216,14 @@ namespace BossFight.Core
                 if (loaded.defeatedBosses == null) loaded.defeatedBosses = new List<string>();
                 if (loaded.currentCharacter == null) loaded.currentCharacter = string.Empty;
                 if (loaded.unlockedCharacters == null) loaded.unlockedCharacters = new List<string>();
+                if (loaded.unlockedEquipment == null) loaded.unlockedEquipment = new List<string>();
+                if (loaded.newEquipment == null) loaded.newEquipment = new List<string>();
+                if (loaded.characterEquipment == null) loaded.characterEquipment = new List<CharacterEquipmentSave>();
+                loaded.characterEquipment.RemoveAll(r => r == null);
+                foreach (var record in loaded.characterEquipment)
+                {
+                    if (record.slots == null) record.slots = new List<string>();
+                }
                 data = loaded;
             }
             catch (Exception e)

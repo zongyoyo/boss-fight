@@ -13,3 +13,6 @@ MonoBehaviour:
   m_Name: GameDatabase
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Progression.GameDatabase
   characters: {fileID: 11400000, guid: 82e3d458b4b44ea4f9baae6469d04793, type: 2}
+  equipment:
+  - {fileID: 11400000, guid: 6238a795b664e644eb38157ac4a01a5c, type: 2}
+  - {fileID: 11400000, guid: d22272f0bd9f7a24caa65629d3bd34c2, type: 2}

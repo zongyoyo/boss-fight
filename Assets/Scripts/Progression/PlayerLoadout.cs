@@ -132,6 +132,29 @@ namespace BossFight.Progression
             return true;
         }
 
+        /// <summary>
+        /// 差異預覽（鐵匠鋪）：把 key 這個來源的修正換成 replacement（null = 拿掉）後會得到的數值；不套用、不改登記。
+        /// 回傳的複本用完要 Object.Destroy；沒有基礎數值時 null。
+        /// </summary>
+        public PlayerStats Preview(string key, IEnumerable<StatModifier> replacement)
+        {
+            var baseStats = BaseStats;
+            if (baseStats == null) return null;
+            var modifiers = new List<StatModifier>();
+            bool replaced = false;
+            foreach (var k in order)
+            {
+                if (k == key)
+                {
+                    replaced = true;
+                    if (replacement != null) modifiers.AddRange(replacement);
+                }
+                else modifiers.AddRange(sources[k].modifiers);
+            }
+            if (!replaced && replacement != null) modifiers.AddRange(replacement);
+            return BuildStats(baseStats, modifiers);
+        }
+
         /// <summary>角色要被銷毀（換角色）時：拆掉效果、丟掉複本（新角色會重新套用）。</summary>
         public void Release()
         {
@@ -182,9 +205,32 @@ namespace BossFight.Progression
             return stats;
         }
 
+        /// <summary>讀一項數值（差異預覽用）；輕攻擊傷害讀第一段。對應跟 Modify 一樣，新增 PlayerStatId 時兩邊都要加。</summary>
+        public static float Read(PlayerStats s, PlayerStatId stat)
+        {
+            if (s == null) return 0f;
+            switch (stat)
+            {
+                case PlayerStatId.MaxHealth: return s.maxHealth;
+                case PlayerStatId.MaxStamina: return s.maxStamina;
+                case PlayerStatId.StaminaRegen: return s.staminaRegen;
+                case PlayerStatId.MoveSpeed: return s.moveSpeed;
+                case PlayerStatId.RollStaminaCost: return s.rollStaminaCost;
+                case PlayerStatId.BlockDamageReduction: return s.blockDamageReduction;
+                case PlayerStatId.ParryWindow: return s.parryWindow;
+                case PlayerStatId.ParryImbalance: return s.parryImbalance;
+                case PlayerStatId.BoneCapacity: return s.boneCount;
+                case PlayerStatId.BoneHealAmount: return s.boneHealAmount;
+                case PlayerStatId.LightAttackDamage: return s.lightCombo != null && s.lightCombo.Length > 0 ? s.lightCombo[0].damage : 0f;
+                case PlayerStatId.HeavyAttackDamage: return s.heavyAttack.damage;
+                case PlayerStatId.ExecutionDamage: return s.executeAttack.damage;
+                default: return 0f;
+            }
+        }
+
         static float Calc(float value, float add, float multiply) => (value + add) * (1f + multiply);
 
-        /// <summary>PlayerStatId → PlayerStats 欄位；套用後夾回合理範圍。新增 PlayerStatId 時在這裡加一行。</summary>
+        /// <summary>PlayerStatId → PlayerStats 欄位；套用後夾回合理範圍。新增 PlayerStatId 時在這裡加一行（Read 也要加）。</summary>
         static void Modify(PlayerStats s, PlayerStatId stat, float add, float multiply)
         {
             switch (stat)
