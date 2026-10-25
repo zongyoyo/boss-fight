@@ -191,9 +191,11 @@ namespace BossFight.Cutscene
             return director.duration;
         }
 
+        // 場景卸載（換場景、重試、離開 Play）時 PlayableDirector 被銷毀也會送 stopped，這時場景已經不是 loaded：
+        // 那不是演出結束，不跑收尾（輸入鎖、鏡頭、BattleManager 的狀態都跟著場景消失；玩家可能已經先被銷毀，Boss 也不該在卸載中開打）
         void HandleStopped(PlayableDirector d)
         {
-            if (IsPlaying) Finish();
+            if (IsPlaying && gameObject.scene.isLoaded) Finish();
         }
 
         void Finish()

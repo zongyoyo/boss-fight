@@ -14,10 +14,10 @@ namespace BossFight.Core
         /// <summary>這次執行的第幾次挑戰；BattleManager 開場前加一，第一次挑戰是 1。</summary>
         public static int Attempt { get; private set; }
 
-        /// <summary>開場動畫已經播完（或跳過）過一次；之後的挑戰可以長按跳過。</summary>
+        /// <summary>開場動畫已經開始播過一次（中途重試或返回休息區也算）；之後的挑戰可以長按跳過。</summary>
         public static bool IntroSeen { get; private set; }
 
-        /// <summary>轉階段演出已經播完（或跳過）過一次；之後再轉階段可以長按跳過。</summary>
+        /// <summary>轉階段演出已經開始播過一次（中途重試或返回休息區也算）；之後再轉階段可以長按跳過。</summary>
         public static bool TransitionSeen { get; private set; }
 
         /// <summary>ESC 選單輸入了秘技：這次執行的選單都顯示開發者模式開關（不存檔）。</summary>
