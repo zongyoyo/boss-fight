@@ -55,11 +55,21 @@ MonoBehaviour:
   defeatStatsSeparator: "\u3000\u3000"
   victoryButton: "\u518D\u6311\u6230"
   defeatButton: "\u91CD\u8A66"
+  returnToHubButton: "\u8FD4\u56DE\u4F11\u606F\u5340"
   victoryColor: {r: 1, g: 0.85, b: 0.4, a: 1}
   defeatTitleStartColor: {r: 1, g: 1, b: 1, a: 1}
   defeatColor: {r: 0.9, g: 0.12, b: 0.1, a: 1}
   defeatTextColor: {r: 1, g: 1, b: 1, a: 1}
   defeatHintColor: {r: 0.6, g: 0.6, b: 0.6, a: 1}
+  firstClearHeader: "\u9996\u6B21\u64CA\u6557\u734E\u52F5"
+  firstClearSkillPointsFormat: "\u6280\u80FD\u9EDE \xD7{0}"
+  firstClearSeparator: "\u3000\u3000"
+  firstClearHeaderColor: {r: 1, g: 0.85, b: 0.4, a: 1}
+  firstClearColor: {r: 1, g: 1, b: 1, a: 1}
+  firstClearHeaderSize: 32
+  firstClearSize: 40
+  firstClearHeaderY: -268
+  firstClearY: -318
   defeatColorDelay: 0.6
   defeatColorTime: 2
   defeatTitleSize: 280

@@ -15,6 +15,8 @@ namespace BossFight.Hub
     /// 輸入鎖定：介面開著或 ESC 選單暫停（GamePause）時鎖住玩家與鏡頭、放開游標；跟 BattleManager 一樣在 LateUpdate 鎖／解鎖，
     /// 解除那一幀玩家的 Update 已經跑完，關介面用的手把 B（翻滾）不會被當成動作。介面開著時 ESC 選單不開（PauseMenuUI 訂閱這裡的事件）。
     /// 也提供 ESC 選單秘技的解鎖（UnlockDeveloperOptions，記在 BattleSession，跟 Boss 戰共用）。
+    /// 開場劇情（T24）：存檔沒看過時，Start 後等 VillageChief.IntroDelay 秒（期間就鎖住輸入），自由視角轉到玩家背後看著村長、打開村長站點；
+    /// 站點還沒 ReadyToTalk（村長走過來的路上）時不切站點鏡頭、玩家站著面向他，準備好了才切鏡頭、照常走到站位點。
     /// </summary>
     [DisallowMultipleComponent]
     public class HubManager : MonoBehaviour, IPlayerBinding
@@ -23,6 +25,8 @@ namespace BossFight.Hub
         [SerializeField] InteractionScanner scanner;
         [SerializeField] CameraController cameraController;
         [SerializeField] GamePause pause;
+        [Tooltip("村長：存檔沒看過開場劇情時，進休息區後自動走過來講話（T24）；留空時沒有開場劇情")]
+        [SerializeField] VillageChief chief;
         [Tooltip("介面開著時站點鏡頭的優先度（要比自由視角、鎖定鏡頭高）")]
         [SerializeField] int stationCameraPriority = 20;
 
@@ -40,8 +44,9 @@ namespace BossFight.Hub
         PlayerRig rig;
         PlayerController player;
         InputAction interactAction;
-        bool locked;
+        bool locked, cameraRaised, introPending;
         int savedPriority;
+        float introAt;
 
         /// <summary>PlayerSpawner 生成（或換）角色時呼叫；介面開著時換的新角色一樣鎖住。</summary>
         public void BindPlayer(PlayerRig rig)
@@ -63,6 +68,11 @@ namespace BossFight.Hub
         void Start()
         {
             if (BattleSession.DeveloperOptionsUnlocked) OnDeveloperOptionsUnlocked?.Invoke();
+            if (chief != null && chief.WantsIntro)
+            {
+                introPending = true;
+                introAt = Time.time + chief.IntroDelay;
+            }
         }
 
         void Update()
@@ -70,6 +80,14 @@ namespace BossFight.Hub
             if (Current != null)
             {
                 Approach();
+                return;
+            }
+            if (introPending)
+            {
+                if (Time.time < introAt || player == null || player.IsDead || (pause != null && pause.IsPaused)) return;
+                introPending = false;
+                chief.BeginIntro(player.transform.position);
+                Open(chief);
                 return;
             }
             if (interactAction == null || !interactAction.WasPressedThisFrame()) return;
@@ -81,7 +99,7 @@ namespace BossFight.Hub
         // 介面開著或暫停時鎖住輸入、放開游標
         void LateUpdate()
         {
-            bool shouldLock = Current != null || (pause != null && pause.IsPaused);
+            bool shouldLock = Current != null || introPending || (pause != null && pause.IsPaused);
             if (shouldLock == locked) return;
             locked = shouldLock;
             if (player != null) player.SetInputLocked(locked);
@@ -95,13 +113,10 @@ namespace BossFight.Hub
         void Open(Interactable target)
         {
             Current = target;
-            var cam = target.StationCamera;
-            if (cam != null)
-            {
-                savedPriority = cam.Priority.Value;
-                cam.Priority = stationCameraPriority;
-            }
+            cameraRaised = false;
             player.ClearLockTarget();
+            if (target.ReadyToTalk) RaiseStationCamera();
+            else if (cameraController != null) cameraController.ResetBehind(target.transform.position); // 站在玩家背後看著走過來的村長
             target.Opened(rig);
             OnStationOpened?.Invoke(target);
         }
@@ -113,7 +128,8 @@ namespace BossFight.Hub
             var closed = Current;
             Current = null;
             var cam = closed.StationCamera;
-            if (cam != null) cam.Priority = savedPriority;
+            if (cam != null && cameraRaised) cam.Priority = savedPriority;
+            cameraRaised = false;
             if (cameraController != null && player != null) cameraController.ResetBehind(closed.transform.position);
             closed.Closed(rig);
             OnStationClosed?.Invoke(closed);
@@ -127,10 +143,28 @@ namespace BossFight.Hub
             OnDeveloperOptionsUnlocked?.Invoke();
         }
 
-        // 照腳本走到站位點、面向站點（輸入在 LateUpdate 鎖住後才生效）；走到了就告訴站點（營火坐下）
+        void RaiseStationCamera()
+        {
+            cameraRaised = true;
+            var cam = Current.StationCamera;
+            if (cam == null) return;
+            savedPriority = cam.Priority.Value;
+            cam.Priority = stationCameraPriority;
+        }
+
+        // 照腳本走到站位點、面向站點（輸入在 LateUpdate 鎖住後才生效）；走到了就告訴站點（營火坐下）。
+        // 站點還沒準備好（村長走過來的路上）時站著面向它
         void Approach()
         {
             if (player == null || layout == null) return;
+            if (!Current.ReadyToTalk)
+            {
+                Vector3 here = player.transform.position;
+                player.ScriptedMoveTo(here, Current.transform.position - here);
+                Current.Tick(rig, false);
+                return;
+            }
+            if (!cameraRaised) RaiseStationCamera();
             Vector3 stand = Current.StandPoint.position;
             Vector3 from = player.transform.position;
             Vector3 flat = new Vector3(from.x, stand.y, from.z);

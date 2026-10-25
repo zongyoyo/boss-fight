@@ -27,7 +27,7 @@ namespace BossFight.Core
         public int spent;
     }
 
-    /// <summary>存檔的內容（save.json）。只放純資料：id 字串、數字，不放 SO 或元件引用。之後的任務在這裡加欄位（任務…）；只加欄位時版本不用改（舊檔讀到的是空清單）。</summary>
+    /// <summary>存檔的內容（save.json）。只放純資料：id 字串、數字，不放 SO 或元件引用。只加欄位時版本不用改（舊檔讀到的是空清單）。</summary>
     [Serializable]
     public class ProfileData
     {
@@ -52,6 +52,12 @@ namespace BossFight.Core
         public int skillPoints;
         [Tooltip("各角色學過的技能（分開記）")]
         public List<CharacterSkillsSave> characterSkills = new List<CharacterSkillsSave>();
+        [Tooltip("看過休息區的開場劇情沒有（T24：村長第一次走過來講話）")]
+        public bool storyIntroSeen;
+        [Tooltip("接過、還沒回報的任務（QuestData 的 id）")]
+        public List<string> acceptedQuests = new List<string>();
+        [Tooltip("回報完的任務（id）")]
+        public List<string> completedQuests = new List<string>();
     }
 
     /// <summary>
@@ -256,6 +262,44 @@ namespace BossFight.Core
             return null;
         }
 
+        // ---------- 劇情與任務（T24） ----------
+
+        /// <summary>看過休息區的開場劇情沒有。</summary>
+        public static bool StoryIntroSeen => Data.storyIntroSeen;
+
+        /// <summary>記住看過開場劇情並存檔。</summary>
+        public static void MarkStoryIntroSeen()
+        {
+            if (Data.storyIntroSeen) return;
+            Data.storyIntroSeen = true;
+            Save();
+        }
+
+        /// <summary>接過這個任務、還沒回報。</summary>
+        public static bool IsQuestAccepted(string id) => !string.IsNullOrEmpty(id) && Data.acceptedQuests.Contains(id);
+
+        /// <summary>回報完這個任務。</summary>
+        public static bool IsQuestCompleted(string id) => !string.IsNullOrEmpty(id) && Data.completedQuests.Contains(id);
+
+        /// <summary>接任務並存檔；已經接過或完成時不做事、回傳 false（能不能接由 Progression 判斷）。</summary>
+        public static bool AcceptQuest(string id)
+        {
+            if (string.IsNullOrEmpty(id) || IsQuestAccepted(id) || IsQuestCompleted(id)) return false;
+            Data.acceptedQuests.Add(id);
+            Save();
+            return true;
+        }
+
+        /// <summary>回報任務：從「已接」移到「已完成」並存檔；沒接過時不做事、回傳 false（目標達成沒有由 Progression 判斷）。</summary>
+        public static bool CompleteQuest(string id)
+        {
+            if (!IsQuestAccepted(id)) return false;
+            Data.acceptedQuests.Remove(id);
+            if (!Data.completedQuests.Contains(id)) Data.completedQuests.Add(id);
+            Save();
+            return true;
+        }
+
         // ---------- 整份存檔 ----------
 
         /// <summary>清空存檔（開發者模式的「重置存檔」）並寫檔。</summary>
@@ -314,6 +358,8 @@ namespace BossFight.Core
                 {
                     if (record.nodes == null) record.nodes = new List<string>();
                 }
+                if (loaded.acceptedQuests == null) loaded.acceptedQuests = new List<string>();
+                if (loaded.completedQuests == null) loaded.completedQuests = new List<string>();
                 data = loaded;
             }
             catch (Exception e)

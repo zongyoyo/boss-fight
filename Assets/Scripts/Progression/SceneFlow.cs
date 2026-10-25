@@ -56,10 +56,10 @@ namespace BossFight.Progression
             if (IsLoading) LoadTarget();
         }
 
-        /// <summary>從休息區進 Boss 戰（傳送門）。</summary>
-        public void GoToBattle()
+        /// <summary>從休息區進 Boss 戰（傳送門）：scene 是 BossDefinition.sceneName；空的時候用 SceneFlowData.battleScene。</summary>
+        public void GoToBattle(string scene = null)
         {
-            if (data != null) Load(data.battleScene, string.Empty);
+            if (data != null) Load(string.IsNullOrEmpty(scene) ? data.battleScene : scene, string.Empty);
         }
 
         /// <summary>從 Boss 戰回休息區，出生在傳送門前。</summary>

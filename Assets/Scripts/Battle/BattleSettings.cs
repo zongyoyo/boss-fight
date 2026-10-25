@@ -1,14 +1,15 @@
+using BossFight.Progression;
 using UnityEngine;
 
 namespace BossFight.Battle
 {
-    /// <summary>戰鬥流程的數值：勝敗結算的節奏（慢動作、結算畫面出現前的等待、勝利時音樂淡出）與存檔用的 Boss id。BattleManager 讀。</summary>
+    /// <summary>戰鬥流程的數值：勝敗結算的節奏（慢動作、結算畫面出現前的等待、勝利時音樂淡出）與這場的 Boss（擊敗紀錄、首通獎勵）。BattleManager 讀。</summary>
     [CreateAssetMenu(menuName = "BossFight/Battle Settings", fileName = "BattleSettings")]
     public class BattleSettings : ScriptableObject
     {
         [Header("存檔")]
-        [Tooltip("這場 Boss 的 id：勝利時記進存檔的擊敗紀錄（T24 起改用 BossDefinition 的 id）")]
-        public string bossId = "oiia_cat";
+        [Tooltip("這場的 Boss（T24）：勝利時 ProgressRecorder 用它的 id 記進存檔的擊敗紀錄，第一次擊敗就發首通獎勵；留空時不記錄")]
+        public BossDefinition boss;
 
         [Header("勝利")]
         [Tooltip("Boss 倒下後幾秒（真實時間）出現勝利畫面；這段期間玩家還能動，看 Boss 倒地")]

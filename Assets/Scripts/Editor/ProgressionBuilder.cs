@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using BossFight.Battle;
 using BossFight.Player;
 using BossFight.Progression;
 using UnityEditor;
@@ -21,6 +22,9 @@ namespace BossFight.EditorTools
     ///    角色的裝備欄空著時填上（刀盾狗：項圈、護符；測試狗：護符），裝備加進 GameDatabase.equipment。數值只在建立時寫入，之後在資產調。
     ///    技能樹（T23，SkillTrees/）：刀盾狗 DaoDunDogTree（企劃書的 5 個節點，共 7 點）、測試狗 TestDogTree（疾風、厚毛 2 個節點）；
     ///    節點只在樹是空的時候寫入（之後在資產調），角色的 skillTree 空著時接上。
+    ///    Boss 與任務（T24）：Bosses/OiiaCat.asset（id oiia_cat，首通：技能點 ×3、厚皮項圈）、Quests/SpinTheCat.asset（「轉暈那隻小笨貓!」：擊敗 OIIA 貓，
+    ///    獎勵 技能點 ×2、反擊護符；對白是佔位文字），加進 GameDatabase.bosses／quests；BossArena 的 BattleSettings.boss 空著時接上 OIIA 貓。
+    ///    獎勵與對白只在建立時寫入，之後在資產調。
     /// 3. 檢查 id（GameDatabaseValidator），再接好目前場景的 PlayerSpawner（PlayerSpawnerBuilder.Wire 會接 GameDatabase）。
     /// PlayerSpawnerBuilder 找不到 GameDatabase 時也會呼叫 EnsureAssets。
     /// </summary>
@@ -54,6 +58,15 @@ namespace BossFight.EditorTools
         const string SkillTreesDir = Root + "/SkillTrees";
         public const string DaoDunDogTreePath = SkillTreesDir + "/DaoDunDogTree.asset";
         public const string TestDogTreePath = SkillTreesDir + "/TestDogTree.asset";
+        // Boss 與任務（T24）
+        const string BossesDir = Root + "/Bosses";
+        const string QuestsDir = Root + "/Quests";
+        public const string OiiaCatPath = BossesDir + "/OiiaCat.asset";
+        public const string SpinTheCatQuestPath = QuestsDir + "/SpinTheCat.asset";
+        const string BattleSettingsPath = "Assets/ScriptableObjects/Battle/BattleSettings.asset";
+        // 建立時的獎勵（企劃書「獎勵」「村長與任務」）；之後在資產調
+        const int OiiaCatFirstClearSkillPoints = 3;
+        const int SpinTheCatSkillPoints = 2;
         const string LegacyStatsPath = "Assets/ScriptableObjects/Player/PlayerStats.asset"; // T18 以前的位置
 
         [MenuItem("Tools/Progression/Build Game Database")]
@@ -106,8 +119,9 @@ namespace BossFight.EditorTools
 
             var database = LoadOrCreate<GameDatabase>(DatabasePath);
             if (database.characters == null) database.characters = roster;
-            EnsureEquipment(database, dog, testDog);
+            EnsureEquipment(database, dog, testDog, out var thickCollar, out var counterAmulet);
             EnsureSkillTrees(dog, testDog);
+            EnsureBossesAndQuests(database, thickCollar, counterAmulet);
             EditorUtility.SetDirty(database);
 
             AssetDatabase.SaveAssets();
@@ -148,7 +162,7 @@ namespace BossFight.EditorTools
         }
 
         // 裝備（T22）：欄位種類、兩件測試裝備、盾反回血效果、角色的裝備欄；已存在的只補空欄位
-        static void EnsureEquipment(GameDatabase database, CharacterDefinition dog, CharacterDefinition testDog)
+        static void EnsureEquipment(GameDatabase database, CharacterDefinition dog, CharacterDefinition testDog, out EquipmentData thickCollar, out EquipmentData counterAmulet)
         {
             DaoDunDogBuilder.EnsureFolder(EquipmentDir);
             var collar = LoadOrCreate<EquipmentSlotType>(CollarSlotPath);
@@ -170,13 +184,13 @@ namespace BossFight.EditorTools
             EditorUtility.SetDirty(parryHeal);
 
             bool collarCreated = AssetDatabase.LoadAssetAtPath<EquipmentData>(ThickCollarPath) == null;
-            var thickCollar = LoadOrCreate<EquipmentData>(ThickCollarPath);
+            thickCollar = LoadOrCreate<EquipmentData>(ThickCollarPath);
             if (collarCreated) thickCollar.modifiers.Add(new StatModifier(PlayerStatId.MaxHealth, StatModifierOp.Add, ThickCollarMaxHealth));
             FillEquipment(thickCollar, "thick_collar", "厚皮項圈", $"厚實的皮革項圈，挨打也不怕。最大血量 +{ThickCollarMaxHealth:0}。", "擊敗 OIIA 貓",
                           collar, GetIcon(CollarIconPath, DrawCollar));
 
             bool amuletCreated = AssetDatabase.LoadAssetAtPath<EquipmentData>(CounterAmuletPath) == null;
-            var counterAmulet = LoadOrCreate<EquipmentData>(CounterAmuletPath);
+            counterAmulet = LoadOrCreate<EquipmentData>(CounterAmuletPath);
             if (amuletCreated) counterAmulet.effects.Add(parryHeal);
             FillEquipment(counterAmulet, "counter_amulet", "反擊護符", $"刻著盾紋的護符。盾反成功時回復 {CounterAmuletParryHeal:0} HP。", "村長任務",
                           amulet, GetIcon(AmuletIconPath, DrawAmulet));
@@ -223,6 +237,68 @@ namespace BossFight.EditorTools
             EditorUtility.SetDirty(dog);
             if (testDog.skillTree == null) testDog.skillTree = testTree;
             EditorUtility.SetDirty(testDog);
+        }
+
+        // Boss 與任務（T24）：已存在的只補空欄位；獎勵、對白只在建立時寫入
+        static void EnsureBossesAndQuests(GameDatabase database, EquipmentData thickCollar, EquipmentData counterAmulet)
+        {
+            DaoDunDogBuilder.EnsureFolder(BossesDir);
+            DaoDunDogBuilder.EnsureFolder(QuestsDir);
+
+            bool catCreated = AssetDatabase.LoadAssetAtPath<BossDefinition>(OiiaCatPath) == null;
+            var cat = LoadOrCreate<BossDefinition>(OiiaCatPath);
+            if (catCreated)
+            {
+                cat.firstClearRewards.Add(RewardData.SkillPoints(OiiaCatFirstClearSkillPoints));
+                cat.firstClearRewards.Add(RewardData.Unlock(thickCollar));
+            }
+            if (string.IsNullOrEmpty(cat.id)) cat.id = "oiia_cat";
+            if (string.IsNullOrEmpty(cat.displayName)) cat.displayName = "OIIA 貓";
+            if (string.IsNullOrEmpty(cat.sceneName)) cat.sceneName = "BossArena";
+            if (string.IsNullOrEmpty(cat.portalDescription)) cat.portalDescription = "森林深處一邊唱歌一邊轉圈的怪貓。轉得越快，雷雨越大。";
+            EditorUtility.SetDirty(cat);
+
+            bool questCreated = AssetDatabase.LoadAssetAtPath<QuestData>(SpinTheCatQuestPath) == null;
+            var quest = LoadOrCreate<QuestData>(SpinTheCatQuestPath);
+            if (questCreated)
+            {
+                quest.offerLines.AddRange(new[]
+                {
+                    "那隻怪貓就在傳送門的另一頭，整天轉個不停。",
+                    "只要讓牠轉到頭暈、乖乖停下來，森林就會恢復平靜。",
+                    "這件事就交給你了，願意幫忙嗎？",
+                });
+                quest.activeLines.AddRange(new[]
+                {
+                    "那隻貓還在轉嗎？傳送門就在南邊的小路盡頭。",
+                    "記得用盾牌擋住牠的爪子，看準時機反擊！",
+                });
+                quest.turnInLines.AddRange(new[]
+                {
+                    "喔喔！雷雨停了……你真的讓那隻貓停下來了！",
+                    "這是村子的一點心意，收下吧。",
+                });
+                quest.rewards.Add(RewardData.SkillPoints(SpinTheCatSkillPoints));
+                quest.rewards.Add(RewardData.Unlock(counterAmulet));
+            }
+            if (string.IsNullOrEmpty(quest.id)) quest.id = "spin_the_cat";
+            if (string.IsNullOrEmpty(quest.title)) quest.title = "轉暈那隻小笨貓!";
+            if (string.IsNullOrEmpty(quest.description)) quest.description = "擊敗森林深處的 OIIA 貓。";
+            if (quest.objective == null) quest.objective = new QuestObjective();
+            if (quest.objective.boss == null) quest.objective.boss = cat;
+            EditorUtility.SetDirty(quest);
+
+            if (database.bosses == null) database.bosses = new List<BossDefinition>();
+            if (!database.bosses.Contains(cat)) database.bosses.Add(cat);
+            if (database.quests == null) database.quests = new List<QuestData>();
+            if (!database.quests.Contains(quest)) database.quests.Add(quest);
+
+            var battle = AssetDatabase.LoadAssetAtPath<BattleSettings>(BattleSettingsPath);
+            if (battle != null && battle.boss == null)
+            {
+                battle.boss = cat;
+                EditorUtility.SetDirty(battle);
+            }
         }
 
         static SkillNode Node(string id, string displayName, string description, int cost, int column, int row, string prerequisite, StatModifier modifier)

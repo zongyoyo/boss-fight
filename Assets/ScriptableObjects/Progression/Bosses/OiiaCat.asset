@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4011f1c6befc47948a597694cfe78c78, type: 3}
+  m_Name: OiiaCat
+  m_EditorClassIdentifier: Assembly-CSharp::BossFight.Progression.BossDefinition
+  id: oiia_cat
+  displayName: "OIIA \u8C93"
+  sceneName: BossArena
+  portalDescription: "\u68EE\u6797\u6DF1\u8655\u4E00\u908A\u5531\u6B4C\u4E00\u908A\u8F49\u5708\u7684\u602A\u8C93\u3002\u8F49\u5F97\u8D8A\u5FEB\uFF0C\u96F7\u96E8\u8D8A\u5927\u3002"
+  firstClearRewards:
+  - kind: 0
+    amount: 3
+    equipment: {fileID: 0}
+    character: {fileID: 0}
+  - kind: 1
+    amount: 1
+    equipment: {fileID: 11400000, guid: 6238a795b664e644eb38157ac4a01a5c, type: 2}
+    character: {fileID: 0}

@@ -64,6 +64,7 @@ namespace BossFight.EditorTools
             int undoGroup = Undo.GetCurrentGroup();
 
             var settings = GetOrCreate<BattleSettings>(SettingsPath);
+            if (settings.boss == null) ProgressionBuilder.EnsureAssets(); // T24：建 OIIA 貓的 BossDefinition 並接上 settings.boss
             var data = GetOrCreate<BattleUIData>(DataPath);
 
             var b = new SerializedObject(battle);
@@ -352,6 +353,14 @@ namespace BossFight.EditorTools
             var stats = Label("Stats", victory, "", 38, FontStyle.Normal, Color.white, TextAnchor.MiddleCenter);
             Place(stats.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, -10f), new Vector2(1000f, 160f));
             stats.lineSpacing = 1.2f;
+            // 首次擊敗獎勵（T24）：按鈕下面，第一次擊敗才開
+            var firstClear = Node("FirstClear", victory);
+            IntroCutsceneBuilder.Stretch(firstClear);
+            var firstClearHeader = Label("Header", firstClear, data.firstClearHeader, data.firstClearHeaderSize, FontStyle.Bold, data.firstClearHeaderColor, TextAnchor.MiddleCenter);
+            Place(firstClearHeader.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, data.firstClearHeaderY), new Vector2(1400f, 44f));
+            var firstClearItems = Label("Rewards", firstClear, "", data.firstClearSize, FontStyle.Normal, data.firstClearColor, TextAnchor.MiddleCenter);
+            Place(firstClearItems.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, data.firstClearY), new Vector2(1400f, 52f));
+            firstClear.gameObject.SetActive(false);
 
             // 戰敗：大字「菜」、中字；按鈕下面一行戰鬥資訊、再下面一行灰色小字（字級、顏色、高度執行時由 BattleResultUI 照 BattleUIData 再套用一次）
             var defeat = Node("Defeat", result);
@@ -379,6 +388,9 @@ namespace BossFight.EditorTools
             so.FindProperty("subtitleText").objectReferenceValue = subtitle;
             so.FindProperty("statsText").objectReferenceValue = stats;
             so.FindProperty("victoryGroup").objectReferenceValue = victory.gameObject;
+            so.FindProperty("firstClearGroup").objectReferenceValue = firstClear.gameObject;
+            so.FindProperty("firstClearHeaderText").objectReferenceValue = firstClearHeader;
+            so.FindProperty("firstClearText").objectReferenceValue = firstClearItems;
             so.FindProperty("defeatGroup").objectReferenceValue = defeat.gameObject;
             so.FindProperty("defeatTitleText").objectReferenceValue = defeatTitle;
             so.FindProperty("defeatSubtitleText").objectReferenceValue = defeatSubtitle;

@@ -104,6 +104,20 @@ namespace BossFight.UI
         [Tooltip("戰敗畫面最下面那行小字的顏色")]
         public Color defeatHintColor = new Color(0.6f, 0.6f, 0.6f, 1f);
 
+        [Header("勝利畫面的首次擊敗獎勵（T24）")]
+        [Tooltip("第一次擊敗時按鈕下面多一區：小標題、獎勵（一行，separator 隔開）；不是首通不顯示")]
+        public string firstClearHeader = "首次擊敗獎勵";
+        [Tooltip("技能點獎勵的寫法：{0} = 點數；裝備、角色用名稱")]
+        public string firstClearSkillPointsFormat = "技能點 ×{0}";
+        public string firstClearSeparator = "　　";
+        public Color firstClearHeaderColor = new Color(1f, 0.85f, 0.4f);
+        public Color firstClearColor = Color.white;
+        [Range(10, 120)] public int firstClearHeaderSize = 32;
+        [Range(10, 120)] public int firstClearSize = 40;
+        [Tooltip("小標題與獎勵那一行的高度（畫面中心 = 0；重試按鈕在 -170、高 84）")]
+        public float firstClearHeaderY = -268f;
+        public float firstClearY = -318f;
+
         [Header("戰敗畫面（真實時間）")]
         [Tooltip("畫面出現後大字維持白色多久才開始轉紅（秒）")]
         [Min(0f)] public float defeatColorDelay = 0.6f;

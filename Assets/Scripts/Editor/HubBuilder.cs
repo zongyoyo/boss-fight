@@ -18,6 +18,7 @@ namespace BossFight.EditorTools
     ///    四個站點的佔位模型：中心小屋＋村長、鐵匠鋪（棚子、鐵砧、爐火光）、營火（石圈、柴堆、火焰粒子、閃爍的火光、坐的圓木）、傳送門（石拱門＋旋轉的紫色光面）；
     ///    每個站點一個 Interactable（傳送門是 Portal、營火是 Campfire、鐵匠鋪是 Blacksmith〔T22，接上 PlayerSpawner 與 GameOptions〕）、站位點與一台站點鏡頭（優先度 0，HubManager 打開介面時調高）；傍晚天色與薄霧（HubAtmosphere）。
     ///    營火（T21）的坐的圓木橫放在站位點正下方（狗坐在上面），Campfire 接上 PlayerSpawner、GameOptions 與換角色的煙（Prefabs/Hazards/Fx_HitSpark）。
+    ///    村長（T24）是 VillageChief（頭上標記的位置 MarkerAnchor，接上 HubStory.asset〔沒有才建〕與 GameDatabase），HubManager 接村長（開場劇情）；傳送門接 GameDatabase（挑戰清單）。
     /// 3. 出生點 Start（營火旁，啟動遊戲時）與 Portal（傳送門前，從 Boss 戰回來時）、PlayerSpawner（預設生成在 Start）與鏡頭（CameraRigBuilder）、
     ///    GameOptions、AudioManager（沒有音樂）、Hub 物件（HubManager、InteractionScanner）、ESC 選單（PauseMenuBuilder 的休息區版：繼續、設定、退出遊戲）、
     ///    互動提示與站點面板（HubUIBuilder）、SceneFlow（PauseMenuBuilder.Wire 最後建）。休息區不建 HUD。
@@ -31,6 +32,7 @@ namespace BossFight.EditorTools
         public const string DataDir = "Assets/ScriptableObjects/Hub";
         const string LayoutPath = DataDir + "/HubLayout.asset";
         const string AtmospherePath = DataDir + "/HubAtmosphere.asset";
+        const string StoryPath = DataDir + "/HubStory.asset";
         const string MatDir = "Assets/Models/Hub/Materials";
         const string MeshDir = "Assets/Models/Hub/Meshes";
         const int StationCameraIdlePriority = 0; // 比自由視角（10）與沒在用的鎖定鏡頭（9）低
@@ -125,6 +127,7 @@ namespace BossFight.EditorTools
             var cameraController = CameraRigBuilder.Build(PlayerSpawnerBuilder.Preview().Controller); // 也會接打擊回饋（CombatFeedbackBuilder.Wire）
             WireCampfire(interactables, options);
             WireBlacksmith(interactables, options);
+            var chief = WireChiefAndPortal(interactables);
 
             // 休息區狀態與互動
             var hubGo = new GameObject("Hub");
@@ -138,6 +141,7 @@ namespace BossFight.EditorTools
             hubSo.FindProperty("scanner").objectReferenceValue = scanner;
             hubSo.FindProperty("cameraController").objectReferenceValue = cameraController;
             hubSo.FindProperty("pause").objectReferenceValue = pause;
+            hubSo.FindProperty("chief").objectReferenceValue = chief;
             hubSo.ApplyModifiedPropertiesWithoutUndo();
 
             PauseMenuBuilder.Build(); // 休息區版 ESC 選單；Wire 最後建 SceneFlow（接傳送門）並接 spawner
@@ -309,7 +313,12 @@ namespace BossFight.EditorTools
             Deco(PrimitiveType.Sphere, root, "Nose", new Vector3(0f, 1.82f, 0.25f), Vector3.one * 0.12f, skinMat);
             Deco(PrimitiveType.Cylinder, root, "HatBrim", new Vector3(0f, 2.08f, 0f), new Vector3(0.85f, 0.02f, 0.85f), hatMat);
             Deco(PrimitiveType.Cylinder, root, "HatCrown", new Vector3(0f, 2.3f, 0f), new Vector3(0.42f, 0.2f, 0.42f), hatMat);
-            return AddStation<Interactable>(root.gameObject, layout, s);
+            var marker = new GameObject("MarkerAnchor").transform; // 頭上「!」「?」的位置
+            marker.SetParent(root, false);
+            marker.localPosition = new Vector3(0f, 2.95f, 0f);
+            var chief = AddStation<VillageChief>(root.gameObject, layout, s);
+            DaoDunDogBuilder.SetReference(chief, "markerAnchor", marker);
+            return chief;
         }
 
         static Interactable BuildBlacksmith(Transform parent, HubLayoutData layout, HubAtmosphereData atmosphere)
@@ -383,6 +392,24 @@ namespace BossFight.EditorTools
             fireLight.shadows = LightShadows.None; // 點光源陰影要 6 張 shadow map，會擠爆陰影圖集
             DaoDunDogBuilder.SetReference(lightGo.AddComponent<FireFlicker>(), "data", atmosphere);
             return AddStation<Campfire>(root.gameObject, layout, s);
+        }
+
+        // 村長（T24）的劇情與任務清單、傳送門的挑戰清單；回傳村長（HubManager 的開場劇情）
+        static VillageChief WireChiefAndPortal(List<Interactable> interactables)
+        {
+            var database = ProgressionBuilder.LoadDatabase();
+            if (database == null) database = ProgressionBuilder.EnsureAssets();
+            var chief = interactables.Find(i => i is VillageChief) as VillageChief;
+            if (chief != null)
+            {
+                var so = new SerializedObject(chief);
+                so.FindProperty("story").objectReferenceValue = GetOrCreate<HubStoryData>(StoryPath);
+                so.FindProperty("database").objectReferenceValue = database;
+                so.ApplyModifiedPropertiesWithoutUndo();
+            }
+            var portal = interactables.Find(i => i is Portal) as Portal;
+            if (portal != null) DaoDunDogBuilder.SetReference(portal, "database", database);
+            return chief;
         }
 
         // 鐵匠鋪（T22）換裝要的 spawner、Debug「解鎖全部裝備」看的開發者模式（GameOptions）

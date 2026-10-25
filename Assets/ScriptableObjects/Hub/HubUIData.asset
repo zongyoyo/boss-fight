@@ -29,7 +29,6 @@ MonoBehaviour:
   promptColor: {r: 1, g: 1, b: 1, a: 1}
   promptFontSize: 34
   promptY: 150
-  emptyStationText: "\uFF08\u6E96\u5099\u4E2D\uFF09"
   closeHintKeyboard: "Esc \u8FD4\u56DE"
   closeHintGamepad: "B \u8FD4\u56DE"
   panelColor: {r: 0.08, g: 0.07, b: 0.06, a: 0.92}
@@ -146,7 +145,29 @@ MonoBehaviour:
     label: "\u8655\u6C7A\u50B7\u5BB3"
     format: 0.#
     lowerIsBetter: 0
-  bossLabel: "OIIA \u8C93"
+  defeatedBossFormat: "{0}\uFF08\u5DF2\u64CA\u6557\uFF09"
+  bossRowSpacing: 14
   departConfirmFormat: "\u8981\u51FA\u767C\u6311\u6230 {0} \u55CE\uFF1F"
   departYes: "\u51FA\u767C"
   departNo: "\u53D6\u6D88"
+  dialogueCharsPerSecond: 30
+  dialogueContinueMark: "\u25BC"
+  dialogueContinueBob: 6
+  dialogueContinueRate: 2
+  dialogueBoxColor: {r: 0.06, g: 0.05, b: 0.04, a: 0.9}
+  speakerColor: {r: 1, g: 0.85, b: 0.6, a: 1}
+  dialogueY: 60
+  dialogueSize: {x: 1400, y: 250}
+  questTitleFormat: "\u4EFB\u52D9\uFF1A{0}"
+  questRewardsFormat: "\u734E\u52F5\uFF1A{0}"
+  rewardSeparator: "\u3001"
+  rewardSkillPointsFormat: "\u6280\u80FD\u9EDE \xD7{0}"
+  acceptQuestLabel: "\u63A5\u53D7"
+  declineQuestLabel: "\u518D\u60F3\u60F3"
+  newQuestMarker: '!'
+  turnInMarker: '?'
+  newQuestMarkerColor: {r: 1, g: 0.85, b: 0.2, a: 1}
+  turnInMarkerColor: {r: 0.55, g: 0.9, b: 1, a: 1}
+  markerFontSize: 96
+  markerBob: 10
+  markerBobRate: 1.2

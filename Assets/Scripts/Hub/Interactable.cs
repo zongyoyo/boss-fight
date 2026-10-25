@@ -8,7 +8,7 @@ namespace BossFight.Hub
     /// 休息區的站點（T20）：物件的位置是互動點，玩家的水平距離在 HubLayoutData 的 interactRadius 內時 InteractionScanner 會選到它。
     /// 按 Player/Interact 後 HubManager 打開介面：玩家走到 standPoint、面向互動點，stationCamera 提高優先度。
     /// 介面開著時 HubManager 依序呼叫 Opened → 每幀 Tick（arrived = 走到站位點了）→ Closed，子類別覆寫來做站點自己的事（營火坐下）。
-    /// 傳送門是子類別 Portal、營火是 Campfire（T21）、鐵匠鋪是 Blacksmith（T22）；村長在 T24 換成自己的子類別。由 HubBuilder 建立與接線。
+    /// 傳送門是子類別 Portal、營火是 Campfire（T21）、鐵匠鋪是 Blacksmith（T22）、村長是 VillageChief（T24）。由 HubBuilder 建立與接線。
     /// </summary>
     [DisallowMultipleComponent]
     public class Interactable : MonoBehaviour
@@ -43,7 +43,13 @@ namespace BossFight.Hub
             return sqrDistance <= r * r;
         }
 
-        /// <summary>HubManager 打開這個站點時呼叫（鏡頭已切過去、OnStationOpened 之前）。</summary>
+        /// <summary>
+        /// 介面開著時站點準備好了沒有（T24）：false 時 HubManager 先不切站點鏡頭、玩家站著面向站點，等它變成 true 才照常走到站位點。
+        /// 村長開場時自己走過來就是 false（走到玩家面前才切雙人鏡頭）。
+        /// </summary>
+        public virtual bool ReadyToTalk => true;
+
+        /// <summary>HubManager 打開這個站點時呼叫（ReadyToTalk 時鏡頭已切過去、OnStationOpened 之前）。</summary>
         public virtual void Opened(PlayerRig rig) { }
 
         /// <summary>介面開著時每幀呼叫；arrived = 玩家已經走到站位點。介面開著時換了角色，rig 就是新的角色。</summary>

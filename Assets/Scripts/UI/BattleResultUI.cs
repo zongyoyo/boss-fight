@@ -1,6 +1,9 @@
+using System.Collections.Generic;
+using System.Text;
 using BossFight.Battle;
 using BossFight.Core;
 using BossFight.Cutscene;
+using BossFight.Progression;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -9,7 +12,7 @@ namespace BossFight.UI
 {
     /// <summary>
     /// 勝利與失敗畫面。只訂閱 BattleManager.OnBattleResult：暗幕淡入，顯示勝利或戰敗那一組文字（各自一個父物件，只開一組）與共用的按鈕。
-    /// 勝利：標題、副標、通關時間、第幾次挑戰，按鈕「再挑戰」。
+    /// 勝利：標題、副標、通關時間、第幾次挑戰，按鈕「再挑戰」；第一次擊敗時按鈕下面多一區「首次擊敗獎勵」（BattleResult.firstClearRewards，T24），不是首通不顯示。
     /// 戰敗：中央大字「菜」（defeatColorDelay 秒後花 defeatColorTime 秒從白色轉紅）、中字「就多練」、按鈕「重試」，
     /// 按鈕下面是一行小字的 Boss 剩餘血量／戰鬥時間／第幾次挑戰，再下面是灰色小字「選單裡有簡單模式」（簡單模式戰敗時不顯示，看 BattleResult.difficulty）。
     /// 戰敗的文字、顏色、字級、高度都讀 BattleUIData（Awake 時套用，改資產不用重建）。
@@ -31,6 +34,10 @@ namespace BossFight.UI
         [SerializeField] Text titleText;
         [SerializeField] Text subtitleText;
         [SerializeField] Text statsText;
+        [Tooltip("首次擊敗獎勵那一區的父物件（勝利那一組底下）")]
+        [SerializeField] GameObject firstClearGroup;
+        [SerializeField] Text firstClearHeaderText;
+        [SerializeField] Text firstClearText;
         [Header("戰敗")]
         [Tooltip("戰敗那一組文字的父物件")]
         [SerializeField] GameObject defeatGroup;
@@ -67,6 +74,9 @@ namespace BossFight.UI
             SetupText(defeatSubtitleText, data.defeatSubtitle, data.defeatSubtitleSize, data.defeatTextColor, data.defeatSubtitleY);
             SetupText(defeatHintText, data.defeatHint, data.defeatHintSize, data.defeatHintColor, data.defeatHintY);
             SetupText(defeatStatsText, string.Empty, data.defeatStatsSize, data.defeatTextColor, data.defeatStatsY);
+            SetupText(firstClearHeaderText, data.firstClearHeader, data.firstClearHeaderSize, data.firstClearHeaderColor, data.firstClearHeaderY);
+            SetupText(firstClearText, string.Empty, data.firstClearSize, data.firstClearColor, data.firstClearY);
+            if (firstClearGroup != null) firstClearGroup.SetActive(false);
         }
 
         static void SetupText(Text text, string value, int size, Color color, float y)
@@ -112,6 +122,7 @@ namespace BossFight.UI
                 subtitleText.text = string.Format(data.victorySubtitle, bossName);
                 statsText.text = $"通關時間　{FormatTime(result.battleTime)}\n第 {result.attempt} 次挑戰";
                 retryLabel.text = data.victoryButton;
+                ShowFirstClearRewards(result.firstClearRewards);
             }
             else
             {
@@ -128,6 +139,23 @@ namespace BossFight.UI
             group.interactable = true;
             group.blocksRaycasts = true;
             if (eventSystem != null) eventSystem.SetSelectedGameObject(retryButton.gameObject);
+        }
+
+        void ShowFirstClearRewards(IReadOnlyList<RewardData> rewards)
+        {
+            var text = new StringBuilder();
+            if (rewards != null)
+            {
+                foreach (var reward in rewards)
+                {
+                    string part = reward != null ? reward.Describe(data.firstClearSkillPointsFormat) : string.Empty;
+                    if (string.IsNullOrEmpty(part)) continue;
+                    if (text.Length > 0) text.Append(data.firstClearSeparator);
+                    text.Append(part);
+                }
+            }
+            if (firstClearText != null) firstClearText.text = text.ToString();
+            if (firstClearGroup != null) firstClearGroup.SetActive(text.Length > 0);
         }
 
         static string FormatTime(float seconds)

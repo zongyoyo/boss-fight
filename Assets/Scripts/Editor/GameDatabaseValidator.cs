@@ -12,6 +12,7 @@ namespace BossFight.EditorTools
     /// Tools > Progression > Validate Game Database 手動檢查；打包前自動檢查，有錯就停止打包。
     /// 角色另外檢查 prefab 與 baseStats 有沒有接、裝備欄有沒有空格；裝備檢查欄位種類（T22）。新增種類時在 GameDatabase.Entries 加，這裡不用改。
     /// 技能樹（T23，每個角色的 skillTree）：節點 id 不能空、同一棵樹裡不能重複；前置要是同一棵樹的節點、不能是自己、不能成環；格子座標不能重複。
+    /// Boss 與任務（T24）：Boss 要有場景名稱；獎勵要接好（裝備、角色要在資料庫裡）；任務的目標 Boss 要在資料庫裡，前置任務要在資料庫裡、不能是自己、不能成環。
     /// </summary>
     public class GameDatabaseValidator : IPreprocessBuildWithReport
     {
@@ -90,8 +91,89 @@ namespace BossFight.EditorTools
                 }
             }
 
+            if (database.bosses != null)
+            {
+                foreach (var boss in database.bosses)
+                {
+                    if (boss == null)
+                    {
+                        Error("Boss 清單裡有空的欄位。", database);
+                        continue;
+                    }
+                    if (string.IsNullOrWhiteSpace(boss.sceneName)) Error($"Boss「{boss.name}」沒有場景名稱。", boss);
+                    ValidateRewards(database, boss.firstClearRewards, $"Boss「{boss.name}」的首通獎勵", boss, Error);
+                }
+            }
+
+            if (database.quests != null)
+            {
+                foreach (var quest in database.quests)
+                {
+                    if (quest == null)
+                    {
+                        Error("任務清單裡有空的欄位。", database);
+                        continue;
+                    }
+                    var objective = quest.objective;
+                    if (objective == null || (objective.kind == QuestObjectiveKind.DefeatBoss && objective.boss == null))
+                        Error($"任務「{quest.name}」的目標沒有接 Boss。", quest);
+                    else if (objective.kind == QuestObjectiveKind.DefeatBoss && (database.bosses == null || !database.bosses.Contains(objective.boss)))
+                        Error($"任務「{quest.name}」的目標 Boss「{objective.boss.name}」不在 GameDatabase.bosses 裡。", quest);
+                    ValidateRewards(database, quest.rewards, $"任務「{quest.name}」的獎勵", quest, Error);
+                    if (quest.prerequisites == null) continue;
+                    foreach (var prerequisite in quest.prerequisites)
+                    {
+                        if (prerequisite == null) Error($"任務「{quest.name}」的前置有空的欄位。", quest);
+                        else if (prerequisite == quest) Error($"任務「{quest.name}」把自己當前置。", quest);
+                        else if (!database.quests.Contains(prerequisite)) Error($"任務「{quest.name}」的前置「{prerequisite.name}」不在 GameDatabase.quests 裡。", quest);
+                    }
+                }
+                // 前置不成環：深度優先，走到「正在走」的任務就是環
+                var state = new Dictionary<QuestData, int>(); // 1 = 正在走、2 = 走完
+                bool Visit(QuestData quest)
+                {
+                    if (state.TryGetValue(quest, out int s)) return s == 1;
+                    state[quest] = 1;
+                    if (quest.prerequisites != null)
+                    {
+                        foreach (var prerequisite in quest.prerequisites)
+                        {
+                            if (prerequisite != null && prerequisite != quest && Visit(prerequisite)) return true;
+                        }
+                    }
+                    state[quest] = 2;
+                    return false;
+                }
+                foreach (var quest in database.quests)
+                {
+                    if (quest != null && !state.ContainsKey(quest) && Visit(quest))
+                    {
+                        Error($"任務的前置成環（經過「{quest.name}」）。", quest);
+                        break;
+                    }
+                }
+            }
+
             if (log && errors.Count == 0) Debug.Log($"[GameDatabase] 檢查通過：{count} 個 id。", database);
             return errors;
+        }
+
+        // 一組獎勵：種類要接好引用，裝備、角色要在資料庫裡（不然存檔的 id 換不回資產）
+        static void ValidateRewards(GameDatabase database, List<RewardData> rewards, string owner, Object context, System.Action<string, Object> error)
+        {
+            if (rewards == null) return;
+            foreach (var reward in rewards)
+            {
+                if (reward == null || !reward.IsValid)
+                {
+                    error($"{owner}有沒接好的項目（{(reward != null ? reward.kind.ToString() : "null")}）。", context);
+                    continue;
+                }
+                if (reward.kind == RewardKind.Equipment && (database.equipment == null || !database.equipment.Contains(reward.equipment)))
+                    error($"{owner}的裝備「{reward.equipment.name}」不在 GameDatabase.equipment 裡。", context);
+                if (reward.kind == RewardKind.Character && (database.characters == null || !database.characters.characters.Contains(reward.character)))
+                    error($"{owner}的角色「{reward.character.name}」不在角色名冊裡。", context);
+            }
         }
 
         // 一棵技能樹：回傳檢查了幾個節點 id

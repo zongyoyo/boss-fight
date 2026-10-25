@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 166bef29af767da4589bd49a234d31ab, type: 3}
   m_Name: BattleSettings
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Battle.BattleSettings
-  bossId: oiia_cat
+  boss: {fileID: 11400000, guid: c89acea2899c0314ab6a183ce6e68ef0, type: 2}
   victoryResultDelay: 2.5
   victorySlowMotionScale: 0.3
   victorySlowMotionTime: 0.8

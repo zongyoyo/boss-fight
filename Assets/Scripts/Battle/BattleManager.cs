@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using BossFight.Boss;
 using BossFight.Cameras;
 using BossFight.Core;
@@ -46,9 +47,12 @@ namespace BossFight.Battle
         public readonly float bossHealthRatio;
         /// <summary>這一場的難度。</summary>
         public readonly Difficulty difficulty;
+        /// <summary>這次拿到的首次擊敗獎勵（T24）；不是首通或失敗時是空的。</summary>
+        public readonly IReadOnlyList<RewardData> firstClearRewards;
 
-        public BattleResult(bool victory, float battleTime, int attempt, float bossHealthRatio, Difficulty difficulty)
+        public BattleResult(bool victory, float battleTime, int attempt, float bossHealthRatio, Difficulty difficulty, IReadOnlyList<RewardData> firstClearRewards)
         {
+            this.firstClearRewards = firstClearRewards ?? Array.Empty<RewardData>();
             this.victory = victory;
             this.battleTime = battleTime;
             this.attempt = attempt;
@@ -69,7 +73,8 @@ namespace BossFight.Battle
     /// 先發生的算數，之後另一邊倒下不理。勝利時音樂淡出；兩者都等 BattleSettings 的秒數後鎖住玩家與鏡頭的輸入、放開游標，送 OnBattleResult（勝敗畫面）。
     /// 重試（Retry，勝敗畫面的按鈕與 Debug F5）重新載入場景；「看過開場」「看過轉階段」存在 BattleSession，重試後可以長按跳過。
     /// 返回休息區（ReturnToHub，勝敗畫面與 ESC 選單）交給 SceneFlow，回到休息區的傳送門前；之後再從傳送門進來算新的一次挑戰，開場一樣可以跳過。
-    /// 存檔：Boss 一倒下就把 BattleSettings.bossId 記進 ProfileStore 的擊敗紀錄（不等勝利畫面；T24 起交給 ProgressRecorder 並發首通獎勵）。
+    /// 存檔：Boss 一倒下就交給 ProgressRecorder 記錄擊敗 BattleSettings.boss（不等勝利畫面；F6 也算），第一次擊敗就發首通獎勵並存檔（T24），
+    /// 發了哪些放進 BattleResult.firstClearRewards（勝利畫面的「首次擊敗獎勵」）。失敗沒有獎勵。
     /// 音樂速度：換階段時照 BossPhaseData.musicSpeed 設定；轉階段演出開始時先排好下一階段的速度，演出中重播音樂時才套用。
     /// 沒有接 CutsceneDirector 時直接開打／直接換階段。
     /// 難度：Awake 時讀 GameOptions.Difficulty（存檔的值），把 DifficultyData 的修正交給玩家（PlayerController）與 Boss（BossController），整場不變；
@@ -119,6 +124,7 @@ namespace BossFight.Battle
 
         float battleStartTime, bossHealthRatio = 1f;
         BattleResult pendingResult;
+        IReadOnlyList<RewardData> firstClearRewards;
         float resultAt = -1f;      // 真實時間；< 0 = 沒有待送的結算
         float slowMotionUntil = -1f;
         bool resultShown, pauseLocked;
@@ -316,7 +322,7 @@ namespace BossFight.Battle
         void HandleBossDefeated()
         {
             if (IsOver) return;
-            if (settings != null) ProfileStore.RecordBossDefeated(settings.bossId);
+            firstClearRewards = settings != null ? ProgressRecorder.RecordBossDefeat(settings.boss) : null;
             EndBattle(true);
             if (settings != null && settings.victorySlowMotionTime > 0f && settings.victorySlowMotionScale < 1f)
                 slowMotionUntil = Time.unscaledTime + settings.victorySlowMotionTime;
@@ -331,7 +337,7 @@ namespace BossFight.Battle
         void EndBattle(bool victory)
         {
             float time = State == BattleState.None || State == BattleState.Intro ? 0f : Time.time - battleStartTime;
-            pendingResult = new BattleResult(victory, time, BattleSession.Attempt, bossHealthRatio, Difficulty);
+            pendingResult = new BattleResult(victory, time, BattleSession.Attempt, bossHealthRatio, Difficulty, victory ? firstClearRewards : null);
             if (victory && audioManager != null) audioManager.FadeOutMusic(settings != null ? settings.resultMusicFadeTime : 0f); // 失敗時照播（嘲諷）
             float delay = settings == null ? 0f : victory ? settings.victoryResultDelay : settings.defeatResultDelay;
             resultAt = Time.unscaledTime + delay;

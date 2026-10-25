@@ -6,7 +6,7 @@ using UnityEngine;
 namespace BossFight.UI
 {
     /// <summary>
-    /// 休息區介面的文字與顏色（T20）：互動提示、站點面板（T21–T24 在這裡加各站點的內容）、營火（T21）與技能樹（T23）、鐵匠鋪（T22）、傳送門的挑戰清單。
+    /// 休息區介面的文字與顏色（T20）：互動提示、站點面板、營火（T21）與技能樹（T23）、鐵匠鋪（T22）、傳送門的挑戰清單、村長的對話框與頭上的標記（T24）。
     /// HubUIBuilder 建立介面時用版面與顏色，執行時的文字（提示、站點名稱、確認訊息）直接讀資產。資產在 Assets/ScriptableObjects/Hub/HubUIData.asset。
     /// </summary>
     [CreateAssetMenu(fileName = "HubUIData", menuName = "BossFight/Hub/Hub UI Data")]
@@ -38,8 +38,6 @@ namespace BossFight.UI
         public float promptY = 150f;
 
         [Header("站點面板")]
-        [Tooltip("還沒有內容的站點（T21–T24 才做）面板中央的字")]
-        public string emptyStationText = "（準備中）";
         [Tooltip("面板下方的返回提示（返回讀的是 UI/Cancel，顯示不出鍵名，所以寫成文字）")]
         public string closeHintKeyboard = "Esc 返回";
         public string closeHintGamepad = "B 返回";
@@ -176,12 +174,47 @@ namespace BossFight.UI
         };
 
         [Header("傳送門")]
-        [Tooltip("挑戰清單（目前只有 OIIA 貓一列；T24 改讀 BossDefinition）")]
-        public string bossLabel = "OIIA 貓";
+        [Tooltip("挑戰清單裡擊敗過的 Boss：{0} = BossDefinition.displayName")]
+        public string defeatedBossFormat = "{0}（已擊敗）";
+        [Tooltip("挑戰清單每列的間距（Canvas 單位）")]
+        [Min(0f)] public float bossRowSpacing = 14f;
         [Tooltip("確認訊息：{0} = Boss 名稱")]
         public string departConfirmFormat = "要出發挑戰 {0} 嗎？";
         public string departYes = "出發";
         public string departNo = "取消";
+
+        [Header("村長的對話框（T24）")]
+        [Tooltip("逐字出現的速度（字/秒）")]
+        [Min(1f)] public float dialogueCharsPerSecond = 30f;
+        [Tooltip("一句顯示完時右下角的記號")]
+        public string dialogueContinueMark = "▼";
+        [Tooltip("記號上下跳動的幅度（Canvas 單位）與每秒次數")]
+        [Min(0f)] public float dialogueContinueBob = 6f;
+        [Min(0f)] public float dialogueContinueRate = 2f;
+        public Color dialogueBoxColor = new Color(0.06f, 0.05f, 0.04f, 0.9f);
+        public Color speakerColor = new Color(1f, 0.85f, 0.6f);
+        [Tooltip("對話框離畫面下緣多高、大小（Canvas 單位）")]
+        public float dialogueY = 60f;
+        public Vector2 dialogueSize = new Vector2(1400f, 250f);
+        [Tooltip("接任務的選項：任務名稱、獎勵；{0} = 任務名稱或獎勵")]
+        public string questTitleFormat = "任務：{0}";
+        public string questRewardsFormat = "獎勵：{0}";
+        [Tooltip("獎勵之間的分隔、技能點的寫法（{0} = 點數）")]
+        public string rewardSeparator = "、";
+        public string rewardSkillPointsFormat = "技能點 ×{0}";
+        public string acceptQuestLabel = "接受";
+        public string declineQuestLabel = "再想想";
+
+        [Header("村長頭上的標記（T24）")]
+        [Tooltip("有可接的任務、有可回報的任務")]
+        public string newQuestMarker = "!";
+        public string turnInMarker = "?";
+        public Color newQuestMarkerColor = new Color(1f, 0.85f, 0.2f);
+        public Color turnInMarkerColor = new Color(0.55f, 0.9f, 1f);
+        [Range(20, 200)] public int markerFontSize = 96;
+        [Tooltip("上下浮動的幅度（Canvas 單位）與每秒次數")]
+        [Min(0f)] public float markerBob = 10f;
+        [Min(0f)] public float markerBobRate = 1.2f;
 
         /// <summary>這項數值的顯示設定；沒列時 null。</summary>
         public StatLabel GetStat(PlayerStatId stat)

@@ -12,11 +12,12 @@ namespace BossFight.EditorTools
     /// <summary>
     /// Tools > UI > Build Hub UI：休息區的介面（T20），HubBuilder 結束前會呼叫。
     /// 資產 ScriptableObjects/Hub/HubUIData.asset（沒有才建）；HubUI Canvas（每次重建，sortingOrder 5，在 ESC 選單與黑幕下面）：
-    /// 下方的互動提示（InteractionPromptUI）、右邊的站點面板（HubStationUI：標題、空內容、返回提示；傳送門的挑戰清單與確認框）、
+    /// 下方的互動提示（InteractionPromptUI）、右邊的傳送門面板（HubStationUI：標題、挑戰清單的樣板列、Boss 說明、返回提示、確認框；T24 起只剩傳送門）、
+    /// 村長的對話框（DialogueUI，T24：畫面下方，說話者、內文、繼續記號、接任務的選項）與頭上的「!」「?」（QuestMarkerUI，投影用 Main Camera）、
     /// 營火面板（CampfireUI，T21：「角色」「技能樹」頁籤、角色清單的樣板列；T23 起跟鐵匠鋪一樣大，技能樹頁有節點〔SkillNodeCellUI 樣板〕、
     /// 連線樣板、剩餘點數、重置與確認框、說明與「學習」、Debug 的「給技能點」）、
     /// 較大的鐵匠鋪面板（BlacksmithUI，T22：左邊裝備欄、右邊裝備格子〔EquipmentCellUI 樣板〕、下方說明與數值差異、右上角 Debug 的「解鎖全部裝備」）。
-    /// 接上 HubManager、InteractionScanner、Campfire、Blacksmith、EventSystem、GameOptions 物件上的 InputHintDevice 與按鍵名稱。版面、顏色在建立時照 HubUIData 寫進場景，改了要重跑。
+    /// 接上 HubManager、InteractionScanner、Campfire、Blacksmith、VillageChief、Portal、EventSystem、GameOptions 物件上的 InputHintDevice 與按鍵名稱。版面、顏色在建立時照 HubUIData 寫進場景，改了要重跑。
     /// </summary>
     public static class HubUIBuilder
     {
@@ -118,18 +119,28 @@ namespace BossFight.EditorTools
             group.blocksRaycasts = false;
             var title = Label("Title", panel.transform, "", 56, FontStyle.Bold, data.titleColor, TextAnchor.MiddleCenter);
             Place(title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -25f), new Vector2(PanelSize.x - 80f, 80f));
-            var empty = Label("Empty", panel.transform, data.emptyStationText, 34, FontStyle.Normal, data.hintColor, TextAnchor.MiddleCenter);
-            Place(empty.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, -10f), new Vector2(PanelSize.x - 80f, 60f));
             var hint = Label("Hint", panel.transform, data.closeHintKeyboard, 24, FontStyle.Normal, data.hintColor, TextAnchor.MiddleCenter);
             Place(hint.rectTransform, new Vector2(0.5f, 0f), new Vector2(0f, 29f), new Vector2(PanelSize.x - 80f, 30f));
 
-            // 傳送門：挑戰清單（一列）與確認框
+            // 傳送門：挑戰清單（GameDatabase.bosses 一隻一列，樣板列複製）、選到的 Boss 的說明，與確認框
             var list = Rect("PortalList", panel.transform);
             Place(list, new Vector2(0.5f, 0.5f), Vector2.zero, PanelSize);
-            var boss = MenuButton("Boss", list, data.bossLabel, new Vector2(0f, 10f), ButtonSize);
+            var bossRows = Rect("Rows", list, typeof(VerticalLayoutGroup));
+            Place(bossRows, new Vector2(0.5f, 1f), new Vector2(0f, -125f), new Vector2(ButtonSize.x, 250f));
+            var bossLayout = bossRows.GetComponent<VerticalLayoutGroup>();
+            bossLayout.spacing = data.bossRowSpacing;
+            bossLayout.childAlignment = TextAnchor.UpperCenter;
+            bossLayout.childControlWidth = bossLayout.childControlHeight = false;
+            bossLayout.childForceExpandWidth = bossLayout.childForceExpandHeight = false;
+            var bossTemplate = MenuButton("RowTemplate", bossRows, "", Vector2.zero, ButtonSize);
+            bossTemplate.gameObject.SetActive(false);
+            var description = Label("Description", list, "", 28, FontStyle.Normal, data.textColor, TextAnchor.UpperCenter);
+            Place(description.rectTransform, new Vector2(0.5f, 0f), new Vector2(0f, 75f), new Vector2(PanelSize.x - 100f, 110f));
+            description.rectTransform.pivot = new Vector2(0.5f, 0f);
+            description.horizontalOverflow = HorizontalWrapMode.Wrap;
             var confirm = Rect("Confirm", panel.transform);
             Place(confirm, new Vector2(0.5f, 0.5f), Vector2.zero, PanelSize);
-            var message = Label("Message", confirm, string.Format(data.departConfirmFormat, data.bossLabel), 38, FontStyle.Normal, data.textColor, TextAnchor.MiddleCenter);
+            var message = Label("Message", confirm, "", 38, FontStyle.Normal, data.textColor, TextAnchor.MiddleCenter);
             Place(message.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, 40f), new Vector2(PanelSize.x - 80f, 120f));
             message.horizontalOverflow = HorizontalWrapMode.Wrap;
             var yes = MenuButton("Yes", confirm, data.departYes, new Vector2(-130f, -90f), new Vector2(220f, 76f));
@@ -141,14 +152,16 @@ namespace BossFight.EditorTools
             var so = new SerializedObject(stationUi);
             so.FindProperty("data").objectReferenceValue = data;
             so.FindProperty("hub").objectReferenceValue = hub;
+            so.FindProperty("portal").objectReferenceValue = Object.FindAnyObjectByType<Portal>();
             so.FindProperty("eventSystem").objectReferenceValue = eventSystem;
             so.FindProperty("hintDevice").objectReferenceValue = hintDevice;
             so.FindProperty("group").objectReferenceValue = group;
             so.FindProperty("titleText").objectReferenceValue = title;
-            so.FindProperty("emptyText").objectReferenceValue = empty;
             so.FindProperty("closeHint").objectReferenceValue = hint;
             so.FindProperty("portalList").objectReferenceValue = list.gameObject;
-            so.FindProperty("bossButton").objectReferenceValue = boss;
+            so.FindProperty("rowTemplate").objectReferenceValue = bossTemplate;
+            so.FindProperty("rowContainer").objectReferenceValue = bossRows;
+            so.FindProperty("descriptionText").objectReferenceValue = description;
             so.FindProperty("confirmBox").objectReferenceValue = confirm.gameObject;
             so.FindProperty("confirmText").objectReferenceValue = message;
             so.FindProperty("confirmYesButton").objectReferenceValue = yes;
@@ -161,10 +174,91 @@ namespace BossFight.EditorTools
             var blacksmith = Object.FindAnyObjectByType<Blacksmith>();
             if (blacksmith != null) BuildBlacksmithPanel(root.transform, hub, blacksmith, eventSystem, hintDevice);
             else Debug.LogWarning("[HubUI] 場景裡沒有 Blacksmith，沒有建鐵匠鋪面板（Tools > Hub > Build Hub）。");
+            var chief = Object.FindAnyObjectByType<VillageChief>();
+            if (chief != null)
+            {
+                BuildQuestMarker(root.transform, hub, chief);
+                BuildDialogue(root.transform, hub, chief, eventSystem);
+            }
+            else Debug.LogWarning("[HubUI] 場景裡沒有 VillageChief，沒有建對話框（Tools > Hub > Build Hub）。");
 
             EditorSceneManager.MarkSceneDirty(root.scene);
             Debug.Log($"[HubUI] 休息區介面已建立：{DataPath}" + (hintDevice == null ? "；場景裡沒有 GameOptions，按鍵提示一律顯示鍵鼠" : ""));
             return root;
+        }
+
+        // 村長頭上的「!」「?」（T24）：全螢幕的範圍裡一個字，位置每幀由 QuestMarkerUI 投影
+        static void BuildQuestMarker(Transform root, HubManager hub, VillageChief chief)
+        {
+            var area = Rect("QuestMarker", root);
+            Stretch(area);
+            var label = Label("Mark", area, data.newQuestMarker, data.markerFontSize, FontStyle.Bold, data.newQuestMarkerColor, TextAnchor.LowerCenter);
+            Place(label.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(200f, 200f));
+            label.rectTransform.pivot = new Vector2(0.5f, 0f); // 字的下緣在村長頭上
+            var outline = label.gameObject.AddComponent<Outline>();
+            outline.effectColor = new Color(0f, 0f, 0f, 0.85f);
+            outline.effectDistance = new Vector2(3f, -3f);
+            var ui = area.gameObject.AddComponent<QuestMarkerUI>();
+            var so = new SerializedObject(ui);
+            so.FindProperty("data").objectReferenceValue = data;
+            so.FindProperty("chief").objectReferenceValue = chief;
+            so.FindProperty("hub").objectReferenceValue = hub;
+            so.FindProperty("viewCamera").objectReferenceValue = Camera.main;
+            so.FindProperty("area").objectReferenceValue = area;
+            so.FindProperty("label").objectReferenceValue = label;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            if (Camera.main == null) Debug.LogWarning("[HubUI] 場景裡沒有 Main Camera，村長頭上的標記不會顯示。");
+        }
+
+        // 村長的對話框（T24）：畫面下方；說話者、內文、繼續記號；選項那一步換成任務資訊與「接受／再想想」
+        static void BuildDialogue(Transform root, HubManager hub, VillageChief chief, UnityEngine.EventSystems.EventSystem eventSystem)
+        {
+            var size = data.dialogueSize;
+            var box = Img("Dialogue", root, roundSprite, data.dialogueBoxColor);
+            box.type = Image.Type.Sliced;
+            box.raycastTarget = true;
+            Place(box.rectTransform, new Vector2(0.5f, 0f), new Vector2(0f, data.dialogueY), size);
+            var group = box.gameObject.AddComponent<CanvasGroup>();
+            group.alpha = 0f;
+            group.interactable = false;
+            group.blocksRaycasts = false;
+
+            var speaker = Label("Speaker", box.transform, "", 36, FontStyle.Bold, data.speakerColor, TextAnchor.MiddleLeft);
+            Place(speaker.rectTransform, new Vector2(0f, 1f), new Vector2(50f, -16f), new Vector2(size.x - 100f, 50f));
+            var body = Label("Body", box.transform, "", 36, FontStyle.Normal, data.textColor, TextAnchor.UpperLeft);
+            Place(body.rectTransform, new Vector2(0f, 1f), new Vector2(50f, -74f), new Vector2(size.x - 140f, size.y - 100f));
+            body.horizontalOverflow = HorizontalWrapMode.Wrap;
+            body.lineSpacing = 1.15f;
+            var mark = Label("Continue", box.transform, data.dialogueContinueMark, 30, FontStyle.Normal, data.speakerColor, TextAnchor.MiddleCenter);
+            Place(mark.rectTransform, new Vector2(1f, 0f), new Vector2(-50f, 34f), new Vector2(40f, 40f));
+
+            var choice = Rect("Choice", box.transform);
+            Stretch(choice);
+            var quest = Label("Quest", choice, "", 32, FontStyle.Normal, data.textColor, TextAnchor.UpperLeft);
+            Place(quest.rectTransform, new Vector2(0f, 1f), new Vector2(50f, -74f), new Vector2(size.x - 460f, size.y - 100f));
+            quest.horizontalOverflow = HorizontalWrapMode.Wrap;
+            quest.lineSpacing = 1.15f;
+            var accept = MenuButton("Accept", choice, data.acceptQuestLabel, Vector2.zero, new Vector2(280f, 70f));
+            Place(accept.GetComponent<RectTransform>(), new Vector2(1f, 0.5f), new Vector2(-190f, 5f), new Vector2(280f, 70f));
+            var decline = MenuButton("Decline", choice, data.declineQuestLabel, Vector2.zero, new Vector2(280f, 70f));
+            Place(decline.GetComponent<RectTransform>(), new Vector2(1f, 0.5f), new Vector2(-190f, -80f), new Vector2(280f, 70f));
+            choice.gameObject.SetActive(false);
+
+            var ui = box.gameObject.AddComponent<DialogueUI>();
+            var so = new SerializedObject(ui);
+            so.FindProperty("data").objectReferenceValue = data;
+            so.FindProperty("hub").objectReferenceValue = hub;
+            so.FindProperty("chief").objectReferenceValue = chief;
+            so.FindProperty("eventSystem").objectReferenceValue = eventSystem;
+            so.FindProperty("group").objectReferenceValue = group;
+            so.FindProperty("speakerText").objectReferenceValue = speaker;
+            so.FindProperty("bodyText").objectReferenceValue = body;
+            so.FindProperty("continueMark").objectReferenceValue = mark;
+            so.FindProperty("choiceGroup").objectReferenceValue = choice.gameObject;
+            so.FindProperty("questText").objectReferenceValue = quest;
+            so.FindProperty("acceptButton").objectReferenceValue = accept;
+            so.FindProperty("declineButton").objectReferenceValue = decline;
+            so.ApplyModifiedPropertiesWithoutUndo();
         }
 
         // 營火面板（T21）：T23 起跟鐵匠鋪同樣大小與位置
