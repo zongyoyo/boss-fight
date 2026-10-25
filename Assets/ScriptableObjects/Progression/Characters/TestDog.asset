@@ -20,3 +20,4 @@ MonoBehaviour:
   baseStats: {fileID: 11400000, guid: ef3de5ad78b46c848b108fc020d197bd, type: 2}
   equipmentSlots:
   - {fileID: 11400000, guid: 47aae42d2e5c9fa4bb421aa3c392a942, type: 2}
+  skillTree: {fileID: 11400000, guid: c8b998a7ed3e9bb419031adcc58e299d, type: 2}

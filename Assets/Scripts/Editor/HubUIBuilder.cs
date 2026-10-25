@@ -13,7 +13,8 @@ namespace BossFight.EditorTools
     /// Tools > UI > Build Hub UI：休息區的介面（T20），HubBuilder 結束前會呼叫。
     /// 資產 ScriptableObjects/Hub/HubUIData.asset（沒有才建）；HubUI Canvas（每次重建，sortingOrder 5，在 ESC 選單與黑幕下面）：
     /// 下方的互動提示（InteractionPromptUI）、右邊的站點面板（HubStationUI：標題、空內容、返回提示；傳送門的挑戰清單與確認框）、
-    /// 同一個位置的營火面板（CampfireUI，T21：「角色」「技能樹」頁籤、角色清單的樣板列、技能樹的「（準備中）」）、
+    /// 營火面板（CampfireUI，T21：「角色」「技能樹」頁籤、角色清單的樣板列；T23 起跟鐵匠鋪一樣大，技能樹頁有節點〔SkillNodeCellUI 樣板〕、
+    /// 連線樣板、剩餘點數、重置與確認框、說明與「學習」、Debug 的「給技能點」）、
     /// 較大的鐵匠鋪面板（BlacksmithUI，T22：左邊裝備欄、右邊裝備格子〔EquipmentCellUI 樣板〕、下方說明與數值差異、右上角 Debug 的「解鎖全部裝備」）。
     /// 接上 HubManager、InteractionScanner、Campfire、Blacksmith、EventSystem、GameOptions 物件上的 InputHintDevice 與按鍵名稱。版面、顏色在建立時照 HubUIData 寫進場景，改了要重跑。
     /// </summary>
@@ -34,6 +35,14 @@ namespace BossFight.EditorTools
         static readonly Vector2 SmithPanelPosition = new Vector2(-60f, 0f);
         static readonly Vector2 SlotCellSize = new Vector2(300f, 100f);
         static readonly Vector2 ItemCellSize = new Vector2(132f, 150f);
+        // 營火（T23 起跟鐵匠鋪一樣大：技能樹頁要放節點、說明與按鈕）
+        static readonly Vector2 CampfirePanelSize = SmithPanelSize;
+        static readonly Vector2 CampfirePanelPosition = SmithPanelPosition;
+        static readonly Vector2 SkillTopButtonSize = new Vector2(160f, 52f);
+        static readonly Vector2 SkillDebugButtonSize = new Vector2(300f, 52f);
+        static readonly Vector2 SkillAreaSize = new Vector2(440f, 423f);
+        static readonly Vector2 SkillDetailSize = new Vector2(444f, 423f);
+        const float SkillAreaTop = -72f;
 
         static Font font;
         static Sprite roundSprite;
@@ -158,34 +167,34 @@ namespace BossFight.EditorTools
             return root;
         }
 
-        // 營火面板（T21）：跟站點面板同一個位置與大小
+        // 營火面板（T21）：T23 起跟鐵匠鋪同樣大小與位置
         static void BuildCampfirePanel(Transform root, HubManager hub, Campfire campfire, UnityEngine.EventSystems.EventSystem eventSystem, InputHintDevice hintDevice)
         {
+            var size = CampfirePanelSize;
             var panel = Img("CampfirePanel", root, roundSprite, data.panelColor);
             panel.type = Image.Type.Sliced;
             panel.raycastTarget = true;
-            Place(panel.rectTransform, new Vector2(1f, 0.5f), PanelPosition, PanelSize);
+            Place(panel.rectTransform, new Vector2(1f, 0.5f), CampfirePanelPosition, size);
             var group = panel.gameObject.AddComponent<CanvasGroup>();
             group.alpha = 0f;
             group.interactable = false;
             group.blocksRaycasts = false;
             var station = data.Get(HubStationKind.Campfire);
             var title = Label("Title", panel.transform, station != null ? station.title : "", 56, FontStyle.Bold, data.titleColor, TextAnchor.MiddleCenter);
-            Place(title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -25f), new Vector2(PanelSize.x - 80f, 80f));
+            Place(title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -25f), new Vector2(size.x - 80f, 80f));
             var charactersTab = MenuButton("Tab_Characters", panel.transform, data.campfireCharactersTab, Vector2.zero, TabSize);
             Place(charactersTab.GetComponent<RectTransform>(), new Vector2(0.5f, 1f), new Vector2(-120f, -125f), TabSize);
             var skillTreeTab = MenuButton("Tab_SkillTree", panel.transform, data.campfireSkillTreeTab, Vector2.zero, TabSize);
             Place(skillTreeTab.GetComponent<RectTransform>(), new Vector2(0.5f, 1f), new Vector2(120f, -125f), TabSize);
             var hint = Label("Hint", panel.transform, data.closeHintKeyboard, 24, FontStyle.Normal, data.hintColor, TextAnchor.MiddleCenter);
-            Place(hint.rectTransform, new Vector2(0.5f, 0f), new Vector2(0f, 29f), new Vector2(PanelSize.x - 80f, 30f));
+            Place(hint.rectTransform, new Vector2(0.5f, 0f), new Vector2(0f, 29f), new Vector2(size.x - 80f, 30f));
+            var pageSize = new Vector2(size.x - 80f, size.y - 265f);
 
             // 角色頁：一列一個按鈕，由上往下排
             var charactersPage = Rect("CharactersPage", panel.transform);
-            Place(charactersPage, new Vector2(0.5f, 1f), new Vector2(0f, -195f), new Vector2(PanelSize.x - 80f, PanelSize.y - 265f));
+            Place(charactersPage, new Vector2(0.5f, 1f), new Vector2(0f, -195f), pageSize);
             var rows = Rect("Rows", charactersPage, typeof(VerticalLayoutGroup));
-            rows.anchorMin = Vector2.zero;
-            rows.anchorMax = Vector2.one;
-            rows.offsetMin = rows.offsetMax = Vector2.zero;
+            Stretch(rows);
             var layout = rows.GetComponent<VerticalLayoutGroup>();
             layout.spacing = data.characterRowSpacing;
             layout.childAlignment = TextAnchor.UpperCenter;
@@ -194,11 +203,67 @@ namespace BossFight.EditorTools
             var template = MenuButton("RowTemplate", rows, "", Vector2.zero, RowSize);
             template.gameObject.SetActive(false);
 
-            // 技能樹頁（T23）
+            // 技能樹頁（T23）：上方一排（重置、Debug、剩餘點數），左邊節點，右邊說明；確認框蓋在整頁上面
             var skillTreePage = Rect("SkillTreePage", panel.transform);
-            Place(skillTreePage, new Vector2(0.5f, 1f), new Vector2(0f, -195f), new Vector2(PanelSize.x - 80f, PanelSize.y - 265f));
-            var empty = Label("Empty", skillTreePage, data.emptyStationText, 34, FontStyle.Normal, data.hintColor, TextAnchor.MiddleCenter);
-            Place(empty.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(PanelSize.x - 80f, 60f));
+            Place(skillTreePage, new Vector2(0.5f, 1f), new Vector2(0f, -195f), pageSize);
+            var tree = Rect("Tree", skillTreePage, typeof(CanvasGroup));
+            Stretch(tree);
+            var reset = MenuButton("Reset", tree, data.resetSkillsLabel, Vector2.zero, SkillTopButtonSize);
+            Place(reset.GetComponent<RectTransform>(), new Vector2(0f, 1f), Vector2.zero, SkillTopButtonSize);
+            reset.GetComponentInChildren<Text>().fontSize = 28;
+            var debug = MenuButton("Debug_GivePoints", tree, string.Format(data.debugGiveSkillPointsFormat, 10), Vector2.zero, SkillDebugButtonSize);
+            Place(debug.GetComponent<RectTransform>(), new Vector2(0f, 1f), new Vector2(SkillTopButtonSize.x + 16f, 0f), SkillDebugButtonSize);
+            debug.GetComponentInChildren<Text>().fontSize = 22;
+            debug.gameObject.SetActive(false);
+            var points = Label("Points", tree, string.Format(data.skillPointsFormat, 0), 30, FontStyle.Bold, data.titleColor, TextAnchor.MiddleRight);
+            Place(points.rectTransform, new Vector2(1f, 1f), Vector2.zero, new Vector2(360f, SkillTopButtonSize.y));
+
+            var area = Rect("Area", tree);
+            Place(area, new Vector2(0f, 1f), new Vector2(0f, SkillAreaTop), SkillAreaSize);
+            var lineContainer = Rect("Lines", area);
+            Stretch(lineContainer);
+            var line = Img("LineTemplate", lineContainer, null, data.skillLineColor);
+            CenterOnTopLeft(line.rectTransform, new Vector2(10f, data.skillLineWidth));
+            line.gameObject.SetActive(false);
+            var nodeContainer = Rect("Nodes", area);
+            Stretch(nodeContainer);
+            var nodeTemplate = SkillNodeCell("NodeTemplate", nodeContainer);
+            var noTree = Label("NoTree", area, "", 30, FontStyle.Normal, data.hintColor, TextAnchor.MiddleCenter);
+            Stretch(noTree.rectTransform);
+            noTree.gameObject.SetActive(false);
+
+            var detail = Img("Detail", tree, roundSprite, new Color(0f, 0f, 0f, 0.3f));
+            detail.type = Image.Type.Sliced;
+            Place(detail.rectTransform, new Vector2(1f, 1f), new Vector2(0f, SkillAreaTop), SkillDetailSize);
+            float textWidth = SkillDetailSize.x - 48f;
+            var detailName = Label("Name", detail.transform, "", 30, FontStyle.Bold, data.titleColor, TextAnchor.UpperLeft);
+            Place(detailName.rectTransform, new Vector2(0f, 1f), new Vector2(24f, -16f), new Vector2(textWidth, 40f));
+            var detailStatus = Label("Status", detail.transform, "", 24, FontStyle.Normal, data.textColor, TextAnchor.UpperLeft);
+            Place(detailStatus.rectTransform, new Vector2(0f, 1f), new Vector2(24f, -62f), new Vector2(textWidth, 32f));
+            detailStatus.horizontalOverflow = HorizontalWrapMode.Wrap;
+            var detailBody = Label("Body", detail.transform, "", 24, FontStyle.Normal, data.textColor, TextAnchor.UpperLeft);
+            Place(detailBody.rectTransform, new Vector2(0f, 1f), new Vector2(24f, -104f), new Vector2(textWidth, 90f));
+            detailBody.horizontalOverflow = HorizontalWrapMode.Wrap;
+            var detailDiff = Label("Diff", detail.transform, "", 24, FontStyle.Normal, data.textColor, TextAnchor.UpperLeft);
+            Place(detailDiff.rectTransform, new Vector2(0f, 1f), new Vector2(24f, -204f), new Vector2(textWidth, 110f));
+            detailDiff.horizontalOverflow = HorizontalWrapMode.Wrap;
+            var learnSize = new Vector2(220f, 64f);
+            var learn = MenuButton("Learn", detail.transform, data.learnButtonLabel, Vector2.zero, learnSize);
+            Place(learn.GetComponent<RectTransform>(), new Vector2(0.5f, 0f), new Vector2(0f, 18f), learnSize);
+            learn.gameObject.SetActive(false);
+
+            var confirmColor = data.panelColor;
+            confirmColor.a = 1f; // 不透明：蓋住底下的節點
+            var confirm = Img("ResetConfirm", skillTreePage, roundSprite, confirmColor);
+            confirm.type = Image.Type.Sliced;
+            confirm.raycastTarget = true; // 擋住底下的節點
+            Stretch(confirm.rectTransform);
+            var confirmText = Label("Message", confirm.transform, "", 36, FontStyle.Normal, data.textColor, TextAnchor.MiddleCenter);
+            Place(confirmText.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, 60f), new Vector2(pageSize.x - 80f, 140f));
+            confirmText.horizontalOverflow = HorizontalWrapMode.Wrap;
+            var yes = MenuButton("Yes", confirm.transform, data.resetSkillsYes, new Vector2(-130f, -90f), new Vector2(220f, 76f));
+            var no = MenuButton("No", confirm.transform, data.resetSkillsNo, new Vector2(130f, -90f), new Vector2(220f, 76f));
+            confirm.gameObject.SetActive(false);
             skillTreePage.gameObject.SetActive(false);
 
             var ui = panel.gameObject.AddComponent<CampfireUI>();
@@ -216,7 +281,75 @@ namespace BossFight.EditorTools
             so.FindProperty("skillTreePage").objectReferenceValue = skillTreePage.gameObject;
             so.FindProperty("rowTemplate").objectReferenceValue = template;
             so.FindProperty("rowContainer").objectReferenceValue = rows;
+            so.FindProperty("treeGroup").objectReferenceValue = tree.GetComponent<CanvasGroup>();
+            so.FindProperty("pointsText").objectReferenceValue = points;
+            so.FindProperty("noTreeText").objectReferenceValue = noTree;
+            so.FindProperty("nodeTemplate").objectReferenceValue = nodeTemplate;
+            so.FindProperty("nodeContainer").objectReferenceValue = nodeContainer;
+            so.FindProperty("lineTemplate").objectReferenceValue = line;
+            so.FindProperty("lineContainer").objectReferenceValue = lineContainer;
+            so.FindProperty("detailName").objectReferenceValue = detailName;
+            so.FindProperty("detailStatus").objectReferenceValue = detailStatus;
+            so.FindProperty("detailBody").objectReferenceValue = detailBody;
+            so.FindProperty("detailDiff").objectReferenceValue = detailDiff;
+            so.FindProperty("learnButton").objectReferenceValue = learn;
+            so.FindProperty("resetButton").objectReferenceValue = reset;
+            so.FindProperty("resetConfirm").objectReferenceValue = confirm.gameObject;
+            so.FindProperty("resetConfirmText").objectReferenceValue = confirmText;
+            so.FindProperty("resetYesButton").objectReferenceValue = yes;
+            so.FindProperty("resetNoButton").objectReferenceValue = no;
+            so.FindProperty("debugPointsButton").objectReferenceValue = debug;
             so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        // 技能樹的一個節點（停用的樣板）：底色、可學的外框、不能學時變暗的 CanvasGroup、左邊的圖示（有才顯示）、名稱與花費
+        static SkillNodeCellUI SkillNodeCell(string name, Transform parent)
+        {
+            var image = Img(name, parent, roundSprite, Color.white);
+            image.type = Image.Type.Sliced;
+            image.raycastTarget = true;
+            CenterOnTopLeft(image.rectTransform, data.skillNodeSize);
+            var button = image.gameObject.AddComponent<Button>();
+            button.targetGraphic = image;
+            var colors = button.colors;
+            colors.normalColor = data.buttonColor;
+            colors.highlightedColor = colors.selectedColor = data.buttonHighlightColor;
+            colors.pressedColor = data.buttonHighlightColor * 0.8f;
+            button.colors = colors;
+            var frame = image.gameObject.AddComponent<Outline>();
+            frame.effectDistance = new Vector2(4f, 4f);
+            frame.effectColor = data.skillAvailableFrameColor;
+            frame.enabled = false;
+            var canvasGroup = image.gameObject.AddComponent<CanvasGroup>();
+            var icon = Img("Icon", image.transform, null, Color.white);
+            icon.preserveAspect = true;
+            Place(icon.rectTransform, new Vector2(0f, 0.5f), new Vector2(10f, 0f), new Vector2(56f, 56f));
+            icon.enabled = false;
+            var label = Label("Label", image.transform, "", 26, FontStyle.Normal, data.textColor, TextAnchor.MiddleCenter);
+            Stretch(label.rectTransform);
+            label.rectTransform.offsetMin = new Vector2(6f, 0f);
+            label.rectTransform.offsetMax = new Vector2(-6f, 0f);
+            label.supportRichText = true;
+
+            var cell = image.gameObject.AddComponent<SkillNodeCellUI>();
+            var so = new SerializedObject(cell);
+            so.FindProperty("button").objectReferenceValue = button;
+            so.FindProperty("icon").objectReferenceValue = icon;
+            so.FindProperty("label").objectReferenceValue = label;
+            so.FindProperty("frame").objectReferenceValue = frame;
+            so.FindProperty("group").objectReferenceValue = canvasGroup;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            image.gameObject.SetActive(false);
+            return cell;
+        }
+
+        // 錨點在父物件左上、中心當支點（CampfireUI 用 anchoredPosition 擺節點與連線的中心）
+        static void CenterOnTopLeft(RectTransform rt, Vector2 size)
+        {
+            rt.anchorMin = rt.anchorMax = new Vector2(0f, 1f);
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.sizeDelta = size;
+            rt.anchoredPosition = Vector2.zero;
         }
 
         // 鐵匠鋪面板（T22）：左邊欄位、右邊裝備格子、下方說明與差異

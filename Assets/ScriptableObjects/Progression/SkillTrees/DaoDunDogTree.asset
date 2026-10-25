@@ -1,0 +1,81 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b60788d4a9ff1a84783e4f54f9700b05, type: 3}
+  m_Name: DaoDunDogTree
+  m_EditorClassIdentifier: Assembly-CSharp::BossFight.Progression.SkillTreeData
+  nodes:
+  - id: toughness
+    displayName: "\u5805\u97CC"
+    description: "\u76AE\u7C97\u8089\u539A\u3002\u6700\u5927\u8840\u91CF +10\u3002"
+    icon: {fileID: 0}
+    cost: 1
+    prerequisites: []
+    modifiers:
+    - stat: 0
+      op: 0
+      value: 10
+    effects: []
+    gridPosition: {x: 0, y: 0}
+  - id: iron_wall
+    displayName: "\u9435\u58C1"
+    description: "\u76FE\u8209\u5F97\u66F4\u7A69\u3002\u683C\u64CB\u6E1B\u50B7 +5%\u3002"
+    icon: {fileID: 0}
+    cost: 1
+    prerequisites:
+    - toughness
+    modifiers:
+    - stat: 5
+      op: 0
+      value: 0.05
+    effects: []
+    gridPosition: {x: 0, y: 1}
+  - id: parry_master
+    displayName: "\u76FE\u53CD\u5C08\u7CBE"
+    description: "\u76FE\u53CD\u6642\u6253\u4E82\u5C0D\u624B\u7684\u7BC0\u594F\u3002\u76FE\u53CD\u5931\u8861\u503C
+      +5\u3002"
+    icon: {fileID: 0}
+    cost: 2
+    prerequisites:
+    - iron_wall
+    modifiers:
+    - stat: 7
+      op: 0
+      value: 5
+    effects: []
+    gridPosition: {x: 0, y: 2}
+  - id: light_feet
+    displayName: "\u8F15\u76C8"
+    description: "\u8173\u6B65\u8F15\u5FEB\u3002\u7FFB\u6EFE\u8010\u529B\u6D88\u8017
+      \u22125\u3002"
+    icon: {fileID: 0}
+    cost: 1
+    prerequisites: []
+    modifiers:
+    - stat: 4
+      op: 0
+      value: -5
+    effects: []
+    gridPosition: {x: 1, y: 0}
+  - id: bone_collector
+    displayName: "\u9AA8\u982D\u6536\u85CF\u5BB6"
+    description: "\u53E3\u888B\u591A\u4E00\u683C\u3002\u9AA8\u982D\u6301\u6709\u4E0A\u9650
+      +1\u3002"
+    icon: {fileID: 0}
+    cost: 2
+    prerequisites:
+    - light_feet
+    modifiers:
+    - stat: 8
+      op: 0
+      value: 1
+    effects: []
+    gridPosition: {x: 1, y: 1}

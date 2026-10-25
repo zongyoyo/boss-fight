@@ -19,6 +19,8 @@ namespace BossFight.EditorTools
     ///    裝備（T22，Equipment/）：欄位種類 Slot_Collar（項圈）、Slot_Amulet（護符），厚皮項圈 ThickCollar（最大血量 +20）、
     ///    反擊護符 CounterAmulet（效果 ParryHeal：盾反成功回 5 HP），程序產生的佔位圖示（Models/UI/Equipment，沒有才產生）；
     ///    角色的裝備欄空著時填上（刀盾狗：項圈、護符；測試狗：護符），裝備加進 GameDatabase.equipment。數值只在建立時寫入，之後在資產調。
+    ///    技能樹（T23，SkillTrees/）：刀盾狗 DaoDunDogTree（企劃書的 5 個節點，共 7 點）、測試狗 TestDogTree（疾風、厚毛 2 個節點）；
+    ///    節點只在樹是空的時候寫入（之後在資產調），角色的 skillTree 空著時接上。
     /// 3. 檢查 id（GameDatabaseValidator），再接好目前場景的 PlayerSpawner（PlayerSpawnerBuilder.Wire 會接 GameDatabase）。
     /// PlayerSpawnerBuilder 找不到 GameDatabase 時也會呼叫 EnsureAssets。
     /// </summary>
@@ -48,6 +50,10 @@ namespace BossFight.EditorTools
         // 測試裝備建立時的數值（企劃書「裝備系統」）；之後在資產調
         const float ThickCollarMaxHealth = 20f;
         const float CounterAmuletParryHeal = 5f;
+        // 技能樹（T23）
+        const string SkillTreesDir = Root + "/SkillTrees";
+        public const string DaoDunDogTreePath = SkillTreesDir + "/DaoDunDogTree.asset";
+        public const string TestDogTreePath = SkillTreesDir + "/TestDogTree.asset";
         const string LegacyStatsPath = "Assets/ScriptableObjects/Player/PlayerStats.asset"; // T18 以前的位置
 
         [MenuItem("Tools/Progression/Build Game Database")]
@@ -101,6 +107,7 @@ namespace BossFight.EditorTools
             var database = LoadOrCreate<GameDatabase>(DatabasePath);
             if (database.characters == null) database.characters = roster;
             EnsureEquipment(database, dog, testDog);
+            EnsureSkillTrees(dog, testDog);
             EditorUtility.SetDirty(database);
 
             AssetDatabase.SaveAssets();
@@ -177,6 +184,60 @@ namespace BossFight.EditorTools
             if (database.equipment == null) database.equipment = new List<EquipmentData>();
             if (!database.equipment.Contains(thickCollar)) database.equipment.Add(thickCollar);
             if (!database.equipment.Contains(counterAmulet)) database.equipment.Add(counterAmulet);
+        }
+
+        // 技能樹（T23）：樹是空的時候才寫入節點（企劃書「技能樹」的測試樹；數值之後在資產調）
+        static void EnsureSkillTrees(CharacterDefinition dog, CharacterDefinition testDog)
+        {
+            DaoDunDogBuilder.EnsureFolder(SkillTreesDir);
+            var dogTree = LoadOrCreate<SkillTreeData>(DaoDunDogTreePath);
+            if (dogTree.nodes.Count == 0)
+            {
+                // 左欄：堅韌 → 鐵壁 → 盾反專精；右欄：輕盈 → 骨頭收藏家
+                dogTree.nodes.Add(Node("toughness", "堅韌", "皮粗肉厚。最大血量 +10。", 1, 0, 0, null,
+                                       new StatModifier(PlayerStatId.MaxHealth, StatModifierOp.Add, 10f)));
+                dogTree.nodes.Add(Node("iron_wall", "鐵壁", "盾舉得更穩。格擋減傷 +5%。", 1, 0, 1, "toughness",
+                                       new StatModifier(PlayerStatId.BlockDamageReduction, StatModifierOp.Add, 0.05f)));
+                dogTree.nodes.Add(Node("parry_master", "盾反專精", "盾反時打亂對手的節奏。盾反失衡值 +5。", 2, 0, 2, "iron_wall",
+                                       new StatModifier(PlayerStatId.ParryImbalance, StatModifierOp.Add, 5f)));
+                dogTree.nodes.Add(Node("light_feet", "輕盈", "腳步輕快。翻滾耐力消耗 −5。", 1, 1, 0, null,
+                                       new StatModifier(PlayerStatId.RollStaminaCost, StatModifierOp.Add, -5f)));
+                dogTree.nodes.Add(Node("bone_collector", "骨頭收藏家", "口袋多一格。骨頭持有上限 +1。", 2, 1, 1, "light_feet",
+                                       new StatModifier(PlayerStatId.BoneCapacity, StatModifierOp.Add, 1f)));
+                Debug.Log($"[Progression] {DaoDunDogTreePath}：寫入刀盾狗的測試樹（5 個節點，共 7 點）");
+            }
+            EditorUtility.SetDirty(dogTree);
+
+            var testTree = LoadOrCreate<SkillTreeData>(TestDogTreePath);
+            if (testTree.nodes.Count == 0)
+            {
+                testTree.nodes.Add(Node("swift", "疾風", "跑得更快。跑速 ×1.1。", 1, 0, 0, null,
+                                        new StatModifier(PlayerStatId.MoveSpeed, StatModifierOp.Multiply, 0.1f)));
+                testTree.nodes.Add(Node("thick_fur", "厚毛", "毛多不怕打。最大血量 +15。", 1, 0, 1, "swift",
+                                        new StatModifier(PlayerStatId.MaxHealth, StatModifierOp.Add, 15f)));
+                Debug.Log($"[Progression] {TestDogTreePath}：寫入測試狗的小樹（2 個節點）");
+            }
+            EditorUtility.SetDirty(testTree);
+
+            if (dog.skillTree == null) dog.skillTree = dogTree;
+            EditorUtility.SetDirty(dog);
+            if (testDog.skillTree == null) testDog.skillTree = testTree;
+            EditorUtility.SetDirty(testDog);
+        }
+
+        static SkillNode Node(string id, string displayName, string description, int cost, int column, int row, string prerequisite, StatModifier modifier)
+        {
+            var node = new SkillNode
+            {
+                id = id,
+                displayName = displayName,
+                description = description,
+                cost = cost,
+                gridPosition = new Vector2Int(column, row),
+            };
+            if (!string.IsNullOrEmpty(prerequisite)) node.prerequisites.Add(prerequisite);
+            node.modifiers.Add(modifier);
+            return node;
         }
 
         static void FillEquipment(EquipmentData item, string id, string displayName, string description, string sourceHint, EquipmentSlotType slot, Sprite icon)

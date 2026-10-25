@@ -6,7 +6,7 @@ using UnityEngine;
 namespace BossFight.UI
 {
     /// <summary>
-    /// 休息區介面的文字與顏色（T20）：互動提示、站點面板（T21–T24 在這裡加各站點的內容）、營火（T21）、鐵匠鋪（T22）、傳送門的挑戰清單。
+    /// 休息區介面的文字與顏色（T20）：互動提示、站點面板（T21–T24 在這裡加各站點的內容）、營火（T21）與技能樹（T23）、鐵匠鋪（T22）、傳送門的挑戰清單。
     /// HubUIBuilder 建立介面時用版面與顏色，執行時的文字（提示、站點名稱、確認訊息）直接讀資產。資產在 Assets/ScriptableObjects/Hub/HubUIData.asset。
     /// </summary>
     [CreateAssetMenu(fileName = "HubUIData", menuName = "BossFight/Hub/Hub UI Data")]
@@ -62,6 +62,52 @@ namespace BossFight.UI
         public Color tabActiveColor = new Color(0.62f, 0.45f, 0.24f, 1f);
         [Tooltip("角色清單每列的間距（Canvas 單位）")]
         [Min(0f)] public float characterRowSpacing = 14f;
+
+        [Header("技能樹")]
+        [Tooltip("右上的剩餘點數：{0} = 技能點池")]
+        public string skillPointsFormat = "剩餘技能點：{0}";
+        [Tooltip("目前角色沒有技能樹：{0} = 角色名稱")]
+        public string noSkillTreeFormat = "{0}沒有技能樹";
+        [Tooltip("節點上的花費：{0} = 點數")]
+        public string skillCostFormat = "{0} 點";
+        [Tooltip("學過的節點上的字（取代花費）")]
+        public string skillLearnedTag = "已學會";
+        [Tooltip("說明框的狀態列")]
+        public string skillLearnedText = "已學會";
+        [Tooltip("可以學：{0} = 花費")]
+        public string skillAvailableFormat = "花費 {0} 點，可以學習";
+        [Tooltip("前置沒學：{0} = 前置節點的名稱（用 skillNameSeparator 隔開）")]
+        public string skillMissingPrerequisiteFormat = "需要先學：{0}";
+        public string skillNameSeparator = "、";
+        [Tooltip("點數不夠：{0} = 花費，{1} = 剩餘點數")]
+        public string skillNotEnoughPointsFormat = "技能點不足（需要 {0} 點，剩 {1} 點）";
+        [Tooltip("差異預覽的開頭")]
+        public string learnPreviewHeader = "學習後：";
+        [Tooltip("沒選節點時說明框的字")]
+        public string skillSelectHint = "選一個節點查看說明。";
+        public string learnButtonLabel = "學習";
+        public string resetSkillsLabel = "重置";
+        [Tooltip("重置確認：{0} = 角色名稱，{1} = 退回的點數")]
+        public string resetSkillsConfirmFormat = "要重置{0}的技能嗎？\n會退回 {1} 點技能點。";
+        public string resetSkillsYes = "重置";
+        public string resetSkillsNo = "取消";
+        [Tooltip("Debug（開發者模式）按鈕：{0} = 一次給的點數")]
+        public string debugGiveSkillPointsFormat = "給 {0} 技能點（Debug）";
+        [Tooltip("節點的大小與格子間距（Canvas 單位；gridPosition 一格 = 間距）")]
+        public Vector2 skillNodeSize = new Vector2(190f, 84f);
+        public Vector2 skillNodeSpacing = new Vector2(220f, 140f);
+        [Tooltip("前置連線的粗細")]
+        [Min(1f)] public float skillLineWidth = 6f;
+        [Tooltip("學過的節點的底色與字色")]
+        public Color skillLearnedColor = new Color(0.86f, 0.64f, 0.28f, 1f);
+        public Color skillLearnedTextColor = new Color(0.12f, 0.08f, 0.04f, 1f);
+        [Tooltip("可以學的節點的外框")]
+        public Color skillAvailableFrameColor = new Color(1f, 0.85f, 0.6f, 1f);
+        [Tooltip("不能學的節點的不透明度")]
+        [Range(0f, 1f)] public float skillLockedAlpha = 0.4f;
+        [Tooltip("前置連線：還沒學、前置學過了")]
+        public Color skillLineColor = new Color(1f, 1f, 1f, 0.25f);
+        public Color skillLineLearnedColor = new Color(0.86f, 0.64f, 0.28f, 1f);
 
         [Serializable]
         public class StatLabel

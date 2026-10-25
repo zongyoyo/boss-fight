@@ -21,3 +21,4 @@ MonoBehaviour:
   equipmentSlots:
   - {fileID: 11400000, guid: 3d2d0a2b297eb1444acceab9a0a502a5, type: 2}
   - {fileID: 11400000, guid: 47aae42d2e5c9fa4bb421aa3c392a942, type: 2}
+  skillTree: {fileID: 11400000, guid: aa112dabff3fd9e4db2521d58e66ec85, type: 2}

@@ -38,6 +38,114 @@ MonoBehaviour:
   hintColor: {r: 1, g: 1, b: 1, a: 0.6}
   buttonColor: {r: 0.22, g: 0.2, b: 0.18, a: 1}
   buttonHighlightColor: {r: 0.45, g: 0.36, b: 0.24, a: 1}
+  campfireCharactersTab: "\u89D2\u8272"
+  campfireSkillTreeTab: "\u6280\u80FD\u6A39"
+  currentCharacterFormat: "{0}\uFF08\u76EE\u524D\uFF09"
+  currentCharacterColor: {r: 1, g: 0.85, b: 0.6, a: 1}
+  tabActiveColor: {r: 0.62, g: 0.45, b: 0.24, a: 1}
+  characterRowSpacing: 14
+  skillPointsFormat: "\u5269\u9918\u6280\u80FD\u9EDE\uFF1A{0}"
+  noSkillTreeFormat: "{0}\u6C92\u6709\u6280\u80FD\u6A39"
+  skillCostFormat: "{0} \u9EDE"
+  skillLearnedTag: "\u5DF2\u5B78\u6703"
+  skillLearnedText: "\u5DF2\u5B78\u6703"
+  skillAvailableFormat: "\u82B1\u8CBB {0} \u9EDE\uFF0C\u53EF\u4EE5\u5B78\u7FD2"
+  skillMissingPrerequisiteFormat: "\u9700\u8981\u5148\u5B78\uFF1A{0}"
+  skillNameSeparator: "\u3001"
+  skillNotEnoughPointsFormat: "\u6280\u80FD\u9EDE\u4E0D\u8DB3\uFF08\u9700\u8981 {0}
+    \u9EDE\uFF0C\u5269 {1} \u9EDE\uFF09"
+  learnPreviewHeader: "\u5B78\u7FD2\u5F8C\uFF1A"
+  skillSelectHint: "\u9078\u4E00\u500B\u7BC0\u9EDE\u67E5\u770B\u8AAA\u660E\u3002"
+  learnButtonLabel: "\u5B78\u7FD2"
+  resetSkillsLabel: "\u91CD\u7F6E"
+  resetSkillsConfirmFormat: "\u8981\u91CD\u7F6E{0}\u7684\u6280\u80FD\u55CE\uFF1F\n\u6703\u9000\u56DE
+    {1} \u9EDE\u6280\u80FD\u9EDE\u3002"
+  resetSkillsYes: "\u91CD\u7F6E"
+  resetSkillsNo: "\u53D6\u6D88"
+  debugGiveSkillPointsFormat: "\u7D66 {0} \u6280\u80FD\u9EDE\uFF08Debug\uFF09"
+  skillNodeSize: {x: 190, y: 84}
+  skillNodeSpacing: {x: 220, y: 140}
+  skillLineWidth: 6
+  skillLearnedColor: {r: 0.86, g: 0.64, b: 0.28, a: 1}
+  skillLearnedTextColor: {r: 0.12, g: 0.08, b: 0.04, a: 1}
+  skillAvailableFrameColor: {r: 1, g: 0.85, b: 0.6, a: 1}
+  skillLockedAlpha: 0.4
+  skillLineColor: {r: 1, g: 1, b: 1, a: 0.25}
+  skillLineLearnedColor: {r: 0.86, g: 0.64, b: 0.28, a: 1}
+  blacksmithCharacterFormat: "{0}\u7684\u88DD\u5099"
+  emptySlotText: "\uFF08\u7A7A\uFF09"
+  emptySlotHint: "\u5F9E\u53F3\u908A\u9078\u4E00\u4EF6\u88DD\u5099\u7A7F\u4E0A\u3002"
+  lockedEquipmentName: "\uFF1F\uFF1F\uFF1F"
+  equipmentSourceFormat: "\u4F86\u6E90\uFF1A{0}"
+  noSlotFormat: "{0}\u6C92\u6709{1}\u6B04\uFF0C\u4E0D\u80FD\u88DD\u5099\u3002"
+  newBadgeText: "\u65B0"
+  equippedTagText: "\u88DD\u5099\u4E2D"
+  equipPreviewHeader: "\u7A7F\u4E0A\u5F8C\uFF1A"
+  unequipPreviewHeader: "\u5378\u4E0B\u5F8C\uFF1A"
+  noStatChangeText: "\u6578\u503C\u6C92\u6709\u8B8A\u5316"
+  statChangeFormat: "{0}\u3000{1} \u2192 {2}"
+  effectAddedFormat: "\uFF0B {0}"
+  effectRemovedFormat: "\uFF0D {0}"
+  debugUnlockAllLabel: "\u89E3\u9396\u5168\u90E8\u88DD\u5099\uFF08Debug\uFF09"
+  betterColor: {r: 0.45, g: 0.95, b: 0.45, a: 1}
+  worseColor: {r: 1, g: 0.42, b: 0.38, a: 1}
+  lockedIconColor: {r: 0, g: 0, b: 0, a: 0.85}
+  unavailableAlpha: 0.35
+  newBadgeColor: {r: 0.9, g: 0.25, b: 0.2, a: 1}
+  equippedColor: {r: 1, g: 0.85, b: 0.6, a: 1}
+  statLabels:
+  - stat: 0
+    label: "\u6700\u5927\u8840\u91CF"
+    format: 0
+    lowerIsBetter: 0
+  - stat: 1
+    label: "\u6700\u5927\u8010\u529B"
+    format: 0
+    lowerIsBetter: 0
+  - stat: 2
+    label: "\u8010\u529B\u56DE\u5FA9"
+    format: 0.#
+    lowerIsBetter: 0
+  - stat: 3
+    label: "\u8DD1\u901F"
+    format: 0.##
+    lowerIsBetter: 0
+  - stat: 4
+    label: "\u7FFB\u6EFE\u8010\u529B\u6D88\u8017"
+    format: 0.#
+    lowerIsBetter: 1
+  - stat: 5
+    label: "\u683C\u64CB\u6E1B\u50B7"
+    format: 0%
+    lowerIsBetter: 0
+  - stat: 6
+    label: "\u76FE\u53CD\u5224\u5B9A\u6642\u9593"
+    format: 0.00
+    lowerIsBetter: 0
+  - stat: 7
+    label: "\u76FE\u53CD\u5931\u8861\u503C"
+    format: 0.#
+    lowerIsBetter: 0
+  - stat: 8
+    label: "\u9AA8\u982D\u6301\u6709\u4E0A\u9650"
+    format: 0
+    lowerIsBetter: 0
+  - stat: 9
+    label: "\u9AA8\u982D\u56DE\u8840\u91CF"
+    format: 0.#
+    lowerIsBetter: 0
+  - stat: 10
+    label: "\u8F15\u653B\u64CA\u50B7\u5BB3\uFF08\u7B2C\u4E00\u6BB5\uFF09"
+    format: 0.#
+    lowerIsBetter: 0
+  - stat: 11
+    label: "\u91CD\u64CA\u50B7\u5BB3"
+    format: 0.#
+    lowerIsBetter: 0
+  - stat: 12
+    label: "\u8655\u6C7A\u50B7\u5BB3"
+    format: 0.#
+    lowerIsBetter: 0
   bossLabel: "OIIA \u8C93"
   departConfirmFormat: "\u8981\u51FA\u767C\u6311\u6230 {0} \u55CE\uFF1F"
   departYes: "\u51FA\u767C"

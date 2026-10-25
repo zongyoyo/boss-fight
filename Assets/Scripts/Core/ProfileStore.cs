@@ -15,7 +15,19 @@ namespace BossFight.Core
         public List<string> slots = new List<string>();
     }
 
-    /// <summary>存檔的內容（save.json）。只放純資料：id 字串、數字，不放 SO 或元件引用。之後的任務在這裡加欄位（技能點、任務…）；只加欄位時版本不用改（舊檔讀到的是空清單）。</summary>
+    /// <summary>一個角色學過的技能（T23）：節點 id 與學這些節點實際付的技能點（重置時照這個退回）。</summary>
+    [Serializable]
+    public class CharacterSkillsSave
+    {
+        [Tooltip("角色 id")]
+        public string character = "";
+        [Tooltip("學過的節點 id（SkillTreeData 裡的節點）")]
+        public List<string> nodes = new List<string>();
+        [Tooltip("學這些節點總共付的技能點（重置時全部退回池子）")]
+        public int spent;
+    }
+
+    /// <summary>存檔的內容（save.json）。只放純資料：id 字串、數字，不放 SO 或元件引用。之後的任務在這裡加欄位（任務…）；只加欄位時版本不用改（舊檔讀到的是空清單）。</summary>
     [Serializable]
     public class ProfileData
     {
@@ -36,6 +48,10 @@ namespace BossFight.Core
         public List<string> newEquipment = new List<string>();
         [Tooltip("各角色的穿戴（換角色時各自保留）")]
         public List<CharacterEquipmentSave> characterEquipment = new List<CharacterEquipmentSave>();
+        [Tooltip("技能點池（全帳號共用，T23）")]
+        public int skillPoints;
+        [Tooltip("各角色學過的技能（分開記）")]
+        public List<CharacterSkillsSave> characterSkills = new List<CharacterSkillsSave>();
     }
 
     /// <summary>
@@ -172,6 +188,74 @@ namespace BossFight.Core
             return null;
         }
 
+        // ---------- 技能 ----------
+
+        /// <summary>技能點池剩下的點數（全帳號共用）。</summary>
+        public static int SkillPoints => Data.skillPoints;
+
+        /// <summary>技能點加進池子並存檔（獎勵、Debug 的「給 10 技能點」）；amount ≤ 0 時不做事。</summary>
+        public static void AddSkillPoints(int amount)
+        {
+            if (amount <= 0) return;
+            Data.skillPoints += amount;
+            Save();
+        }
+
+        /// <summary>這個角色學過這個節點沒有（不檢查節點還在不在樹裡，那是 Progression 的事）。</summary>
+        public static bool IsSkillLearned(string character, string node)
+        {
+            var record = FindSkills(character);
+            return record != null && !string.IsNullOrEmpty(node) && record.nodes.Contains(node);
+        }
+
+        /// <summary>這個角色學過的技能點總數（重置會退回的量）。</summary>
+        public static int SpentSkillPoints(string character)
+        {
+            var record = FindSkills(character);
+            return record != null ? record.spent : 0;
+        }
+
+        /// <summary>這個角色學會一個節點：從池子扣 cost 並存檔。已經學過或點數不夠時不做事、回傳 false（前置條件由 Progression 檢查）。</summary>
+        public static bool LearnSkill(string character, string node, int cost)
+        {
+            if (string.IsNullOrEmpty(character) || string.IsNullOrEmpty(node)) return false;
+            cost = Math.Max(0, cost);
+            if (IsSkillLearned(character, node) || Data.skillPoints < cost) return false;
+            var record = FindSkills(character);
+            if (record == null)
+            {
+                record = new CharacterSkillsSave { character = character };
+                Data.characterSkills.Add(record);
+            }
+            record.nodes.Add(node);
+            record.spent += cost;
+            Data.skillPoints -= cost;
+            Save();
+            return true;
+        }
+
+        /// <summary>重置這個角色的技能：清掉學過的節點，付過的點數全部退回池子並存檔；回傳退回的點數。</summary>
+        public static int ResetSkills(string character)
+        {
+            var record = FindSkills(character);
+            if (record == null || (record.nodes.Count == 0 && record.spent == 0)) return 0;
+            int refund = Math.Max(0, record.spent);
+            Data.skillPoints += refund;
+            Data.characterSkills.Remove(record);
+            Save();
+            return refund;
+        }
+
+        static CharacterSkillsSave FindSkills(string character)
+        {
+            if (string.IsNullOrEmpty(character)) return null;
+            foreach (var record in Data.characterSkills)
+            {
+                if (record != null && record.character == character) return record;
+            }
+            return null;
+        }
+
         // ---------- 整份存檔 ----------
 
         /// <summary>清空存檔（開發者模式的「重置存檔」）並寫檔。</summary>
@@ -223,6 +307,12 @@ namespace BossFight.Core
                 foreach (var record in loaded.characterEquipment)
                 {
                     if (record.slots == null) record.slots = new List<string>();
+                }
+                if (loaded.characterSkills == null) loaded.characterSkills = new List<CharacterSkillsSave>();
+                loaded.characterSkills.RemoveAll(r => r == null);
+                foreach (var record in loaded.characterSkills)
+                {
+                    if (record.nodes == null) record.nodes = new List<string>();
                 }
                 data = loaded;
             }
