@@ -238,6 +238,8 @@ namespace BossFight.EditorTools
             var phaseTwo=controller.GetComponent<GuardianPhaseTwo>();
             var dialogue=new SerializedObject(tutorial).FindProperty("dialogue").objectReferenceValue;
             if(phaseTwo!=null && new SerializedObject(phaseTwo).FindProperty("dialogue").objectReferenceValue!=dialogue){Set(phaseTwo,"dialogue",dialogue);changed=true;}
+            PrologueCutsceneBuilder.ReconnectIfPresent();
+            if (AssetDatabase.LoadAssetAtPath<BossFight.Cutscene.PrologueCutsceneData>(PrologueCutsceneBuilder.DataPath) != null) changed = true;
             return changed;
         }
         static GameObject BuildActor(BossStats stats, ArenaData arena, GuardianBattleData battle, AreaStrike area)

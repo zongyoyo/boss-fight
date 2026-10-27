@@ -14,6 +14,8 @@ namespace BossFight.Progression
         [SerializeField] GamePause pause;
         [SerializeField] GameOptions options;
         [SerializeField] SceneFlow sceneFlow;
+        [Tooltip("Hub 只借用 owner 鎖，不在這裡執行略過序章")]
+        [SerializeField] bool allowDeveloperSkip = true;
 
         readonly HashSet<object> inputLocks = new HashSet<object>();
         readonly HashSet<object> cursorOwners = new HashSet<object>();
@@ -75,7 +77,7 @@ namespace BossFight.Progression
 
         void TrySkip()
         {
-            if (subscribed && options != null && options.CanSkipPrologue && sceneFlow != null)
+            if (allowDeveloperSkip && subscribed && options != null && options.CanSkipPrologue && sceneFlow != null)
                 sceneFlow.SkipPrologue();
         }
 

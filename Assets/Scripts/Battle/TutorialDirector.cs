@@ -31,6 +31,8 @@ namespace BossFight.Battle
         public event Action<TutorialView> OnViewChanged;
         public event Action<string> OnStepCompleted;
         public event Action OnTutorialCompleted;
+        /// <summary>結尾台詞與停頓已完成，開始鑽回；正式登場首鏡在這裡接手。</summary>
+        public event Action OnEndingBurrowStarted;
 
         enum Stage { Approach, Emerge, Inviting, Opening, Explanation, Operating, Completing, Praise, Ending, EndingPause, Burrow, Complete }
         Stage stage;
@@ -355,7 +357,7 @@ namespace BossFight.Battle
             else if (stage == Stage.EndingPause)
             {
                 delayLeft -= Time.deltaTime;
-                if (delayLeft <= 0f) { stage = Stage.Burrow; mentor.Burrow(); }
+                if (delayLeft <= 0f) { stage = Stage.Burrow; OnEndingBurrowStarted?.Invoke(); mentor.Burrow(); }
             }
             else if (stage == Stage.Operating && prankPending && !sideDialogue && !actionBusy)
             { prankPending = false; ShowSideDialogue(data.prankLine, false); }

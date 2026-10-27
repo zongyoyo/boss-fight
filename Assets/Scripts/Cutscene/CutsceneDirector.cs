@@ -1,5 +1,6 @@
 using System;
 using BossFight.Cameras;
+using BossFight.Core;
 using BossFight.Player;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -49,6 +50,13 @@ namespace BossFight.Cutscene
         [SerializeField] Transform faceTarget;
         [Tooltip("開始播之前依玩家位置擺好演出鏡頭（可留空：鏡頭位置固定，例如開場）")]
         [SerializeField] CutsceneStage stage;
+        [Header("流程交接（序章；預設不影響 OIIA）")]
+        [Tooltip("由上層 owner 管理輸入與鏡頭收尾，不直接解鎖／重設鏡頭")]
+        [SerializeField] bool externalControl;
+        [Tooltip("使用非縮放的 Timeline 時鐘；暫停／停頓時暫停，世界慢動作不延長分鏡")]
+        [SerializeField] bool manualClock;
+        [SerializeField] GamePause pause;
+        [SerializeField] HitStop hitStop;
 
         /// <summary>演出開始播放。</summary>
         public event Action OnCutsceneStarted;
@@ -60,6 +68,9 @@ namespace BossFight.Cutscene
         public event Action<float> OnSkipProgress;
         /// <summary>顯示字卡。</summary>
         public event Action<TitleCardInfo> OnTitleCard;
+        public event Action<string> OnCue;
+        public event Action OnCutsceneCancelled;
+        bool normalEnd;
 
         public bool IsPlaying { get; private set; }
         public bool CanSkip => IsPlaying && skippable && !skipped;
@@ -87,8 +98,8 @@ namespace BossFight.Cutscene
             {
                 foreach (var output in track.outputs)
                 {
-                    if (output.outputTargetType != typeof(PlayerController)) continue;
-                    director.SetGenericBinding(track, player);
+                    if (output.outputTargetType != typeof(PlayerController) && output.outputTargetType != typeof(PlayerRig)) continue;
+                    director.SetGenericBinding(track, output.outputTargetType == typeof(PlayerRig) ? (UnityEngine.Object)rig : player);
                     changed = true;
                     break;
                 }
@@ -111,7 +122,11 @@ namespace BossFight.Cutscene
 
         void OnEnable() => director.stopped += HandleStopped;
 
-        void OnDisable() => director.stopped -= HandleStopped;
+        void OnDisable()
+        {
+            if (IsPlaying && externalControl) Cancel();
+            if (director != null) director.stopped -= HandleStopped;
+        }
 
         /// <summary>從頭播放；canSkip = 可以長按跳過（這次執行看過同一段演出之後；沒有 settings 時一律不能跳過）。</summary>
         public void Play(bool canSkip)
@@ -122,20 +137,33 @@ namespace BossFight.Cutscene
             skipped = false;
             held = lastProgress = 0f;
             stopAfterFrame = -1;
+            normalEnd = false;
 
-            if (player != null) player.SetInputLocked(true);
-            if (cameraController != null) cameraController.SetInputLocked(true);
-            FaceGameplayCamera();
+            if (!externalControl)
+            {
+                if (player != null) player.SetInputLocked(true);
+                if (cameraController != null) cameraController.SetInputLocked(true);
+                FaceGameplayCamera();
+            }
             if (stage != null) stage.Align();
 
             director.time = 0;
+            if (manualClock) director.timeUpdateMode = DirectorUpdateMode.UnscaledGameTime;
             director.Play();
+            if (manualClock) director.Evaluate();
             OnCutsceneStarted?.Invoke();
             OnSkipAvailableChanged?.Invoke(skippable);
         }
 
         void Update()
         {
+            if (manualClock && IsPlaying)
+            {
+                bool held = (pause != null && pause.IsPaused) || (hitStop != null && hitStop.IsStopped) || Time.timeScale <= 0f;
+                if (held && director.state == PlayState.Playing) director.Pause();
+                else if (!held && director.state == PlayState.Paused) director.Resume();
+                return;
+            }
             if (!CanSkip || Time.timeScale <= 0f) return; // 暫停中不累積（選單裡按 Space 改鍵不會跳過開場）
 
             held =skipAction.IsPressed() ? held + Time.unscaledDeltaTime : 0f;
@@ -195,16 +223,38 @@ namespace BossFight.Cutscene
         // 那不是演出結束，不跑收尾（輸入鎖、鏡頭、BattleManager 的狀態都跟著場景消失；玩家可能已經先被銷毀，Boss 也不該在卸載中開打）
         void HandleStopped(PlayableDirector d)
         {
-            if (IsPlaying && gameObject.scene.isLoaded) Finish();
+            if (!IsPlaying || !gameObject.scene.isLoaded) return;
+            if (externalControl && !normalEnd) { Cancel(); return; }
+            Finish();
+        }
+
+        /// <summary>中止與卸載不發正常完成事件，也不解開上層的 owner 鎖。</summary>
+        public void Cancel()
+        {
+            if (!IsPlaying) return;
+            IsPlaying = false; normalEnd = false; stopAfterFrame = -1;
+            if (director != null) director.Stop();
+            OnCutsceneCancelled?.Invoke();
+        }
+        /// <summary>對白提早讀完時，前進到指定交接標記；不能用來結束／提交結局。</summary>
+        public void JumpToCue(string name)
+        {
+            if (!IsPlaying || !manualClock || !(director.playableAsset is TimelineAsset timeline) || timeline.markerTrack == null) return;
+            foreach (var marker in timeline.markerTrack.GetMarkers())
+                if (marker is CutsceneCueMarker cue && cue.cue == name && cue.time > director.time)
+                { director.time = cue.time; director.Evaluate(); OnCue?.Invoke(name); return; }
         }
 
         void Finish()
         {
             IsPlaying = false;
             if (skippable && !skipped) OnSkipAvailableChanged?.Invoke(false);
-            FaceGameplayCamera();
-            if (player != null) player.SetInputLocked(false);
-            if (cameraController != null) cameraController.SetInputLocked(false);
+            if (!externalControl)
+            {
+                FaceGameplayCamera();
+                if (player != null) player.SetInputLocked(false);
+                if (cameraController != null) cameraController.SetInputLocked(false);
+            }
             OnCutsceneFinished?.Invoke(skipped);
         }
 
@@ -218,6 +268,12 @@ namespace BossFight.Cutscene
 
         public void OnNotify(Playable origin, INotification notification, object context)
         {
+            if (IsPlaying && notification is CutsceneCueMarker cue)
+            {
+                if (cue.cue == "SequenceEnd") normalEnd = true;
+                else OnCue?.Invoke(cue.cue);
+                return;
+            }
             if (!IsPlaying || !(notification is CutsceneEventMarker marker)) return;
             if (marker.kind == CutsceneEvent.TitleCard && settings != null)
                 OnTitleCard?.Invoke(new TitleCardInfo(settings.title, settings.bossName, marker.duration));

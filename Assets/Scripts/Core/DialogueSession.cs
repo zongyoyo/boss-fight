@@ -25,7 +25,7 @@ namespace BossFight.Core
         int id, index;
         bool visible, cancellable, advanceable;
 
-        public void Begin(string name, IReadOnlyList<string> text, bool allowCancel, bool allowAdvance = true)
+        public int Begin(string name, IReadOnlyList<string> text, bool allowCancel, bool allowAdvance = true)
         {
             id++;
             speaker = name;
@@ -37,6 +37,7 @@ namespace BossFight.Core
             visible = lines.Count > 0;
             PublishState();
             if (!visible) OnFinished?.Invoke(id, true);
+            return id;
         }
 
         public void Advance(int requestId)

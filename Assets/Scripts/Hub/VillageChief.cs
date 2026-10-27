@@ -86,6 +86,16 @@ namespace BossFight.Hub
             walking = comingOver = true;
             turning = false;
         }
+        /// <summary>先擺到醒來第一眼的雙人位置，保留 homePosition，講完仍回原位。</summary>
+        public void PlaceForWake(Vector3 playerPosition)
+        { BeginIntro(playerPosition); transform.SetPositionAndRotation(walkTarget, finalRotation); walking = turning = comingOver = false; }
+
+        /// <summary>只有對應的對話完整讀完才開放任務；取消或關面板不算。</summary>
+        public void CompleteIntroDialogue()
+        {
+            if (!open || !introPlaying) return;
+            introPlaying = false; ProfileStore.MarkStoryIntroSeen(); RefreshMarker();
+        }
 
         public override void Opened(PlayerRig rig)
         {
@@ -107,7 +117,6 @@ namespace BossFight.Hub
             if (introPlaying)
             {
                 introPlaying = false;
-                ProfileStore.MarkStoryIntroSeen();
             }
             RefreshMarker();
             // 不在原位就走回去
@@ -177,7 +186,8 @@ namespace BossFight.Hub
             if (WantsIntro)
             {
                 introPlaying = true;
-                if (story != null) AddLines(story.introLines);
+                if (story != null) AddLines(ProfileStore.PrologueResult == PrologueResult.KnockedDown ? story.knockdownLines :
+                    ProfileStore.PrologueResult == PrologueResult.Victory ? story.victoryLines : story.introLines);
             }
             else if (Find(QuestState.ReadyToTurnIn) is QuestData turnIn)
             {

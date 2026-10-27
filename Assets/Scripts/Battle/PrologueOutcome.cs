@@ -24,6 +24,7 @@ namespace BossFight.Battle
         public bool ExternalVictoryPresentation { get; set; }
         public int PresentationToken { get; private set; }
         public bool IsVictoryPending { get; private set; }
+        public bool IsKnockdownPending { get; private set; }
         public bool HasOutcome { get; private set; }
         bool committed, cancelled, fallbackRunning;
         float presentationAge;
@@ -41,6 +42,7 @@ namespace BossFight.Battle
             if (health != null) health.OnDied -= Died;
             bossHealth.OnDefeated -= Victory; subscribed = false;
             CancelVictoryPresentation(PresentationToken);
+            CancelKnockdownPresentation();
             session.SetInputLocked(this, false); session.SetCursorReleased(this, false);
         }
         void Victory()
@@ -50,7 +52,7 @@ namespace BossFight.Battle
             session.SetInputLocked(this, true); guardian.StopBattle(); guardian.ReleaseTransitionLock();
             presentationAge = 0f; fallbackRunning = !ExternalVictoryPresentation;
             if (fallbackRunning) session.SetCursorReleased(this, true);
-            OnPresentationHint?.Invoke(guardian.Data.placeholderVictoryHint);
+            OnPresentationHint?.Invoke(fallbackRunning ? guardian.Data.placeholderVictoryHint : string.Empty);
             OnVictoryPresentationRequested?.Invoke(PresentationToken);
         }
         void Update()
@@ -78,11 +80,26 @@ namespace BossFight.Battle
             cancelled = true; fallbackRunning = false; IsVictoryPending = false;
         }
         public void ReturnToHub() { if (committed && sceneFlow != null) sceneFlow.ReturnFromPrologue(false); }
+        /// <summary>擊倒演出正常結束的唯一提交入口；保存失敗可重試，取消／卸載／重複回呼不提交。</summary>
+        public bool CompleteKnockdownPresentation()
+        {
+            if (!isActiveAndEnabled || !gameObject.scene.isLoaded || !IsKnockdownPending || committed || cancelled) return false;
+            if (!ProgressRecorder.TryCompletePrologue(null, PrologueResult.KnockedDown, out _)) return false;
+            committed = true; IsKnockdownPending = false;
+            if (sceneFlow != null) sceneFlow.ReturnFromPrologue(true);
+            return true;
+        }
+        public void CancelKnockdownPresentation()
+        {
+            if (!IsKnockdownPending || committed) return;
+            cancelled = true; IsKnockdownPending = false;
+        }
         void Died()
         {
             if (HasOutcome || guardian.Stage == GuardianStage.Dormant) return;
-            HasOutcome = true; session.SetInputLocked(this, true); guardian.StopBattle(); guardian.ReleaseTransitionLock();
-            OnKnockdownRequested?.Invoke(); Debug.Log("[Prologue] 玩家倒下：交接擊倒演出（T30），不顯示一般敗北、不存檔。", this);
+            HasOutcome = IsKnockdownPending = true; cancelled = false;
+            session.SetInputLocked(this, true); guardian.StopBattle(); guardian.ReleaseTransitionLock();
+            OnKnockdownRequested?.Invoke();
         }
     }
 }

@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4d24ddb28d4c80d4e8a58a41b89a164e, type: 3}
   m_Name: GuardianBattle
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Battle.GuardianBattleData
-  startAfterTutorial: 1
+  startAfterTutorial: 0
   phaseDuration: 60
   guidanceAt: 56
   healthFloorRatio: 0.8

@@ -25,6 +25,7 @@ namespace BossFight.UI
         [SerializeField] Button declineButton;
         QuestData offer;
         bool active, choosing;
+        int dialogueId;
         InputAction cancelAction;
         void Awake()
         {
@@ -54,11 +55,12 @@ namespace BossFight.UI
             offer = view.offer;
             SetChoice(false);
             eventSystem?.SetSelectedGameObject(null);
-            session.Begin(view.speaker, view.lines, true);
+            dialogueId = session.Begin(view.speaker, view.lines, true);
         }
         void HandleFinished(int id, bool completed)
         {
-            if (!active) return;
+            if (!active || id != dialogueId) return;
+            if (completed) chief.CompleteIntroDialogue();
             if (!completed || offer == null) { Close(); return; }
             var text = new StringBuilder(string.Format(data.questTitleFormat, offer.title));
             if (!string.IsNullOrEmpty(offer.description)) text.Append('\n').Append(offer.description);

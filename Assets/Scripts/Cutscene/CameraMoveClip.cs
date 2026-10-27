@@ -35,6 +35,8 @@ namespace BossFight.Cutscene
         [Header("直線（世界座標）")]
         public Vector3 from;
         public Vector3 to;
+        [Tooltip("相對舞台的局部路徑；預設使用既有世界座標")]
+        public bool localSpace;
         [Header("環繞")]
         public Vector3 center;
         [Min(0f)] public float radius = 20f;
@@ -53,7 +55,9 @@ namespace BossFight.Cutscene
         public override void ProcessFrame(Playable playable, FrameData info, object playerData)
         {
             if (!(playerData is Transform camera)) return;
-            camera.position = Evaluate(progress.Evaluate(CurveBehaviour.ClipProgress(playable, clipDuration)));
+            Vector3 position = Evaluate(progress.Evaluate(CurveBehaviour.ClipProgress(playable, clipDuration)));
+            if (localSpace) camera.localPosition = position;
+            else camera.position = position;
         }
 
         Vector3 Evaluate(float s)

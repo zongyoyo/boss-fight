@@ -27,6 +27,19 @@ namespace BossFight.Hub
         };
         [Tooltip("淡入後等幾秒村長才開始走過來")]
         [Min(0f)] public float introDelay = 0.6f;
+        [Header("序章交接")]
+        [Tooltip("被擊倒後的首次對白")][TextArea(1, 3)] public List<string> knockdownLines = new List<string>
+        {
+            "喔，你醒啦。昨天在森林邊撿到你，整個人倒在樹根堆裡。",
+            "看你身上的傷……該不會去惹了大樹守衛吧？那傢伙可不是現在的你打得過的。",
+            "先在附近練練身手吧。最近森林裡出現一隻會轉圈的怪貓，正好拿牠來練習。",
+        };
+        [Tooltip("打贏之後的首次對白")][TextArea(1, 3)] public List<string> victoryLines = new List<string>
+        {
+            "喔，你回來啦。剛剛森林深處那陣地鳴……該不會是你吧？",
+            "連大樹守衛都擋不住你，了不起。",
+            "不過最近森林裡還出現一隻會轉圈的怪貓，就拜託你了。",
+        };
         [Tooltip("村長走路的速度 (m/s)")]
         [Min(0.1f)] public float walkSpeed = 3.5f;
         [Tooltip("村長轉身的速度（度/秒）")]

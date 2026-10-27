@@ -149,6 +149,7 @@ namespace BossFight.EditorTools
 
             PauseMenuBuilder.Build(); // 休息區版 ESC 選單；Wire 最後建 SceneFlow（接傳送門）並接 spawner
             HubUIBuilder.Build(hub, scanner);
+            if (AssetDatabase.LoadAssetAtPath<BossFight.Cutscene.PrologueCutsceneData>(PrologueCutsceneBuilder.DataPath) != null) PrologueCutsceneBuilder.BuildHub();
             SceneFlowBuilder.Build(); // 把最後建立的 HubUI 也納入開機閘門
             PlayerSpawnerBuilder.Wire();
 

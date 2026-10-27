@@ -188,6 +188,9 @@ namespace BossFight.Player
         Vector3 modelRestPos, bodyRestPos, boneRestScale;
         float phase, moveWeight, airWeight, blockWeight, guardBreakWeight, healWeight, deathWeight, sitWeight;
         bool sitting;
+        float cinematicLying;
+        /// <summary>健康角色的演出躺姿權重，不改血量或動作狀態。</summary>
+        public void SetCinematicLying(float value) => cinematicLying = Mathf.Clamp01(value);
         float hurtTimer, parryTimer;
         Renderer[] renderers;
         bool blinkHidden;
@@ -300,7 +303,7 @@ namespace BossFight.Player
                     Vector3 axis = transform.InverseTransformDirection(Vector3.Cross(Vector3.up, c.RollDirection));
                     roll = Quaternion.AngleAxis(360f * Mathf.SmoothStep(0f, 1f, c.RollProgress), axis);
                 }
-                float fall = Mathf.SmoothStep(0f, 1f, deathWeight);
+                float fall = Mathf.SmoothStep(0f, 1f, Mathf.Max(deathWeight, cinematicLying));
                 roll = Quaternion.AngleAxis(-90f * fall, Vector3.forward) * roll;
                 model.localRotation = roll * modelRest;
                 model.localPosition = rollPivot + roll * (modelRestPos - rollPivot) + Vector3.down * (deathSink * fall) + Vector3.up * (sitHeight * sit);

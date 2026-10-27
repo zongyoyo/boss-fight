@@ -79,6 +79,9 @@ namespace BossFight.Progression
 
         /// <summary>T30 醒來演出可在 OnArrived 中保留黑幕，再以 RevealArrival 交還淡入。</summary>
         public void HoldArrivalFade() => holdArrivalFade = true;
+        /// <summary>醒來 Timeline 已鋪好自己的黑幕後同步移交；Start 不再自動淡入。</summary>
+        public void TransferArrivalFade()
+        { holdArrivalFade = true; fadeDuration = -1f; SetFade(0f); }
 
         public void RevealArrival()
         {

@@ -2,6 +2,7 @@ using System;
 using BossFight.Cameras;
 using BossFight.Core;
 using BossFight.Player;
+using BossFight.Progression;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -25,6 +26,7 @@ namespace BossFight.Hub
         [SerializeField] InteractionScanner scanner;
         [SerializeField] CameraController cameraController;
         [SerializeField] GamePause pause;
+        [SerializeField] PrologueSession presentationSession;
         [Tooltip("村長：存檔沒看過開場劇情時，進休息區後自動走過來講話（T24）；留空時沒有開場劇情")]
         [SerializeField] VillageChief chief;
         [Tooltip("介面開著時站點鏡頭的優先度（要比自由視角、鎖定鏡頭高）")]
@@ -47,6 +49,11 @@ namespace BossFight.Hub
         bool locked, cameraRaised, introPending;
         int savedPriority;
         float introAt;
+        bool introDeferred;
+        /// <summary>醒來演出持有自己的 owner 鎖；Hub 先不開始村長對話。</summary>
+        public void DeferIntro(bool value) => introDeferred = value;
+        public void ResumeIntroAfterWake()
+        { introDeferred = false; introPending = chief != null && chief.WantsIntro; introAt = Time.time; }
 
         /// <summary>PlayerSpawner 生成（或換）角色時呼叫；介面開著時換的新角色一樣鎖住。</summary>
         public void BindPlayer(PlayerRig rig)
@@ -77,6 +84,7 @@ namespace BossFight.Hub
 
         void Update()
         {
+            if (introDeferred) return;
             if (Current != null)
             {
                 Approach();
@@ -99,7 +107,13 @@ namespace BossFight.Hub
         // 介面開著或暫停時鎖住輸入、放開游標
         void LateUpdate()
         {
-            bool shouldLock = Current != null || introPending || (pause != null && pause.IsPaused);
+            bool shouldLock = Current != null || introPending || introDeferred || (pause != null && pause.IsPaused);
+            if (presentationSession != null)
+            {
+                if (shouldLock != locked) { locked = shouldLock; presentationSession.SetInputLocked(this, locked); }
+                presentationSession.SetCursorReleased(this, Current != null || (pause != null && pause.IsPaused));
+                return;
+            }
             if (shouldLock == locked) return;
             locked = shouldLock;
             if (player != null) player.SetInputLocked(locked);

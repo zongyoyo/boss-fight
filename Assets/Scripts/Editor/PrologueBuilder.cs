@@ -84,6 +84,9 @@ namespace BossFight.EditorTools
             PlayerSpawnerBuilder.Wire();
             EditorSceneManager.SaveScene(scene, ScenePath);
             TutorialBuilder.Build();
+            // 正式演出已安裝的專案，完整重建時也接回既有守衛與二階段；資產數值仍保留。
+            if (AssetDatabase.LoadAssetAtPath<BossFight.Cutscene.PrologueCutsceneData>(PrologueCutsceneBuilder.DataPath) != null &&
+                AssetDatabase.LoadAssetAtPath<BossFight.Boss.BossPhaseData>(GuardianPhaseTwoBuilder.PhasePath) != null) GuardianBuilder.Build();
             AssetDatabase.SaveAssets();
             HubBuilder.SetBuildScenes();
             Debug.Log($"[Prologue] 已建立 {ScenePath}；空地半徑 {data.clearingRadius} m；Hub 0、BossArena 1、Prologue 2");

@@ -130,6 +130,14 @@ namespace BossFight.Core
             PlayBattleMusic();
         }
 
+        /// <summary>劇情指定的場景音樂；保留既有戰鬥音樂入口與音量設定。</summary>
+        public void PlayMusic(AudioClip clip)
+        {
+            if (musicSource == null || clip == null) return;
+            fadeTime = 0f; musicSource.clip = clip; musicSource.loop = true;
+            ApplyMusicVolume(); musicSource.pitch = MusicSpeed; musicSource.Play();
+        }
+
         /// <summary>
         /// 音樂速度倍率（第二階段 1.2、狂暴 1.3）；用 pitch 實作，音高會跟著變。
         /// applyNow = false 時只記下來，下次 PlayBattleMusic／RestartBattleMusic 才套用（正在播的音樂速度不變）。

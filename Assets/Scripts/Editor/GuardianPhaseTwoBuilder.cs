@@ -113,6 +113,7 @@ namespace BossFight.EditorTools
             BuildUI(guardian,outcome,boss);
             EnsureAction();
             var debug=root.GetComponent<GuardianDebugTools>(); Set(debug,"phaseTwo",phaseTwo); Set(debug,"outcome",outcome);
+            PrologueCutsceneBuilder.ReconnectIfPresent();
             PlayerSpawnerBuilder.Wire();
             EditorUtility.SetDirty(guardian.Data);
             EditorSceneManager.MarkSceneDirty(scene); EditorSceneManager.SaveScene(scene); AssetDatabase.SaveAssets();
@@ -254,7 +255,8 @@ namespace BossFight.EditorTools
             var seed=(SeedBombData)D("SeedBomb");var call=(CallChildrenData)D("CallChildren");
             if(seed.count!=4||seed.flightTime!=0.6f||seed.arcHeight!=6f||seed.landingSpread!=3f||seed.warning!=1f||seed.radius!=2.5f||seed.hitHeight!=2f||seed.visualStyle!=AreaStrikeStyle.Seed||call.maxChildren!=2||call.spawnDistance!=3f)throw new InvalidOperationException("種子或召喚設定不符");
             var battle=AssetDatabase.LoadAssetAtPath<GuardianBattleData>(GuardianBuilder.BattlePath);
-            if(battle.selfCostRatio!=0.05f||battle.transitionDialogueTime!=3f||battle.transitionPushRadius!=9f||!battle.startAfterTutorial)throw new InvalidOperationException("流程或自損比例不符");
+            bool hasCutscene = AssetDatabase.LoadAssetAtPath<BossFight.Cutscene.PrologueCutsceneData>(PrologueCutsceneBuilder.DataPath) != null;
+            if(battle.selfCostRatio!=0.05f||battle.transitionDialogueTime!=3f||battle.transitionPushRadius!=9f||battle.startAfterTutorial==hasCutscene)throw new InvalidOperationException("流程或自損比例不符");
             var definition=AssetDatabase.LoadAssetAtPath<BossDefinition>(GuardianBuilder.DefinitionPath);if(definition.firstClearRewards.Count!=0||definition.showInPortal)throw new InvalidOperationException("正式獎勵應留空且不可再戰");
         }
         public static void ValidatePureRules()
