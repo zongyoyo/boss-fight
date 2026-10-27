@@ -166,6 +166,42 @@ namespace BossFight.Boss
         public event Action<BossMove, HitReport> OnMoveHit;
         /// <summary>招式的衝擊時刻：拍下去、撞牆、落地、放出衝擊波、落雷劈下（BossImpactFeedback 的音效與鏡頭震動）。打不打到人都會送。</summary>
         public event Action<BossImpact> OnMoveImpact;
+        /// <summary>正常完成整招（包含破綻）；中斷不發送。</summary>
+        public event Action<BossMove> OnMoveFinished;
+        /// <summary>外部流程接管階段條件；預設維持既有血量門檻。</summary>
+        public bool AutomaticPhaseTransitions { get; set; } = true;
+        public bool CombatSuspended { get; private set; }
+        /// <summary>上層提供受擊範圍與翻滾狀態，Boss 不引用 Player。</summary>
+        public Collider TargetHurtbox { get; set; }
+        public float TargetBodyRadius { get; set; }
+        public bool TargetRolling { get; set; }
+        /// <summary>上層提供的閃避回饋資格；只影響回饋紀錄，不介入傷害判定。</summary>
+        public Func<bool> TargetDodgeEligible { get; set; }
+        public event Action<Vector3> OnAttackAvoided;
+        public void NotifyAttackAvoided(Vector3 position) => OnAttackAvoided?.Invoke(position);
+        /// <summary>清場並停住戰鬥，供演出與外部結局使用。</summary>
+        public void SuspendCombat()
+        {
+            CombatSuspended = true;
+            InterruptMove(); ClearAllHazards(); ForcedNextMove = null;
+            SetState(BossState.Idle);
+        }
+        /// <summary>立即打斷普通招、清場並出指定招；頭暈由呼叫方等結束後請求。</summary>
+        public bool StartScriptedMove(BossMove move)
+        {
+            if (!HasStarted || State == BossState.Stunned || State == BossState.Defeated || move == null || !moves.Contains(move)) return false;
+            InterruptMove(); ClearAllHazards(); ForcedNextMove = null; CombatSuspended = false;
+            StartMove(new BossMoveChoice(move, MoveChoiceSource.Forced, 0, DistanceToTarget));
+            return true;
+        }
+        /// <summary>由外部流程請求既有階段轉場；階段完成仍走 CompleteTransition。</summary>
+        public bool RequestPhaseTransition(int index)
+        {
+            if (!HasStarted || index < 0 || index >= stats.phases.Length || State == BossState.Defeated || State == BossState.Stunned) return false;
+            CombatSuspended = false;
+            BeginTransition(index);
+            return true;
+        }
 
         public BossState State { get; private set; }
         /// <summary>進入目前狀態後經過的秒數。</summary>
@@ -277,7 +313,7 @@ namespace BossFight.Boss
         void Update()
         {
             float dt = Time.deltaTime;
-            if (!HasStarted || dt <= 0f) return;
+            if (!HasStarted || CombatSuspended || dt <= 0f) return;
             StateTime += dt;
 
             switch (State)
@@ -333,6 +369,7 @@ namespace BossFight.Boss
                 RepositionTime = 0f; // 全部在冷卻：原地等，不算走位
                 return;
             }
+            if (Phase.stationary) return;
             WalkTowardRange(RepositionGoal.Data, distance, dt);
             RepositionTime += dt;
         }
@@ -388,12 +425,12 @@ namespace BossFight.Boss
             foreach (var move in moves)
             {
                 var data = move.Data;
-                if (data.phase != Phase.movePool || data.weight <= 0f || move == LastMove || !IsReady(move)) continue;
+                if (data.phase != Phase.movePool || data.WeightAt(distance) <= 0f || move == LastMove || !IsReady(move)) continue;
                 float gap = data.DistanceToRange(distance);
                 if (gap <= 0f)
                 {
                     candidates.Add(move);
-                    totalWeight += data.weight;
+                    totalWeight += data.WeightAt(distance);
                 }
                 else if (gap < nearestGap)
                 {
@@ -410,16 +447,16 @@ namespace BossFight.Boss
             }
 
             RepositionGoal = null;
-            choice = new BossMoveChoice(PickWeighted(totalWeight), MoveChoiceSource.Random, candidates.Count, distance);
+            choice = new BossMoveChoice(PickWeighted(totalWeight, distance), MoveChoiceSource.Random, candidates.Count, distance);
             return true;
         }
 
-        BossMove PickWeighted(float totalWeight)
+        BossMove PickWeighted(float totalWeight, float distance)
         {
             float r = UnityEngine.Random.value * totalWeight;
             foreach (var move in candidates)
             {
-                r -= move.Data.weight;
+                r -= move.Data.WeightAt(distance);
                 if (r < 0f) return move;
             }
             return candidates[candidates.Count - 1]; // Random.value 可能剛好是 1
@@ -454,6 +491,8 @@ namespace BossFight.Boss
             move.End();
             StartCooldown(move);
             EnterIdle();
+            if (Phase.chainChance > 0f && UnityEngine.Random.value < Phase.chainChance) IdleDuration = 0f;
+            OnMoveFinished?.Invoke(move);
         }
 
         // 頭暈、轉階段、倒下時收掉目前的招式；被打斷的招也進冷卻
@@ -523,7 +562,7 @@ namespace BossFight.Boss
 
         void HandleHealthChanged(float current, float max)
         {
-            if (pendingPhase >= 0 || State == BossState.Transition || State == BossState.Defeated || current <= 0f) return;
+            if (!AutomaticPhaseTransitions || pendingPhase >= 0 || State == BossState.Transition || State == BossState.Defeated || current <= 0f) return;
             var next = NextPhase;
             if (next != null && current <= next.healthThreshold) BeginTransition(PhaseIndex + 1);
         }
@@ -636,7 +675,8 @@ namespace BossFight.Boss
             if (target == null) return;
             Vector3 to = Flat(target.position - transform.position);
             if (to.sqrMagnitude < 1e-4f) return;
-            transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(to), stats.turnSpeed * dt);
+            float speed = Phase != null && Phase.turnSpeedOverride > 0f ? Phase.turnSpeedOverride : stats.turnSpeed;
+            transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(to), speed * dt);
         }
 
         // 靠近或後退，剛好走到範圍邊緣為止；不會走出場地。

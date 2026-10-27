@@ -45,6 +45,8 @@ namespace BossFight.Boss
         public bool IsDefeated => Current <= 0f;
         /// <summary>無敵（轉階段中由 BossController 設定）：攻擊都當成閃過。</summary>
         public bool Invulnerable { get; set; }
+        /// <summary>外部流程血量下限；扣血前夾住，超額傷害不計。預設不鎖血。</summary>
+        public float HealthFloor { get; set; }
         /// <summary>受到傷害的倍率（頭暈中由 BossStagger 設定，平常為 1）；處決不吃倍率。</summary>
         public float DamageMultiplier { get; set; } = 1f;
 
@@ -88,7 +90,7 @@ namespace BossFight.Boss
         /// <returns>血量的變化量（扣血為負）。</returns>
         float SetHealth(float value)
         {
-            value = Mathf.Clamp(value, 0f, Max);
+            value = Mathf.Clamp(value, Mathf.Clamp(HealthFloor, 0f, Max), Max);
             float delta = value - Current;
             if (delta == 0f) return 0f;
             Current = value;

@@ -27,6 +27,9 @@ namespace BossFight.Boss
         [Header("移動與節奏")]
         [Tooltip("走位的移動速度 (m/s)")]
         [Min(0f)] public float moveSpeed = 3f;
+        [Tooltip("固定站樁：無距離內招式時等待，不走位或逾時強制出招")] public bool stationary;
+        [Tooltip("階段轉速；0 沿用 BossStats.turnSpeed"), Min(0f)] public float turnSpeedOverride;
+        [Tooltip("破綻結束後略過一般等待、直接再選招的機率"), Range(0f, 1f)] public float chainChance;
         [Tooltip("一招結束到下一次選招的間隔（秒），在最小與最大之間隨機")]
         [Min(0f)] public float moveIntervalMin = 0.8f;
         [Min(0f)] public float moveIntervalMax = 1.5f;

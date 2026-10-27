@@ -43,7 +43,7 @@ namespace BossFight.Hub
             {
                 foreach (var boss in database.bosses)
                 {
-                    if (boss != null) entries.Add(new BossEntry(boss, boss.IsDefeated));
+                    if (boss != null && boss.showInPortal) entries.Add(new BossEntry(boss, boss.IsDefeated));
                 }
             }
             OnBossesChanged?.Invoke(entries);
@@ -52,7 +52,7 @@ namespace BossFight.Hub
         /// <summary>出發挑戰這隻 Boss（換到它的場景）。</summary>
         public void Depart(BossDefinition boss)
         {
-            if (sceneFlow != null && boss != null) sceneFlow.GoToBattle(boss.sceneName);
+            if (sceneFlow != null && boss != null && boss.showInPortal) sceneFlow.GoToBattle(boss.sceneName);
         }
     }
 }

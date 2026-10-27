@@ -70,6 +70,14 @@ namespace BossFight.Boss
             Begin(DaisyAction.Emerge);
             return true;
         }
+        /// <summary>停止目前演出與待執行動作；不發完成事件。</summary>
+        public void CancelActions()
+        {
+            OnActionCancelled?.Invoke(Action);
+            whipHitbox.Deactivate(); hurtCollider.enabled = false;
+            prankQueued = false; slapTarget = null; impact = false;
+            Action = DaisyAction.Hidden; timer = 0f; OnActionChanged?.Invoke(Action);
+        }
         public bool Burrow()
         {
             if (Action == DaisyAction.Hidden || Action == DaisyAction.Burrow) return false;

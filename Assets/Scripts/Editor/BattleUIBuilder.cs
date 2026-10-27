@@ -273,7 +273,15 @@ namespace BossFight.EditorTools
 
         // ---------- Boss（下方置中） ----------
 
-        static RectTransform BuildBossHud(RectTransform parent, BattleUIData data, BossHealth health, BossStagger stagger, CutsceneDirector intro)
+        /// <summary>只建 Boss 面板，不建立 BattleManager 或勝敗結算。</summary>
+        public static RectTransform BuildStandaloneBossHud(RectTransform parent, BattleUIData data, BossHealth health, BossStagger stagger)
+        {
+            font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            roundSprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/UISprite.psd");
+            knobSprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Knob.psd");
+            return BuildBossHud(parent, data, health, stagger, null);
+        }
+        internal static RectTransform BuildBossHud(RectTransform parent, BattleUIData data, BossHealth health, BossStagger stagger, CutsceneDirector intro)
         {
             var panel = Node("BossHud", parent);
             panel.anchorMin = panel.anchorMax = panel.pivot = new Vector2(0.5f, 0f);

@@ -25,6 +25,11 @@ namespace BossFight.Boss
         [Min(0f)] public float cooldown = 5f;
         [Tooltip("加權隨機的權重；0 = 不會被隨機選到（開場序列與 F3 指定仍可以出）")]
         [Min(0f)] public float weight = 1f;
+        [Tooltip("使用距離分段權重；關閉時沿用 weight")] public bool distanceWeights;
+        [Min(0f), Tooltip("近距離上限 (m)")] public float nearDistance;
+        [Min(0f), Tooltip("近距離權重")] public float nearWeight;
+        [Min(0f), Tooltip("遠距離權重")] public float farWeight;
+        public float WeightAt(float distance) => distanceWeights ? (distance <= nearDistance ? nearWeight : farWeight) : weight;
 
         [Header("時間")]
         [Tooltip("預兆時間（秒）")]

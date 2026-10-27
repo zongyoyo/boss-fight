@@ -65,6 +65,7 @@ namespace BossFight.EditorTools
             Set(visuals, "ringPrefab", Fx("Fx_ImpactRing"));
             Set(visuals, "sparkPrefab", Fx("Fx_HitSpark"));
             BuildUI(root.transform, director, dialogue);
+            GuardianBuilder.WireTutorial();
             PlayerSpawnerBuilder.Wire();
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);

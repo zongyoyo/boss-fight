@@ -49,6 +49,9 @@ namespace BossFight.Boss
         /// <summary>目前階段的上限。</summary>
         public float Max => boss.Phase != null ? boss.Phase.imbalanceMax : 0f;
         public bool IsStunned { get; private set; }
+        /// <summary>劇情招式凍結累積與衰減，不改 SO。</summary>
+        public bool Frozen { get; set; }
+        public void ResetImbalance() { lastGainTime = Time.time; SetCurrent(0f); }
         /// <summary>再過幾秒開始衰減；衰減中、頭暈中或沒有失衡值時為 0。</summary>
         public float DecayDelayRemaining =>
             IsStunned || Current <= 0f ? 0f : Mathf.Max(0f, lastGainTime + stats.imbalanceDecayDelay - Time.time);
@@ -107,7 +110,7 @@ namespace BossFight.Boss
 
         void Update()
         {
-            if (IsStunned || Current <= 0f || Time.time - lastGainTime < stats.imbalanceDecayDelay) return;
+            if (Frozen || IsStunned || Current <= 0f || Time.time - lastGainTime < stats.imbalanceDecayDelay) return;
             SetCurrent(Current - stats.imbalanceDecayRate * boss.Difficulty.imbalanceDecayMultiplier * Time.deltaTime);
         }
 
@@ -127,7 +130,7 @@ namespace BossFight.Boss
         {
             get
             {
-                if (!boss.HasStarted) return false;
+                if (Frozen || !boss.HasStarted || boss.CombatSuspended) return false;
                 switch (boss.State)
                 {
                     case BossState.Stunned:

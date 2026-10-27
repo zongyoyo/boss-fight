@@ -21,6 +21,7 @@ namespace BossFight.Progression
         public string sceneName;
         [Tooltip("傳送門清單選到這一列時下方的說明")]
         [TextArea(2, 4)] public string portalDescription;
+        [Tooltip("列入傳送門挑戰清單；一次性劇情 Boss 關閉")] public bool showInPortal = true;
 
         [Header("獎勵")]
         [Tooltip("第一次擊敗時發的獎勵（勝利畫面「首次擊敗獎勵」列出）")]

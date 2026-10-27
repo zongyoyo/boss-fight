@@ -1,0 +1,53 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c74c4a849e218ba4e8c40da60afa6ef0, type: 3}
+  m_Name: RootRing
+  m_EditorClassIdentifier: Assembly-CSharp::BossFight.Boss.Moves.RootRingData
+  displayName: "\u6A39\u6839\u74B0\u9663"
+  phase: 1
+  minDistance: 0
+  maxDistance: 26.2
+  cooldown: 8
+  weight: 1
+  distanceWeights: 1
+  nearDistance: 6
+  nearWeight: 1
+  farWeight: 4
+  telegraphTime: 0.7
+  recoveryTime: 0.9
+  damage: 35
+  canBlock: 0
+  canParry: 0
+  visualStyle: 0
+  hitWindow: 0.15
+  hitHeight: 2
+  radius: 0
+  innerRadius: 2
+  angle: 0
+  reach: 0
+  width: 0.6
+  sideOffset: 0
+  count: 2
+  interval: 0.5
+  warning: 0
+  speed: 9
+  scatter: 0
+  nearCount: 0
+  centerHeight: 0
+  outerWarning: 0
+  innerWarning: 0
+  crossWarning: 0
+  sampleLead: 0
+  finalWarning: 0
+  safeCount: 3
+  safeRadius: 0
+  reachableDistance: 0

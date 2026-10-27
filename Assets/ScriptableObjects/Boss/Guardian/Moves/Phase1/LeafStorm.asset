@@ -1,0 +1,53 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cf6b9881c5401874e9293e1f101d460e, type: 3}
+  m_Name: LeafStorm
+  m_EditorClassIdentifier: Assembly-CSharp::BossFight.Boss.Moves.LeafStormData
+  displayName: "\u843D\u8449\u98A8\u66B4"
+  phase: 1
+  minDistance: 0
+  maxDistance: 26.2
+  cooldown: 7
+  weight: 1
+  distanceWeights: 1
+  nearDistance: 6
+  nearWeight: 1
+  farWeight: 4
+  telegraphTime: 0.8
+  recoveryTime: 1
+  damage: 28
+  canBlock: 1
+  canParry: 1
+  visualStyle: 2
+  hitWindow: 0.15
+  hitHeight: 2
+  radius: 1.5
+  innerRadius: 0
+  angle: 0
+  reach: 0
+  width: 0
+  sideOffset: 0
+  count: 8
+  interval: 0
+  warning: 0.6
+  speed: 0
+  scatter: 2
+  nearCount: 2
+  centerHeight: 0
+  outerWarning: 0
+  innerWarning: 0
+  crossWarning: 0
+  sampleLead: 0
+  finalWarning: 0
+  safeCount: 3
+  safeRadius: 0
+  reachableDistance: 0

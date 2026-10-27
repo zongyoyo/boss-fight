@@ -18,5 +18,6 @@ MonoBehaviour:
   - {fileID: 11400000, guid: d22272f0bd9f7a24caa65629d3bd34c2, type: 2}
   bosses:
   - {fileID: 11400000, guid: c89acea2899c0314ab6a183ce6e68ef0, type: 2}
+  - {fileID: 11400000, guid: de541e51cc1275043b80e5cdd8af9476, type: 2}
   quests:
   - {fileID: 11400000, guid: 3d0f3bb03c8358340a873c8c603cfaf3, type: 2}

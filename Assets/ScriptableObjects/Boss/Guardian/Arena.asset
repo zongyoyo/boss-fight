@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8f33202b4a4803949bbd3a101fd408bf, type: 3}
+  m_Name: Arena
+  m_EditorClassIdentifier: Assembly-CSharp::BossFight.Core.ArenaData
+  radius: 17.2
+  segments: 128
+  wallHeight: 4
+  wallThickness: 1.5
+  wallLayer: ArenaWall
+  gateWidth: 3.5
+  gates:
+  - name: PlayerGate
+    angle: 180
+  - name: BossGate
+    angle: 0
+  playerSpawnDistance: 8
+  magicCircleRadius: 5
+  transitionPushRadius: 10
+  standTiers: 12
+  tierDepth: 1.2
+  tierRise: 0.6
+  rimWallHeight: 3
+  rimWallThickness: 1
+  outerGroundMargin: 60

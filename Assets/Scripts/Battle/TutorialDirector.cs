@@ -329,9 +329,9 @@ namespace BossFight.Battle
             if (stage != Stage.Burrow) return;
             stage = Stage.Complete;
             PublishState();
-            // 保留 owner 鎖直到 T30 的登場流程接手，未接線時玩家不會繼續打空場。
+            // 保留 owner 鎖，接收流程先取得自己的鎖，再接守衛或正式登場演出。
             OnTutorialCompleted?.Invoke();
-            Debug.Log("[Tutorial] 六步教學完成：守衛登場（T30 接 OnTutorialCompleted）。", this);
+            Debug.Log("[Tutorial] 六步教學完成，已發送守衛交接事件。", this);
         }
         void Update()
         {
@@ -362,6 +362,15 @@ namespace BossFight.Battle
         }
         /// <summary>T30 取得自己的登場鎖後呼叫；不會解除其他流程的 owner 鎖。</summary>
         public void ReleaseCompletionLock() => session.SetInputLocked(this, false);
+        /// <summary>交棒或開發捷徑中止教學；不偽造完成、不改存檔。</summary>
+        public void Abort()
+        {
+            stage = Stage.Complete; started = false;
+            waitingLine = waitingCue = retryCue = sideDialogue = prankPending = parryPending = false;
+            sequenceFinished = null; lines = null; delayLeft = greetingLeft = 0f;
+            dialogue.Hide(); sapling.SetMode(SaplingMode.Idle); sapling.Despawn(SaplingDespawnReason.Cleared);
+            mentor.CancelActions(); PublishState(); session.SetInputLocked(this, false); enabled = false;
+        }
         /// <summary>只接受有威脅、完整結束的翻滾閃避；零傷害命中與強制無敵都不計。</summary>
         public static bool IsSuccessfulDodge(in SaplingAttackReport report, bool forcedInvulnerable) =>
             !forcedInvulnerable && !report.cancelled && report.hadWindow && report.rollEvaded &&

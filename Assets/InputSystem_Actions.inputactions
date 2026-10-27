@@ -1,4 +1,5 @@
 {
+    "version": 1,
     "name": "InputSystem_Actions",
     "maps": [
         {
@@ -6,40 +7,44 @@
             "id": "df70fa95-8a34-4494-b137-73ab6b9c7d37",
             "actions": [
                 {
-                  "name": "DebugSaplingMode",
-                  "type": "Button",
-                  "id": "d4ca623f-7f89-4900-a50a-729ea41e2a46",
-                  "expectedControlType": "Button",
-                  "processors": "",
-                  "interactions": "",
-                  "initialStateCheck": false
+                    "name": "DebugSaplingMode",
+                    "type": "Button",
+                    "id": "d4ca623f-7f89-4900-a50a-729ea41e2a46",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false,
+                    "priority": 0
                 },
                 {
-                  "name": "DebugMentorWhip",
-                  "type": "Button",
-                  "id": "e8299061-a0bf-40fb-a7a4-48987f1e5876",
-                  "expectedControlType": "Button",
-                  "processors": "",
-                  "interactions": "",
-                  "initialStateCheck": false
+                    "name": "DebugMentorWhip",
+                    "type": "Button",
+                    "id": "e8299061-a0bf-40fb-a7a4-48987f1e5876",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false,
+                    "priority": 0
                 },
                 {
-                  "name": "DebugMentorSlap",
-                  "type": "Button",
-                  "id": "480628c3-b2ad-44ce-bc29-6f53baa8daba",
-                  "expectedControlType": "Button",
-                  "processors": "",
-                  "interactions": "",
-                  "initialStateCheck": false
+                    "name": "DebugMentorSlap",
+                    "type": "Button",
+                    "id": "480628c3-b2ad-44ce-bc29-6f53baa8daba",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false,
+                    "priority": 0
                 },
                 {
-                  "name": "DebugSaplingInvulnerability",
-                  "type": "Button",
-                  "id": "1add9895-3052-479c-9514-caeab9dffd19",
-                  "expectedControlType": "Button",
-                  "processors": "",
-                  "interactions": "",
-                  "initialStateCheck": false
+                    "name": "DebugSaplingInvulnerability",
+                    "type": "Button",
+                    "id": "1add9895-3052-479c-9514-caeab9dffd19",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false,
+                    "priority": 0
                 },
                 {
                     "name": "Move",
@@ -48,7 +53,8 @@
                     "expectedControlType": "Vector2",
                     "processors": "",
                     "interactions": "",
-                    "initialStateCheck": true
+                    "initialStateCheck": true,
+                    "priority": 0
                 },
                 {
                     "name": "Look",
@@ -57,7 +63,8 @@
                     "expectedControlType": "Vector2",
                     "processors": "",
                     "interactions": "",
-                    "initialStateCheck": true
+                    "initialStateCheck": true,
+                    "priority": 0
                 },
                 {
                     "name": "Attack",
@@ -66,7 +73,8 @@
                     "expectedControlType": "Button",
                     "processors": "",
                     "interactions": "",
-                    "initialStateCheck": false
+                    "initialStateCheck": false,
+                    "priority": 0
                 },
                 {
                     "name": "Interact",
@@ -75,7 +83,8 @@
                     "expectedControlType": "Button",
                     "processors": "",
                     "interactions": "",
-                    "initialStateCheck": false
+                    "initialStateCheck": false,
+                    "priority": 0
                 },
                 {
                     "name": "Crouch",
@@ -84,7 +93,8 @@
                     "expectedControlType": "Button",
                     "processors": "",
                     "interactions": "",
-                    "initialStateCheck": false
+                    "initialStateCheck": false,
+                    "priority": 0
                 },
                 {
                     "name": "Roll",
@@ -93,7 +103,8 @@
                     "expectedControlType": "Button",
                     "processors": "",
                     "interactions": "",
-                    "initialStateCheck": false
+                    "initialStateCheck": false,
+                    "priority": 0
                 },
                 {
                     "name": "Previous",
@@ -102,7 +113,8 @@
                     "expectedControlType": "Button",
                     "processors": "",
                     "interactions": "",
-                    "initialStateCheck": false
+                    "initialStateCheck": false,
+                    "priority": 0
                 },
                 {
                     "name": "Next",
@@ -111,7 +123,8 @@
                     "expectedControlType": "Button",
                     "processors": "",
                     "interactions": "",
-                    "initialStateCheck": false
+                    "initialStateCheck": false,
+                    "priority": 0
                 },
                 {
                     "name": "Block",
@@ -120,7 +133,8 @@
                     "expectedControlType": "Button",
                     "processors": "",
                     "interactions": "",
-                    "initialStateCheck": false
+                    "initialStateCheck": false,
+                    "priority": 0
                 },
                 {
                     "name": "LockOn",
@@ -129,7 +143,8 @@
                     "expectedControlType": "Button",
                     "processors": "",
                     "interactions": "",
-                    "initialStateCheck": false
+                    "initialStateCheck": false,
+                    "priority": 0
                 },
                 {
                     "name": "Jump",
@@ -138,7 +153,8 @@
                     "expectedControlType": "Button",
                     "processors": "",
                     "interactions": "",
-                    "initialStateCheck": false
+                    "initialStateCheck": false,
+                    "priority": 0
                 },
                 {
                     "name": "Heal",
@@ -147,7 +163,8 @@
                     "expectedControlType": "Button",
                     "processors": "",
                     "interactions": "",
-                    "initialStateCheck": false
+                    "initialStateCheck": false,
+                    "priority": 0
                 },
                 {
                     "name": "Execute",
@@ -156,7 +173,8 @@
                     "expectedControlType": "Button",
                     "processors": "",
                     "interactions": "",
-                    "initialStateCheck": false
+                    "initialStateCheck": false,
+                    "priority": 0
                 },
                 {
                     "name": "SkipCutscene",
@@ -165,7 +183,8 @@
                     "expectedControlType": "Button",
                     "processors": "",
                     "interactions": "",
-                    "initialStateCheck": false
+                    "initialStateCheck": false,
+                    "priority": 0
                 },
                 {
                     "name": "Pause",
@@ -174,53 +193,84 @@
                     "expectedControlType": "Button",
                     "processors": "",
                     "interactions": "",
-                    "initialStateCheck": false
+                    "initialStateCheck": false,
+                    "priority": 0
+                },
+                {
+                    "name": "DebugGuardianBattle",
+                    "type": "Button",
+                    "id": "6b6b7b2b-7ea2-47e5-8f98-90f7a3a9b08e",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false,
+                    "priority": 0
+                },
+                {
+                    "name": "DebugGuardianBarrage",
+                    "type": "Button",
+                    "id": "1813e5bd-86d0-49d5-a258-28e0c4894e51",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false,
+                    "priority": 0
+                },
+                {
+                    "name": "DebugGuardianNextMove",
+                    "type": "Button",
+                    "id": "766b9a2c-5f19-4654-9d25-599f42cbe5f6",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false,
+                    "priority": 0
                 }
             ],
             "bindings": [
                 {
-                  "name": "",
-                  "id": "6bcfa42c-0f4a-48a0-9bcb-9c5920a804e4",
-                  "path": "<Keyboard>/f8",
-                  "interactions": "",
-                  "processors": "",
-                  "groups": "Keyboard&Mouse",
-                  "action": "DebugSaplingMode",
-                  "isComposite": false,
-                  "isPartOfComposite": false
+                    "name": "",
+                    "id": "6bcfa42c-0f4a-48a0-9bcb-9c5920a804e4",
+                    "path": "<Keyboard>/f8",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Keyboard&Mouse",
+                    "action": "DebugSaplingMode",
+                    "isComposite": false,
+                    "isPartOfComposite": false
                 },
                 {
-                  "name": "",
-                  "id": "9fb267f2-9f40-452b-819c-a1cabc2bf27a",
-                  "path": "<Keyboard>/f9",
-                  "interactions": "",
-                  "processors": "",
-                  "groups": "Keyboard&Mouse",
-                  "action": "DebugMentorWhip",
-                  "isComposite": false,
-                  "isPartOfComposite": false
+                    "name": "",
+                    "id": "9fb267f2-9f40-452b-819c-a1cabc2bf27a",
+                    "path": "<Keyboard>/f9",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Keyboard&Mouse",
+                    "action": "DebugMentorWhip",
+                    "isComposite": false,
+                    "isPartOfComposite": false
                 },
                 {
-                  "name": "",
-                  "id": "3893fbf0-e0ca-458f-8059-b9c00bb6a919",
-                  "path": "<Keyboard>/f10",
-                  "interactions": "",
-                  "processors": "",
-                  "groups": "Keyboard&Mouse",
-                  "action": "DebugMentorSlap",
-                  "isComposite": false,
-                  "isPartOfComposite": false
+                    "name": "",
+                    "id": "3893fbf0-e0ca-458f-8059-b9c00bb6a919",
+                    "path": "<Keyboard>/f10",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Keyboard&Mouse",
+                    "action": "DebugMentorSlap",
+                    "isComposite": false,
+                    "isPartOfComposite": false
                 },
                 {
-                  "name": "",
-                  "id": "46abe2a6-d6ea-4e7f-ba3f-0e2b85d3372a",
-                  "path": "<Keyboard>/f11",
-                  "interactions": "",
-                  "processors": "",
-                  "groups": "Keyboard&Mouse",
-                  "action": "DebugSaplingInvulnerability",
-                  "isComposite": false,
-                  "isPartOfComposite": false
+                    "name": "",
+                    "id": "46abe2a6-d6ea-4e7f-ba3f-0e2b85d3372a",
+                    "path": "<Keyboard>/f11",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Keyboard&Mouse",
+                    "action": "DebugSaplingInvulnerability",
+                    "isComposite": false,
+                    "isPartOfComposite": false
                 },
                 {
                     "name": "",
@@ -815,6 +865,39 @@
                     "action": "Pause",
                     "isComposite": false,
                     "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "8b9c5d3d-bfe5-43fa-81b8-43834e88011a",
+                    "path": "<Keyboard>/f1",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "DebugGuardianBattle",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "4403e658-8d26-4f4e-b287-1808ace5db07",
+                    "path": "<Keyboard>/f3",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "DebugGuardianBarrage",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "3255176b-fdcd-424b-a33f-0f76c6409456",
+                    "path": "<Keyboard>/f4",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "DebugGuardianNextMove",
+                    "isComposite": false,
+                    "isPartOfComposite": false
                 }
             ]
         },
@@ -829,7 +912,8 @@
                     "expectedControlType": "Vector2",
                     "processors": "",
                     "interactions": "",
-                    "initialStateCheck": false
+                    "initialStateCheck": false,
+                    "priority": 0
                 },
                 {
                     "name": "Submit",
@@ -838,7 +922,8 @@
                     "expectedControlType": "Button",
                     "processors": "",
                     "interactions": "",
-                    "initialStateCheck": false
+                    "initialStateCheck": false,
+                    "priority": 0
                 },
                 {
                     "name": "Cancel",
@@ -847,7 +932,8 @@
                     "expectedControlType": "Button",
                     "processors": "",
                     "interactions": "",
-                    "initialStateCheck": false
+                    "initialStateCheck": false,
+                    "priority": 0
                 },
                 {
                     "name": "Point",
@@ -856,7 +942,8 @@
                     "expectedControlType": "Vector2",
                     "processors": "",
                     "interactions": "",
-                    "initialStateCheck": true
+                    "initialStateCheck": true,
+                    "priority": 0
                 },
                 {
                     "name": "Click",
@@ -865,7 +952,8 @@
                     "expectedControlType": "Button",
                     "processors": "",
                     "interactions": "",
-                    "initialStateCheck": true
+                    "initialStateCheck": true,
+                    "priority": 0
                 },
                 {
                     "name": "RightClick",
@@ -874,7 +962,8 @@
                     "expectedControlType": "Button",
                     "processors": "",
                     "interactions": "",
-                    "initialStateCheck": false
+                    "initialStateCheck": false,
+                    "priority": 0
                 },
                 {
                     "name": "MiddleClick",
@@ -883,7 +972,8 @@
                     "expectedControlType": "Button",
                     "processors": "",
                     "interactions": "",
-                    "initialStateCheck": false
+                    "initialStateCheck": false,
+                    "priority": 0
                 },
                 {
                     "name": "ScrollWheel",
@@ -892,7 +982,8 @@
                     "expectedControlType": "Vector2",
                     "processors": "",
                     "interactions": "",
-                    "initialStateCheck": false
+                    "initialStateCheck": false,
+                    "priority": 0
                 },
                 {
                     "name": "TrackedDevicePosition",
@@ -901,7 +992,8 @@
                     "expectedControlType": "Vector3",
                     "processors": "",
                     "interactions": "",
-                    "initialStateCheck": false
+                    "initialStateCheck": false,
+                    "priority": 0
                 },
                 {
                     "name": "TrackedDeviceOrientation",
@@ -910,7 +1002,8 @@
                     "expectedControlType": "Quaternion",
                     "processors": "",
                     "interactions": "",
-                    "initialStateCheck": false
+                    "initialStateCheck": false,
+                    "priority": 0
                 }
             ],
             "bindings": [

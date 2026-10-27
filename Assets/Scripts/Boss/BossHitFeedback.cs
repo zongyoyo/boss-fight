@@ -14,6 +14,8 @@ namespace BossFight.Boss
         [SerializeField] BossController boss;
         [Tooltip("小樹精使用同一套命中回饋；和 boss 擇一接線")]
         [SerializeField] TrainingSapling sapling;
+        [Tooltip("由上層核對成功閃避，不把一般無敵冒充翻滾")]
+        [SerializeField] bool externalEvadeFeedback;
         [SerializeField] TimedFx sparkPrefab;
         [Tooltip("火花大小倍率")]
         [Min(0f)] [SerializeField] float size = 1f;
@@ -49,6 +51,7 @@ namespace BossFight.Boss
 
         void HandleMoveHit(BossMove move, HitReport report)
         {
+            if (externalEvadeFeedback && report.result == DamageResult.Evaded) return;
             Vector3 pos = report.hurtbox != null ? report.hurtbox.Center : transform.position;
             PlayResult(report.result, pos, report.info.sourcePosition);
         }

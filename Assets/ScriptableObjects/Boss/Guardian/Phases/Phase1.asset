@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a30662b036eb5b547811dd088271ecdb, type: 3}
+  m_Name: Phase1
+  m_EditorClassIdentifier: Assembly-CSharp::BossFight.Boss.BossPhaseData
+  displayName: "\u4E00\u968E\u6BB5"
+  healthThreshold: 3000
+  movePool: 1
+  transitionTime: 0
+  entryMove: {fileID: 0}
+  moveSpeed: 0
+  stationary: 1
+  turnSpeedOverride: 120
+  chainChance: 0.3
+  moveIntervalMin: 0.6
+  moveIntervalMax: 1
+  cooldownMultiplier: 1
+  repositionTimeout: 0
+  imbalanceMax: 200
+  stunDuration: 3
+  contactDamage: 5
+  musicSpeed: 1
+  electrified: 0
+  openingSequence: []
