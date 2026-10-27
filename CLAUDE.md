@@ -215,6 +215,15 @@ ScriptableObject 的「類別」寫在 `Scripts/` 對應的系統資料夾，「
   - 背景驗收：刪掉 `save.json` 後進 Hub 的 Play 模式看開場；E、Enter 用 `InputSystem.QueueStateEvent` 模擬（`Teleport` 到村長或傳送門的 `StandPoint` 再按 E），傳送門確認框的「出發」用 `onClick.Invoke`，Boss 用 `BossHealth.DebugSetHealth(0)`（F6 的做法）、`BattleManager.Retry`／`ReturnToHub` 用反射。Input System 的 `editorInputBehaviorInPlayMode` 是 PointersAndKeyboardsRespectGameViewFocus：Game 視窗失去焦點後（換過幾次場景之後發生過）模擬的鍵盤事件就不再觸發任何 Action（`Keyboard.current` 的狀態有變），這時改用反射呼叫（例如 PauseMenuUI 的 `Open`／`Close`）。
 - 測試木樁 `TrainingDummy` 已經在 T3 從場景移除（程式與 `TrainingDummyData.asset` 還在 `Scripts/Debug`、`ScriptableObjects/Debug`）。要練格擋或盾反時用 Tools > Debug > Build Training Dummy 重建，它會自己加進 PlayerSpawner 的鎖定清單；正式 build 前要刪掉物件，否則會變成 Missing Script。
 
+## 戰鬥預兆與互動回饋（T26 驗收補充，Oct 27）
+
+- 後續所有 Boss／戰鬥敵人的攻擊都沿用 OIIA 貓的紅白分類：白色預兆可格擋（能否盾反依招式資料）；紅色預兆不可格擋、不可盾反，提示玩家閃避。角色外觀、種子本體或場地氣氛的顏色不代表攻擊分類。
+- 預兆閃光、地面範圍與填充進度、預兆音效、實際 `DamageInfo.canBlock`／`canParry` 必須使用同一段攻擊的設定，提示填滿對齊判定開啟。多段招式逐段處理；中途改成不可格擋時，該段同步改紅光與音效，不能只看整招的初始設定。招式取消、頭暈或清場立即收掉未完成預警。
+- 玩家與 Boss 的攻擊、命中、受擊、格擋、盾反及成功閃避，每一類都必須有對應的可見特效與音效；佔位資產也必須實際接線，不能只有空欄位或單純 Log。優先重用 OIIA 的 `PlayerFeedback`、`BossHitFeedback`、`BossDamageFeedback`、`BossImpactFeedback`、`FeedbackEmitter` 與 `CombatFeedbackData`。
+- 格擋沿用藍色、盾反沿用金色、成功閃避沿用綠色回饋。空滾與真正避開攻擊分開：只在有效攻擊窗內受到威脅且成功避開時播放成功回饋／計教學次數，同次攻擊或同次翻滾避免重複播放，不把距離外空滾或強制無敵冒充成功。
+- 回饋以事件與實際 `HitReport`／攻擊結算結果驅動；VFX／SFX 不反向決定傷害或教學完成。新增玩法參數仍放 SO，保留既有盾反停頓規則，不因新增回饋自行添加其他畫面停頓或改戰鬥數值。
+- 小樹精的 `SaplingMode.Attack` 是白色格擋訓練，`SaplingMode.DodgeAttack` 是紅色閃避訓練；T27 必須依步驟切換模式。T28／T29 新招、衍生危害物件與召喚物也須遵守上述分類與 VFX／SFX 驗收。
+
 ## 工作流程
 
 1. 一個任務開一次對話。開始前先讀這份檔案，以及 `docs/boss-oiia.md`（T0–T16）或 `docs/hub-progression.md`（T17 起）的對應章節。
