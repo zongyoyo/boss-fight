@@ -60454,6 +60454,8 @@ GameObject:
   - component: {fileID: 1727667163}
   - component: {fileID: 1727667162}
   - component: {fileID: 1727667161}
+  - component: {fileID: 1727667166}
+  - component: {fileID: 1727667165}
   m_Layer: 0
   m_Name: Dialogue
   m_TagString: Untagged
@@ -60497,17 +60499,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.UI.DialogueUI
   data: {fileID: 11400000, guid: bb586d49695041b46974ed9c1574beec, type: 2}
-  hub: {fileID: 313423073}
-  chief: {fileID: 726326399}
-  eventSystem: {fileID: 1139037140}
+  session: {fileID: 1727667166}
+  pause: {fileID: 1859696190}
   group: {fileID: 1727667162}
   speakerText: {fileID: 787736665}
   bodyText: {fileID: 848414013}
   continueMark: {fileID: 562910743}
-  choiceGroup: {fileID: 1069481961}
-  questText: {fileID: 873794925}
-  acceptButton: {fileID: 1309384841}
-  declineButton: {fileID: 411198534}
 --- !u!225 &1727667162
 CanvasGroup:
   m_ObjectHideFlags: 0
@@ -60558,6 +60555,40 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1727667159}
   m_CullTransparentMesh: 1
+--- !u!114 &1727667165
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1727667159}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9963c7bac17481643acd82ab0cf1534b, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::BossFight.UI.HubDialogueUI
+  data: {fileID: 11400000, guid: bb586d49695041b46974ed9c1574beec, type: 2}
+  hub: {fileID: 313423073}
+  chief: {fileID: 726326399}
+  session: {fileID: 1727667166}
+  eventSystem: {fileID: 1139037140}
+  choiceCanvas: {fileID: 1727667162}
+  choiceGroup: {fileID: 1069481961}
+  questText: {fileID: 873794925}
+  acceptButton: {fileID: 1309384841}
+  declineButton: {fileID: 411198534}
+--- !u!114 &1727667166
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1727667159}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 55a87538a66aafe489acedd91aa5a153, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::BossFight.Core.DialogueSession
 --- !u!1 &1733168785
 GameObject:
   m_ObjectHideFlags: 0

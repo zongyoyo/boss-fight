@@ -16,8 +16,9 @@ MonoBehaviour:
   playerSpawn: {x: 0, y: -15}
   playerFacing: 0
   mentorPosition: {x: 0, y: 0}
-  saplingPosition: {x: 0, y: -3}
+  saplingPosition: {x: -2, y: -3}
   guardianPosition: {x: 0, y: 9}
+  lockOnPitch: 32
   treeRows: 3
   treeSpacing: 2.6
   rowSpacing: 2.4

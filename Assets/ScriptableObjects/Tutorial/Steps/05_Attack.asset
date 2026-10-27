@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 973500922aca52a46830b08cb68e9bcc, type: 3}
+  m_Name: 05_Attack
+  m_EditorClassIdentifier: Assembly-CSharp::BossFight.Battle.TutorialStepData
+  id: 05_Attack
+  opening:
+  - text: "\u9019\u662F\u653B\u64CA\u3002\u597D\u5566\uFF0C\u63DB\u4F60\u6253\u5B83\uFF0C\u5148\u780D\u4E09\u5200\u3002"
+    after: 0
+  hintFormat: "[{0}] \u653B\u64CA"
+  actionPath: Player/Attack
+  condition: 4
+  target: 3
+  mode: 2
+  invulnerable: 0
+  praise: "\u780D\u5F97\u4E0D\u932F\uFF0C\u53EF\u662F\u5B83\u9084\u7AD9\u8457\u5462\u3002"

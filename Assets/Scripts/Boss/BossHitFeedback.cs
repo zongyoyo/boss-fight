@@ -35,7 +35,6 @@ namespace BossFight.Boss
             if (sapling != null)
             {
                 sapling.OnAttackHit += HandleSaplingHit;
-                sapling.OnAttackResolved += HandleSaplingResolved;
             }
         }
 
@@ -45,7 +44,6 @@ namespace BossFight.Boss
             if (sapling != null)
             {
                 sapling.OnAttackHit -= HandleSaplingHit;
-                sapling.OnAttackResolved -= HandleSaplingResolved;
             }
         }
 
@@ -55,13 +53,15 @@ namespace BossFight.Boss
             PlayResult(report.result, pos, report.info.sourcePosition);
         }
 
-        void HandleSaplingHit(int id, HitReport report) => HandleMoveHit(null, report);
-
-        void HandleSaplingResolved(SaplingAttackReport report)
+        void HandleSaplingHit(int id, HitReport report)
         {
-            // 有 HitReport 的閃避已經播放過；走遠處空滾或取消的攻擊不補播。
-            if (report.cancelled || report.hasHit || !report.rollEvaded) return;
-            PlayResult(DamageResult.Evaded, report.targetPosition + Vector3.up * evadedHeight, transform.position);
+            // 翻滾是否真正成功由持有玩家引用的上層結算；不把強制／受擊無敵畫成成功。
+            if (report.result != DamageResult.Evaded) HandleMoveHit(null, report);
+        }
+
+        public void PlaySaplingEvade(Vector3 targetPosition)
+        {
+            PlayResult(DamageResult.Evaded, targetPosition + Vector3.up * evadedHeight, transform.position);
         }
 
         void PlayResult(DamageResult result, Vector3 pos, Vector3 sourcePosition)

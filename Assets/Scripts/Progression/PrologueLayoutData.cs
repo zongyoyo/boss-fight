@@ -16,9 +16,12 @@ namespace BossFight.Progression
         [Tooltip("菊花的位置 (x, z)")]
         public Vector2 mentorPosition = Vector2.zero;
         [Tooltip("小樹精預留位置 (x, z)")]
-        public Vector2 saplingPosition = new Vector2(0f, -3f);
+        public Vector2 saplingPosition = new Vector2(-2f, -3f);
         [Tooltip("大樹守衛的破土位置 (x, z)")]
         public Vector2 guardianPosition = new Vector2(0f, 9f);
+        [Header("鏡頭")]
+        [Tooltip("序章鎖定鏡頭俯視角度；原本 12 度，提高 20 度")]
+        [Range(-10f, 60f)] public float lockOnPitch = 32f;
 
         [Header("樹與邊界")]
         [Tooltip("外圍樹木排數")]

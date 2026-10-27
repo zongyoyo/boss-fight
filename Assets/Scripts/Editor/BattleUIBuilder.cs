@@ -316,7 +316,7 @@ namespace BossFight.EditorTools
 
         // ---------- 鎖定標記 ----------
 
-        static RectTransform BuildLockMarker(RectTransform parent, BattleUIData data, Camera mainCamera)
+        public static RectTransform BuildLockMarker(RectTransform parent, BattleUIData data, Camera mainCamera)
         {
             var area = Node("LockOn", parent);
             IntroCutsceneBuilder.Stretch(area);

@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 973500922aca52a46830b08cb68e9bcc, type: 3}
+  m_Name: 03_Dodge
+  m_EditorClassIdentifier: Assembly-CSharp::BossFight.Battle.TutorialStepData
+  id: 03_Dodge
+  opening:
+  - text: "\u9019\u662F\u9583\u907F\u3002\u525B\u525B\u90A3\u4E0B\u8981\u662F\u6703\u6EFE\uFF0C\u5C31\u4E0D\u6703\u75DB\u4E86\u3002\u5C0F\u6A39\u7CBE\u8981\u7529\u6A39\u679D\u4E86\uFF0C\u7D05\u5149\u9019\u62DB\u4E0D\u80FD\u64CB\uFF0C\u6253\u5230\u4E4B\u524D\u6EFE\u958B\uFF01"
+    after: 0
+  hintFormat: "[{0}] \u7FFB\u6EFE\u9583\u907F"
+  actionPath: Player/Roll
+  condition: 2
+  target: 2
+  mode: 3
+  invulnerable: 1
+  praise: "\u6EFE\u5F97\u633A\u5713\u7684\u561B\u3002"

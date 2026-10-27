@@ -10,6 +10,7 @@ namespace BossFight.Battle
     {
         [SerializeField] DaisyMentor mentor;
         [SerializeField] TrainingSapling sapling;
+        [SerializeField] BossHitFeedback saplingFeedback;
         [SerializeField] PrologueSession session;
         PlayerRig player;
         bool subscribed, whipLock;
@@ -62,8 +63,9 @@ namespace BossFight.Battle
         void HandleRollEnded() { if (sapling != null) sapling.SetTargetRolling(false); }
         void HandleSaplingResolved(SaplingAttackReport report)
         {
-            if (!report.hasHit && report.rollEvaded && player != null && player.Feedback != null)
-                player.Feedback.PlayEvadeFeedback();
+            if (player == null || !TutorialDirector.IsSuccessfulDodge(report, player.Health.ForcedInvulnerable)) return;
+            if (saplingFeedback != null) saplingFeedback.PlaySaplingEvade(report.targetPosition);
+            if (player.Feedback != null) player.Feedback.PlayEvadeFeedback();
         }
 
         /// <summary>開發測試用的抽打輸入鎖；T27 也可在自己的對白鎖內直接下 mentor.Whip 命令。</summary>

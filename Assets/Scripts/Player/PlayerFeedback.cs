@@ -107,7 +107,7 @@ namespace BossFight.Player
                 case DamageResult.Parried: emitter.Play(Data.parry, Body); break;
                 case DamageResult.Evaded:
                     // 只有翻滾閃過才響；受擊後無敵、Debug 無敵時不響
-                    if (!controller.IsRolling || evadedThisRoll) break;
+                    if (!controller.IsRolling || health.ForcedInvulnerable || evadedThisRoll) break;
                     PlayEvadeFeedback();
                     break;
             }

@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 785f1ac84b455c24aa300233c000330f, type: 3}
+  m_Name: TutorialUIData
+  m_EditorClassIdentifier: Assembly-CSharp::BossFight.UI.TutorialUIData
+  top: 95
+  size: {x: 1200, y: 80}
+  fontSize: 34
+  checkMark: "\u2713"
+  progressFormat: '  {0:0.#} / {1:0.#}'
+  bindingSeparator: ' / '
+  textColor: {r: 1, g: 1, b: 1, a: 1}
+  completeColor: {r: 0.55, g: 1, b: 0.65, a: 1}
+  fadeTime: 0.45
+  dialoguePadding: {x: 50, y: 20}
+  speakerHeight: 50
+  speakerBodyGap: 24

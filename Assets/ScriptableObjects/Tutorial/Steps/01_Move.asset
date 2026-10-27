@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 973500922aca52a46830b08cb68e9bcc, type: 3}
+  m_Name: 01_Move
+  m_EditorClassIdentifier: Assembly-CSharp::BossFight.Battle.TutorialStepData
+  id: 01_Move
+  opening:
+  - text: "\u9019\u662F\u79FB\u52D5\u3002\u5148\u8D70\u5169\u6B65\u7D66\u6211\u770B\u770B\u3002"
+    after: 0
+  hintFormat: "[{0}] \u79FB\u52D5"
+  actionPath: Player/Move
+  condition: 0
+  target: 4
+  mode: 0
+  invulnerable: 1
+  praise: "\u55EF\uFF0C\u81F3\u5C11\u8173\u662F\u597D\u7684\u3002"

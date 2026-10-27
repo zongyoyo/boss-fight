@@ -244,21 +244,38 @@ namespace BossFight.EditorTools
             Place(decline.GetComponent<RectTransform>(), new Vector2(1f, 0.5f), new Vector2(-190f, -80f), new Vector2(280f, 70f));
             choice.gameObject.SetActive(false);
 
-            var ui = box.gameObject.AddComponent<DialogueUI>();
+            WireDialogue(box.gameObject, hub, chief, eventSystem, data);
+        }
+
+        /// <summary>T27 升級既有對話框，不重建休息區或改站點外觀。</summary>
+        public static void WireDialogue(GameObject box, HubManager hub, VillageChief chief, UnityEngine.EventSystems.EventSystem eventSystem, HubUIData style)
+        {
+            var ui = DaoDunDogBuilder.GetOrAdd<DialogueUI>(box);
+            var session = DaoDunDogBuilder.GetOrAdd<BossFight.Core.DialogueSession>(box);
             var so = new SerializedObject(ui);
-            so.FindProperty("data").objectReferenceValue = data;
+            so.FindProperty("data").objectReferenceValue = style;
+            so.FindProperty("session").objectReferenceValue = session;
+            so.FindProperty("pause").objectReferenceValue = Object.FindAnyObjectByType<BossFight.Core.GamePause>();
+            so.FindProperty("group").objectReferenceValue = box.GetComponent<CanvasGroup>();
+            so.FindProperty("speakerText").objectReferenceValue = box.transform.Find("Speaker").GetComponent<Text>();
+            so.FindProperty("bodyText").objectReferenceValue = box.transform.Find("Body").GetComponent<Text>();
+            so.FindProperty("continueMark").objectReferenceValue = box.transform.Find("Continue").GetComponent<Text>();
+            so.ApplyModifiedPropertiesWithoutUndo();
+            var adapter = DaoDunDogBuilder.GetOrAdd<HubDialogueUI>(box);
+            so = new SerializedObject(adapter);
+            so.FindProperty("data").objectReferenceValue = style;
             so.FindProperty("hub").objectReferenceValue = hub;
             so.FindProperty("chief").objectReferenceValue = chief;
+            so.FindProperty("session").objectReferenceValue = session;
             so.FindProperty("eventSystem").objectReferenceValue = eventSystem;
-            so.FindProperty("group").objectReferenceValue = group;
-            so.FindProperty("speakerText").objectReferenceValue = speaker;
-            so.FindProperty("bodyText").objectReferenceValue = body;
-            so.FindProperty("continueMark").objectReferenceValue = mark;
-            so.FindProperty("choiceGroup").objectReferenceValue = choice.gameObject;
-            so.FindProperty("questText").objectReferenceValue = quest;
-            so.FindProperty("acceptButton").objectReferenceValue = accept;
-            so.FindProperty("declineButton").objectReferenceValue = decline;
+            so.FindProperty("choiceCanvas").objectReferenceValue = box.GetComponent<CanvasGroup>();
+            so.FindProperty("choiceGroup").objectReferenceValue = box.transform.Find("Choice").gameObject;
+            so.FindProperty("questText").objectReferenceValue = box.transform.Find("Choice/Quest").GetComponent<Text>();
+            so.FindProperty("acceptButton").objectReferenceValue = box.transform.Find("Choice/Accept").GetComponent<Button>();
+            so.FindProperty("declineButton").objectReferenceValue = box.transform.Find("Choice/Decline").GetComponent<Button>();
             so.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(ui);
+            EditorUtility.SetDirty(adapter);
         }
 
         // 營火面板（T21）：T23 起跟鐵匠鋪同樣大小與位置

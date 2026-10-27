@@ -76,6 +76,19 @@ namespace BossFight.Player
         PlayerAttack attack;
         HitStop hitStop;
         float hitInvulnerableUntil = float.NegativeInfinity;
+        bool boneGainEnabled = true;
+
+        /// <summary>設定暫時持有量；教學與開戰補給共用，不改 SO 或存檔。</summary>
+        public void SetBones(int count, bool clearProgress = true)
+        {
+            BonesLeft = Mathf.Clamp(count, 0, BonesMax);
+            if (clearProgress || BonesLeft >= BonesMax) BoneProgress = 0f;
+            OnBonesChanged?.Invoke(BonesLeft, BonesMax);
+            OnBoneProgressChanged?.Invoke(BoneProgress);
+        }
+
+        /// <summary>暫停／恢復戰鬥累積；預設開啟，教學只發指定補給。</summary>
+        public void SetBoneGainEnabled(bool value) => boneGainEnabled = value;
 
         // 難度修正的盾反判定加長（PlayerController.Difficulty）
         float ParryWindowBonus => controller != null ? controller.Difficulty.parryWindowBonus : 0f;
@@ -205,7 +218,7 @@ namespace BossFight.Player
         /// <summary>累積骨頭（單位：根）。湊滿 1 根就加一根；滿上限時進度歸零、多的丟掉。</summary>
         void AddBoneProgress(float amount)
         {
-            if (IsDead || amount <= 0f || BonesLeft >= BonesMax) return;
+            if (!boneGainEnabled || IsDead || amount <= 0f || BonesLeft >= BonesMax) return;
 
             // 0.05 累加 20 次會停在 0.99999，留一點誤差
             const float epsilon = 1e-4f;

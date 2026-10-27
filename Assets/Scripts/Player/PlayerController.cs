@@ -50,6 +50,12 @@ namespace BossFight.Player
         public event Action<Vector3> OnRollStarted;
         public event Action OnRollEnded;
         public event Action OnJumped;
+        /// <summary>自由操作時實際走過的水平距離；不含翻滾、攻擊踏步、劇情移動或瞬移。</summary>
+        public event Action<float> OnMoved;
+        /// <summary>實際位置改變（含翻滾）；範圍觸發可訂閱，不必在上層輪詢玩家。</summary>
+        public event Action<Vector3> OnPositionChanged;
+        /// <summary>啃骨頭動作自然完成，參數為結算後血量與上限。</summary>
+        public event Action<float, float> OnHealCompleted;
         /// <summary>鎖定目標改變；null 表示解除鎖定。</summary>
         public event Action<LockOnTarget> OnLockTargetChanged;
         /// <summary>動作改變；參數是新的動作。連擊接下一段不算改變（看 PlayerAttack.OnAttackStarted）。</summary>
@@ -284,7 +290,16 @@ namespace BossFight.Player
                 }
                 verticalVelocity += stats.gravity * dt;
 
+                Vector3 beforeMove = transform.position;
                 cc.Move(delta + Vector3.up * (verticalVelocity * dt));
+
+                if (transform.position != beforeMove) OnPositionChanged?.Invoke(transform.position);
+
+                if (!InputLocked && Action == PlayerAction.None && input.sqrMagnitude > 0f)
+                {
+                    float distance = Flat(transform.position - beforeMove).magnitude;
+                    if (distance > 0f) OnMoved?.Invoke(distance);
+                }
 
                 Vector3 v = cc.velocity;
                 PlanarSpeed = new Vector2(v.x, v.z).magnitude;
@@ -536,7 +551,11 @@ namespace BossFight.Player
             float total = stats.boneHealAmount * Mathf.Clamp01(actionTime / stats.boneDuration);
             health.Heal(total - healed);
             healed = total;
-            if (actionTime >= stats.boneDuration) SetAction(PlayerAction.None);
+            if (actionTime >= stats.boneDuration)
+            {
+                SetAction(PlayerAction.None);
+                OnHealCompleted?.Invoke(health.Current, health.Max);
+            }
         }
 
         // 鎖定時把切線方向的位移換成繞目標的圓弧，半徑只隨前後分量改變；不然一直往側邊走會越繞越遠

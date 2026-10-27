@@ -83,6 +83,7 @@ namespace BossFight.EditorTools
             PrologueActorsBuilder.Build();
             PlayerSpawnerBuilder.Wire();
             EditorSceneManager.SaveScene(scene, ScenePath);
+            TutorialBuilder.Build();
             AssetDatabase.SaveAssets();
             HubBuilder.SetBuildScenes();
             Debug.Log($"[Prologue] 已建立 {ScenePath}；空地半徑 {data.clearingRadius} m；Hub 0、BossArena 1、Prologue 2");

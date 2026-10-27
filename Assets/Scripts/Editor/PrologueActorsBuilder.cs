@@ -126,6 +126,7 @@ namespace BossFight.EditorTools
             sapling.transform.SetPositionAndRotation(anchors.transform.Find("Sapling").position, Quaternion.Euler(0f, 180f, 0f));
             var binding = root.AddComponent<PrologueActorBinding>();
             Set(binding, "mentor", mentor); Set(binding, "sapling", sapling);
+            Set(binding, "saplingFeedback", sapling.GetComponent<BossHitFeedback>());
             Set(binding, "session", Object.FindAnyObjectByType<PrologueSession>());
             BuildUI(sapling);
             BuildDebug(binding, mentor, sapling);
@@ -133,6 +134,8 @@ namespace BossFight.EditorTools
             EditorSceneManager.MarkSceneDirty(scene);
             AssetDatabase.SaveAssets();
             Debug.Log("[T26] 菊花、小樹精、SO、HUD 與開發按鍵已接線；F8 模式／F9 抽打／F10 巴掌／F11 無敵。");
+            // T27 已存在時一併重接，避免重建角色後教學仍指向已銷毀的實例。
+            if (scene.path == PrologueBuilder.ScenePath && GameObject.Find("Tutorial") != null) TutorialBuilder.Build();
         }
 
         static GameObject BuildDaisy(DaisyMentorData data)
