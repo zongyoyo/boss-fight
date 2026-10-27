@@ -178,6 +178,9 @@ namespace BossFight.Boss
         /// <summary>上層提供的閃避回饋資格；只影響回饋紀錄，不介入傷害判定。</summary>
         public Func<bool> TargetDodgeEligible { get; set; }
         public event Action<Vector3> OnAttackAvoided;
+        /// <summary>每段範圍攻擊實際開窗的分類，供模型閃光對齊重疊的多段預警。</summary>
+        public event Action<bool> OnAttackWindowOpened;
+        public void NotifyAttackWindowOpened(bool canBlock) => OnAttackWindowOpened?.Invoke(canBlock);
         public void NotifyAttackAvoided(Vector3 position) => OnAttackAvoided?.Invoke(position);
         /// <summary>清場並停住戰鬥，供演出與外部結局使用。</summary>
         public void SuspendCombat()
@@ -425,7 +428,7 @@ namespace BossFight.Boss
             foreach (var move in moves)
             {
                 var data = move.Data;
-                if (data.phase != Phase.movePool || data.WeightAt(distance) <= 0f || move == LastMove || !IsReady(move)) continue;
+                if (data.phase != Phase.movePool || !move.CanChoose || data.WeightAt(distance) <= 0f || move == LastMove || !IsReady(move)) continue;
                 float gap = data.DistanceToRange(distance);
                 if (gap <= 0f)
                 {

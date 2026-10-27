@@ -8,7 +8,7 @@ using BossFight.Progression;
 using UnityEngine;
 namespace BossFight.Battle
 {
-    public enum GuardianStage { Dormant, Phase1, RootBarrage, AwaitingPhase2, Stopped }
+    public enum GuardianStage { Dormant, Phase1, RootBarrage, AwaitingPhase2, Stopped, Phase2 }
     /// <summary>T28 一階段流程；本層指揮玩家與 Boss，Boss 不反向引用本層。</summary>
     [DefaultExecutionOrder(500)]
     public class GuardianPhaseController : MonoBehaviour, IPlayerBinding
@@ -118,6 +118,7 @@ namespace BossFight.Battle
         }
         void Update()
         {
+            if (Stage == GuardianStage.Phase2) { Elapsed += Time.deltaTime; return; }
             if (Stage != GuardianStage.Phase1 || Time.deltaTime <= 0f) return;
             Elapsed += Time.deltaTime;
             if (!warned && Elapsed >= data.guidanceAt)
@@ -150,7 +151,7 @@ namespace BossFight.Battle
                 SetStage(GuardianStage.AwaitingPhase2); boss.SuspendCombat(); health.Invulnerable = true;
                 session.SetInputLocked(this, true);
                 OnHintChanged?.Invoke(data.transitionText); OnRootBarrageCompleted?.Invoke();
-                Debug.Log("[Guardian] 活過萬根齊發：交接二階段（T29）。", this);
+                Debug.Log("[Guardian] 活過萬根齊發：進入二階段轉場。", this);
             }
         }
         public void StopBattle()
@@ -162,6 +163,10 @@ namespace BossFight.Battle
         }
         /// <summary>T29／T30 先取得自己的 owner 鎖，再釋放本流程的交棒鎖。</summary>
         public void ReleaseTransitionLock() => session.SetInputLocked(this, false);
+        /// <summary>二階段已套用；保留既有戰鬥、翻滾與回饋來源。</summary>
+        public void EnterPhase2() { OnHintChanged?.Invoke(string.Empty); SetStage(GuardianStage.Phase2); }
+        /// <summary>開發者直入二階段的同一個交棒狀態，不改血量。</summary>
+        public void PreparePhase2() { ClearGuidance(); SetStage(GuardianStage.AwaitingPhase2); }
         void SetStage(GuardianStage value) { Stage = value; OnStageChanged?.Invoke(value); }
         void ClearGuidance() { if (guidance != null) guidance.Despawn(); guidance = null; }
         void RollStarted(Vector3 _) { rollFeedback = false; boss.TargetRolling = true; }
@@ -173,9 +178,11 @@ namespace BossFight.Battle
                 Avoided(player.transform.position);
         }
         void Avoided(Vector3 point)
+        { ReportSuccessfulDodge(point, hitFeedback); }
+        public void ReportSuccessfulDodge(Vector3 point, BossHitFeedback source)
         {
             if (player == null || player.Health.ForcedInvulnerable || player.Health.IsDead || rollFeedback) return;
-            rollFeedback = true; hitFeedback.PlaySaplingEvade(point); player.Feedback.PlayEvadeFeedback();
+            rollFeedback = true; if (source != null) source.PlaySaplingEvade(point); player.Feedback.PlayEvadeFeedback();
         }
     }
 }

@@ -225,6 +225,16 @@
                     "interactions": "",
                     "initialStateCheck": false,
                     "priority": 0
+                },
+                {
+                    "name": "DebugGuardianPhase2",
+                    "type": "Button",
+                    "id": "66e9f303-8983-47e6-b727-7809e3ab87a7",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false,
+                    "priority": 0
                 }
             ],
             "bindings": [
@@ -896,6 +906,17 @@
                     "processors": "",
                     "groups": "",
                     "action": "DebugGuardianNextMove",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "0f463528-3673-4797-87c0-6075f1ef85c7",
+                    "path": "<Keyboard>/f5",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "DebugGuardianPhase2",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

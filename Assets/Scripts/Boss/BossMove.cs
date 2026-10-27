@@ -19,6 +19,8 @@ namespace BossFight.Boss
 
         public BossMoveData Data => data;
         public string DisplayName => data != null ? data.displayName : name;
+        /// <summary>招式自身的候選資格（例如召喚未滿額）；預設維持原本選招。</summary>
+        public virtual bool CanChoose => true;
 
         /// <summary>出這招的 Boss（BossController.Awake 時綁定）。</summary>
         protected BossController Boss { get; private set; }

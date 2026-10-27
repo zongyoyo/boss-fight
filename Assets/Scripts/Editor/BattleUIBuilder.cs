@@ -352,6 +352,17 @@ namespace BossFight.EditorTools
 
         // ---------- 勝敗畫面 ----------
 
+        public static BattleResultUI BuildStandalonePrologueResult(Transform parent, BattleUIData data, PrologueOutcome outcome, EventSystem eventSystem)
+        {
+            font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            roundSprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/UISprite.psd");
+            BuildResult(parent, data, null, null, eventSystem);
+            var ui = parent.Find("Result").GetComponent<BattleResultUI>();
+            var so = new SerializedObject(ui); so.FindProperty("prologue").objectReferenceValue = outcome; so.ApplyModifiedPropertiesWithoutUndo();
+            var retry = parent.Find("Result/RetryButton"); retry.gameObject.SetActive(false);
+            var hub = (RectTransform)parent.Find("Result/HubButton"); hub.anchoredPosition = new Vector2(0f, hub.anchoredPosition.y);
+            return ui;
+        }
         static void BuildResult(Transform parent, BattleUIData data, BattleManager battle, CutsceneDirector intro, EventSystem eventSystem)
         {
             var result = Node("Result", parent, typeof(CanvasGroup));

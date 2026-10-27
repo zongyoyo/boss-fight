@@ -56,6 +56,7 @@ namespace BossFight.Core
         public bool storyIntroSeen;
         [Tooltip("序章結局演出已完成；中途離開及開發者略過不會設定")]
         public bool prologueDone;
+        [Tooltip("演出正常結束時一起保存的序章結果")] public PrologueResult prologueResult;
         [Tooltip("接過、還沒回報的任務（QuestData 的 id）")]
         public List<string> acceptedQuests = new List<string>();
         [Tooltip("回報完的任務（id）")]
@@ -82,6 +83,45 @@ namespace BossFight.Core
 
         /// <summary>序章是否完成；舊存檔沒有這個欄位時為 false。</summary>
         public static bool PrologueDone => Data.prologueDone;
+        public static PrologueResult PrologueResult => Data.prologueResult;
+
+        /// <summary>純資料快照計算；不改來源、不寫檔，Editor 可用獨立資料驗證去重。</summary>
+        public static bool PreparePrologueCompletion(ProfileData source, PrologueResult result, string bossId,
+            int skillPoints, string[] equipmentIds, string[] characterIds, out ProfileData next, out bool firstClear)
+        {
+            next = null; firstClear = false;
+            if (source == null || source.prologueDone || result == Core.PrologueResult.None ||
+                (result == Core.PrologueResult.Victory && string.IsNullOrEmpty(bossId))) return false;
+            next = JsonUtility.FromJson<ProfileData>(JsonUtility.ToJson(source));
+            next.prologueDone = true; next.prologueResult = result;
+            firstClear = result == Core.PrologueResult.Victory && !next.defeatedBosses.Contains(bossId);
+            if (!firstClear) return true;
+            next.defeatedBosses.Add(bossId);
+            next.skillPoints = checked(next.skillPoints + Math.Max(0, skillPoints));
+            if (equipmentIds != null) foreach (string id in equipmentIds)
+                if (!string.IsNullOrEmpty(id) && !next.unlockedEquipment.Contains(id))
+                { next.unlockedEquipment.Add(id); if (!next.newEquipment.Contains(id)) next.newEquipment.Add(id); }
+            if (characterIds != null) foreach (string id in characterIds)
+                if (!string.IsNullOrEmpty(id) && !next.unlockedCharacters.Contains(id)) next.unlockedCharacters.Add(id);
+            return true;
+        }
+
+        /// <summary>唯一的序章完成提交：一次替換檔案成功後才採用快照；退出時 Save 不會寫入待領獎勵。</summary>
+        public static bool TryCompletePrologue(PrologueResult result, string bossId, int skillPoints,
+            string[] equipmentIds, string[] characterIds, out bool firstClear)
+        {
+            firstClear = false;
+            try
+            {
+                if (!PreparePrologueCompletion(Data, result, bossId, skillPoints, equipmentIds, characterIds, out var next, out bool first)) return false;
+                string path = SavePath, temp = path + ".prologue.tmp";
+                File.WriteAllText(temp, JsonUtility.ToJson(next, true));
+                if (File.Exists(path)) File.Replace(temp, path, null);
+                else File.Move(temp, path);
+                data = next; firstClear = first; return true;
+            }
+            catch (Exception e) { Debug.LogError("[ProfileStore] 序章完成保存失敗，未採用結算快照：" + e.Message); return false; }
+        }
 
         /// <summary>結局演出完成後才呼叫；T30 加入結果資料時在同一次存檔寫入。</summary>
         public static void MarkPrologueDone()

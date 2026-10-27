@@ -11,6 +11,30 @@ namespace BossFight.Progression
     public static class ProgressRecorder
     {
         static readonly RewardData[] NoRewards = new RewardData[0];
+        /// <summary>序章演出完成時才呼叫；Core 只接收 id 和數值，整批保存成功才回傳已發獎勵。</summary>
+        public static bool TryCompletePrologue(BossDefinition boss, PrologueResult result, out IReadOnlyList<RewardData> rewards)
+        {
+            rewards = NoRewards;
+            var valid = new List<RewardData>(); var equipment = new List<string>(); var characters = new List<string>(); int points = 0;
+            if (result == PrologueResult.Victory && boss == null) return false;
+            if (result == PrologueResult.Victory && boss.firstClearRewards != null)
+                foreach (var r in boss.firstClearRewards)
+                {
+                    if (r == null || !r.IsValid) continue;
+                    if (r.kind == RewardKind.Equipment && string.IsNullOrEmpty(r.equipment.id)) continue;
+                    if (r.kind == RewardKind.Character && string.IsNullOrEmpty(r.character.id)) continue;
+                    valid.Add(r);
+                    switch (r.kind)
+                    {
+                        case RewardKind.SkillPoints: points = checked(points + r.amount); break;
+                        case RewardKind.Equipment: equipment.Add(r.equipment.id); break;
+                        case RewardKind.Character: characters.Add(r.character.id); break;
+                    }
+                }
+            if (!ProfileStore.TryCompletePrologue(result, boss != null ? boss.id : null, points, equipment.ToArray(), characters.ToArray(), out bool first)) return false;
+            if (first) rewards = valid;
+            return true;
+        }
 
         // ---------- Boss ----------
 

@@ -9,9 +9,10 @@ namespace BossFight.UI
         [SerializeField] GuardianPhaseController guardian;
         [SerializeField] CanvasGroup bossGroup;
         [SerializeField] Text hint;
+        [SerializeField] PrologueOutcome outcome;
         void Awake() { bossGroup.alpha = 0f; bossGroup.blocksRaycasts = false; hint.text = string.Empty; }
-        void OnEnable() { guardian.OnBattleStarted += Started; guardian.OnHintChanged += Hint; }
-        void OnDisable() { guardian.OnBattleStarted -= Started; guardian.OnHintChanged -= Hint; }
+        void OnEnable() { guardian.OnBattleStarted += Started; guardian.OnHintChanged += Hint; if (outcome != null) outcome.OnPresentationHint += Hint; }
+        void OnDisable() { guardian.OnBattleStarted -= Started; guardian.OnHintChanged -= Hint; if (outcome != null) outcome.OnPresentationHint -= Hint; }
         void Started() => bossGroup.alpha = 1f;
         void Hint(string value) => hint.text = value;
     }

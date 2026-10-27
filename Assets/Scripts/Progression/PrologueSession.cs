@@ -16,6 +16,7 @@ namespace BossFight.Progression
         [SerializeField] SceneFlow sceneFlow;
 
         readonly HashSet<object> inputLocks = new HashSet<object>();
+        readonly HashSet<object> cursorOwners = new HashSet<object>();
         PlayerController player;
         bool paused, loading, subscribed, locked;
 
@@ -65,6 +66,9 @@ namespace BossFight.Progression
         }
 
         void HandlePause(bool value) => paused = value;
+        /// <summary>結算介面等 owner 可獨立要求游標；不解除其他流程的輸入鎖。</summary>
+        public void SetCursorReleased(object owner, bool value)
+        { if (owner == null) return; if (value) cursorOwners.Add(owner); else cursorOwners.Remove(owner); }
         void HandleLoading(bool value) => loading = value;
         void HandleSkip(bool _) => TrySkip();
         void HandleDeveloperMode(bool _) => TrySkip();
@@ -84,7 +88,7 @@ namespace BossFight.Progression
                 if (player != null) player.SetInputLocked(locked);
                 if (cameraController != null) cameraController.SetInputLocked(locked);
             }
-            bool releaseCursor = paused || loading;
+            bool releaseCursor = paused || loading || cursorOwners.Count > 0;
             // 反覆鎖游標會每幀重設鏡頭的滑鼠忽略計數，導致滑鼠永遠不能轉視角。
             if (cameraController != null && cameraController.CursorReleased != releaseCursor)
                 cameraController.SetCursorReleased(releaseCursor);

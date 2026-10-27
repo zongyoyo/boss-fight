@@ -31,6 +31,11 @@ namespace BossFight.UI
         [SerializeField] ResourceBar staggerBar;
         [Tooltip("頭暈中顯示在失衡條上的文字")]
         [SerializeField] Text stunnedText;
+        /// <summary>由事件訂閱者套用階段名稱與血條色，不讀取戰鬥狀態。</summary>
+        public void SetPresentation(string title, Color color)
+        { nameText.text = title; if (healthBar.FillImage != null) healthBar.FillImage.color = color; }
+        public void FlashSelfCost(float before, float after, float max, float duration)
+        { if (max > 0f) healthBar.FlashLoss(before / max, after / max, duration); }
 
         bool stunned, gamepad;
         float stunDuration, stunElapsed;

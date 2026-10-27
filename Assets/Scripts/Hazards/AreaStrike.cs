@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace BossFight.Hazards
 {
-    public enum AreaStrikeStyle { Root, Vine, Leaf }
+    public enum AreaStrikeStyle { Root, Vine, Leaf, Seed }
     /// <summary>資料驅動範圍攻擊；預警、填充與 Hitbox.Filter 共用 AttackArea。取消立即關判定及預警。</summary>
     public class AreaStrike : Hazard
     {
@@ -33,6 +33,7 @@ namespace BossFight.Hazards
         int openedFrame;
         int begunFrame;
         bool completedTravel;
+        bool contracting;
         public void Begin(AttackArea area, in DamageInfo info, float warningTime, float hitWindow,
             Collider targetCollider, Func<bool> isRolling, bool guidanceOnly = false, AreaStrikeStyle style = AreaStrikeStyle.Root)
         {
@@ -50,6 +51,9 @@ namespace BossFight.Hazards
         }
         /// <summary>出手後移動的環波；判定覆蓋上幀到本幀的環帶，避免穿透。</summary>
         public void Expand(float expandSpeed, float maximumRadius) { speed = expandSpeed; endRadius = maximumRadius; bandWidth = Area.radius - Area.innerRadius; }
+        /// <summary>反向環波，掃過前後兩幀環帶；沿用同段 Hitbox 去重。</summary>
+        public void Contract(float moveSpeed, float minimumOuterRadius)
+        { Expand(moveSpeed, minimumOuterRadius); contracting = true; }
         /// <summary>飛行葉刃；平移判定掃過的距離，沿用 Hitbox 的一次命中去重。</summary>
         public void Fly(float moveSpeed, float distance) { speed = moveSpeed; travelLeft = distance; endRadius = 0f; }
         public void SetProjectileVisual(float centerHeight)
@@ -92,11 +96,14 @@ namespace BossFight.Hazards
                 if (endRadius > 0f)
                 {
                     float prev = a.radius;
-                    a.radius = Mathf.Min(endRadius, a.radius + speed * Time.deltaTime);
-                    a.innerRadius = Mathf.Max(0f, prev - bandWidth); SetupHitbox(a);
+                    a.radius = Mathf.MoveTowards(a.radius, endRadius, speed * Time.deltaTime);
+                    a.innerRadius = Mathf.Max(0f, (contracting ? a.radius : prev) - bandWidth);
+                    float drawn = a.radius;
+                    if (contracting) a.radius = prev;
+                    SetupHitbox(a); a.radius = drawn;
                     a.innerRadius = Mathf.Max(0f, a.radius - bandWidth); Area = a; Draw(1f);
                     // 視覺下一幀仍用固定環寬；本幀命中留足掃掠寬度。
-                    if (a.radius >= endRadius) completedTravel = true;
+                    if (a.radius == endRadius) completedTravel = true;
                 }
                 else
                 {
@@ -128,6 +135,7 @@ namespace BossFight.Hazards
         public void SetGuidanceProgress(float progress) => Draw(progress);
         void CreateAreaFx(bool prewarning)
         {
+            if (visualStyle == AreaStrikeStyle.Seed) return;
             if (areaFxPrefab == null) return;
             areaFx = Instantiate(areaFxPrefab);
             areaFx.Show(Area, visualStyle, damage.canBlock ? white : red, prewarning);

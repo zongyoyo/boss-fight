@@ -45,8 +45,8 @@ namespace BossFight.EditorTools
                 if (GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(t.gameObject) > 0)
                     throw new InvalidOperationException($"Missing Script: {t.name}");
             var mentor = Object.FindAnyObjectByType<DaisyMentor>(FindObjectsInactive.Include);
-            var sapling = Object.FindAnyObjectByType<TrainingSapling>(FindObjectsInactive.Include);
             var binding = Object.FindAnyObjectByType<PrologueActorBinding>(FindObjectsInactive.Include);
+            var sapling = binding != null ? new SerializedObject(binding).FindProperty("sapling").objectReferenceValue as TrainingSapling : null;
             var hud = Object.FindAnyObjectByType<TrainingSaplingHudUI>(FindObjectsInactive.Include);
             Require(mentor, "data", "whipHitbox", "hurtCollider");
             Require(sapling, "data", "attackHitbox", "hurtCollider");

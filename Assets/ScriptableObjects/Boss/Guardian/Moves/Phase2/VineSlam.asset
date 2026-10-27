@@ -1,0 +1,58 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c92fc1b9cf71c8a4b8c1aa2df881527c, type: 3}
+  m_Name: VineSlam
+  m_EditorClassIdentifier: Assembly-CSharp::BossFight.Boss.Moves.VineSlamData
+  displayName: "\u85E4\u8513\u9023\u7838"
+  phase: 2
+  minDistance: 0
+  maxDistance: 12
+  cooldown: 5
+  weight: 1
+  distanceWeights: 1
+  nearDistance: 6
+  nearWeight: 5
+  farWeight: 2
+  telegraphTime: 0.3
+  recoveryTime: 0.5
+  damage: 32
+  canBlock: 1
+  canParry: 1
+  visualStyle: 1
+  hitWindow: 0.15
+  hitHeight: 2
+  radius: 0
+  innerRadius: 0
+  angle: 0
+  reach: 12
+  width: 1.5
+  sideOffset: 1.5
+  count: 4
+  interval: 0.25
+  warning: 0
+  speed: 0
+  scatter: 0
+  nearCount: 0
+  centerHeight: 0
+  waves: 1
+  secondAngle: 0
+  trackLast: 1
+  reverseSecond: 0
+  angleOffset: 0
+  outerWarning: 0
+  innerWarning: 0
+  crossWarning: 0
+  sampleLead: 0
+  finalWarning: 0
+  safeCount: 3
+  safeRadius: 0
+  reachableDistance: 0

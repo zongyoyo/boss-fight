@@ -39,6 +39,18 @@ namespace BossFight.Boss
         public event Action<BossDamageReport> OnDamaged;
         /// <summary>血量歸零。</summary>
         public event Action OnDefeated;
+        /// <summary>專用自損區段（前值、後值、上限），先於一般血量事件；不送 OnDamaged 或失衡。</summary>
+        public event Action<float, float, float> OnSelfCost;
+        public static float NonlethalSelfCost(float current, float ratio) =>
+            current <= 0f ? 0f : Mathf.Min(current, Mathf.Max(float.Epsilon, current * (1f - Mathf.Clamp01(ratio))));
+        public void ApplySelfCost(float ratio)
+        {
+            if (IsDefeated || Invulnerable) return;
+            float next = NonlethalSelfCost(Current, ratio);
+            if (next >= Current) return;
+            OnSelfCost?.Invoke(Current, next, Max);
+            SetHealth(next);
+        }
 
         public float Current { get; private set; }
         public float Max => stats.maxHealth;

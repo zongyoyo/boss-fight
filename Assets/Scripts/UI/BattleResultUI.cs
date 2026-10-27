@@ -25,6 +25,8 @@ namespace BossFight.UI
     {
         [SerializeField] BattleUIData data;
         [SerializeField] BattleManager battle;
+        [Tooltip("序章結算來源；與一般 BattleManager 擇一")]
+        [SerializeField] PrologueOutcome prologue;
         [Tooltip("開場演出：字卡上的 Boss 名稱；可留空")]
         [SerializeField] CutsceneDirector intro;
         [SerializeField] CanvasGroup group;
@@ -92,6 +94,7 @@ namespace BossFight.UI
         void OnEnable()
         {
             if (battle != null) battle.OnBattleResult += Show;
+            if (prologue != null) prologue.OnBattleResult += Show;
             if (intro != null) intro.OnTitleCard += HandleTitleCard;
             retryButton.onClick.AddListener(Retry);
             if (hubButton != null) hubButton.onClick.AddListener(ReturnToHub);
@@ -100,6 +103,7 @@ namespace BossFight.UI
         void OnDisable()
         {
             if (battle != null) battle.OnBattleResult -= Show;
+            if (prologue != null) prologue.OnBattleResult -= Show;
             if (intro != null) intro.OnTitleCard -= HandleTitleCard;
             retryButton.onClick.RemoveListener(Retry);
             if (hubButton != null) hubButton.onClick.RemoveListener(ReturnToHub);
@@ -135,10 +139,11 @@ namespace BossFight.UI
                 retryLabel.text = data.defeatButton;
             }
             if (hubLabel != null) hubLabel.text = data.returnToHubButton;
+            if (prologue != null) { retryButton.gameObject.SetActive(false); statsText.text = string.Empty; }
             shownAt = Time.unscaledTime;
             group.interactable = true;
             group.blocksRaycasts = true;
-            if (eventSystem != null) eventSystem.SetSelectedGameObject(retryButton.gameObject);
+            if (eventSystem != null) eventSystem.SetSelectedGameObject(prologue != null ? hubButton.gameObject : retryButton.gameObject);
         }
 
         void ShowFirstClearRewards(IReadOnlyList<RewardData> rewards)
@@ -171,6 +176,7 @@ namespace BossFight.UI
 
         void ReturnToHub()
         {
+            if (prologue != null) { prologue.ReturnToHub(); return; }
             if (battle != null) battle.ReturnToHub();
         }
 

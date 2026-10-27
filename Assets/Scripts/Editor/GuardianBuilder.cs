@@ -104,6 +104,8 @@ namespace BossFight.EditorTools
             SetArray(gate, "tools", new Behaviour[] { debug });
             PlayerSpawnerBuilder.Wire();
             EditorSceneManager.MarkSceneDirty(scene); EditorSceneManager.SaveScene(scene); AssetDatabase.SaveAssets();
+            // 已接上 T29 的專案定點重建守衛後，也補回二階段及上層接線。
+            if (AssetDatabase.LoadAssetAtPath<BossPhaseData>(GuardianPhaseTwoBuilder.PhasePath) != null) GuardianPhaseTwoBuilder.Build();
             Debug.Log(Validate());
         }
 
@@ -231,8 +233,12 @@ namespace BossFight.EditorTools
             var controller=Object.FindAnyObjectByType<GuardianPhaseController>();
             var tutorial=Object.FindAnyObjectByType<TutorialDirector>();
             if(controller==null || tutorial==null)return false;
-            if(new SerializedObject(controller).FindProperty("tutorial").objectReferenceValue==tutorial)return false;
-            Set(controller,"tutorial",tutorial); return true;
+            bool changed=false;
+            if(new SerializedObject(controller).FindProperty("tutorial").objectReferenceValue!=tutorial){Set(controller,"tutorial",tutorial);changed=true;}
+            var phaseTwo=controller.GetComponent<GuardianPhaseTwo>();
+            var dialogue=new SerializedObject(tutorial).FindProperty("dialogue").objectReferenceValue;
+            if(phaseTwo!=null && new SerializedObject(phaseTwo).FindProperty("dialogue").objectReferenceValue!=dialogue){Set(phaseTwo,"dialogue",dialogue);changed=true;}
+            return changed;
         }
         static GameObject BuildActor(BossStats stats, ArenaData arena, GuardianBattleData battle, AreaStrike area)
         {
@@ -332,7 +338,7 @@ namespace BossFight.EditorTools
             var controller=Object.FindAnyObjectByType<GuardianPhaseController>(); var boss=controller.Boss;
             Require(controller,"data","boss","health","stagger","barrage","session","tutorial","guidancePrefab","hurtCollider","lockTarget","model","hitFeedback","options","difficulty");
             Require(Object.FindAnyObjectByType<PrologueOutcome>(),"guardian","session");
-            if(boss.GetComponentsInChildren<GuardianMove>().Length!=7) throw new InvalidOperationException("招式數量不符。");
+            if(boss.GetComponentsInChildren<GuardianMove>().Count(m=>m.Data.phase==1)!=7) throw new InvalidOperationException("一階段招式數量不符。");
             foreach(var m in boss.GetComponentsInChildren<GuardianMove>()) { Require(m,"data","areaPrefab"); if(new SerializedObject(m).FindProperty("obstacles").arraySize==0) throw new InvalidOperationException("未接場地障礙。"); }
             var stats=AssetDatabase.LoadAssetAtPath<BossStats>(Root+"/Stats.asset");
             if(stats.maxHealth!=3000f || stats.phases[0].imbalanceMax!=200f || !stats.phases[0].stationary) throw new InvalidOperationException("Boss 數值不符。");

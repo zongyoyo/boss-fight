@@ -13,7 +13,7 @@ namespace BossFight.Boss
         [Header("純視覺")]
         [Min(0.01f), SerializeField] float settleTime = 0.35f;
         [Min(0.01f), SerializeField] float vineModelReach = 5.5f;
-        enum Pose { Sweep, Slam, Scatter, Storm, Thrust, Ring, Barrage }
+        enum Pose { Sweep, Slam, Scatter, Storm, Thrust, Ring, Barrage, Seed, Children }
         Pose pose;
         Vector3 crownScale;
         Vector3[] vineScales;
@@ -34,7 +34,8 @@ namespace BossFight.Boss
         {
             var move = choice.move;
             pose = move is VineSweepMove ? Pose.Sweep : move is VineSlamMove ? Pose.Slam : move is LeafScatterMove ? Pose.Scatter :
-                move is LeafStormMove ? Pose.Storm : move is RootThrustMove ? Pose.Thrust : move is RootRingMove ? Pose.Ring : Pose.Barrage;
+                move is LeafStormMove ? Pose.Storm : move is RootThrustMove ? Pose.Thrust : move is RootRingMove ? Pose.Ring :
+                move is SeedBombMove ? Pose.Seed : move is CallChildrenMove ? Pose.Children : Pose.Barrage;
             var data = move.Data as GuardianMoveData;
             strikeDuration = data != null ? data.hitWindow : settleTime;
             reach = data != null ? (pose == Pose.Sweep ? data.radius : data.reach) : vineModelReach;
@@ -65,6 +66,8 @@ namespace BossFight.Boss
             else if (pose == Pose.Storm) crownAngles = new Vector3(-25f * charge + release * 12f, Mathf.Sin(time * 24f) * charge * 6f, 0f);
             else if (pose == Pose.Thrust || pose == Pose.Ring) crownAngles.x += charge * 12f - release * 8f;
             else if (pose == Pose.Barrage) scale = crownScale * (1f + charge * 0.12f);
+            else if (pose == Pose.Seed) crownAngles.x = -25f * charge + 30f * release;
+            else if (pose == Pose.Children) { scale = crownScale * (1f - charge * 0.15f); crownAngles.z = Mathf.Sin(time * 18f) * charge * 5f; }
             crown.localRotation = Quaternion.Euler(crownAngles); crown.localScale = scale;
             for (int i = 0; i < vines.Length; i++)
             {
@@ -75,7 +78,7 @@ namespace BossFight.Boss
                 else if (pose == Pose.Sweep && i == vines.Length - 1)
                 {
                     if (warning) angles = Vector3.Lerp(angles, new Vector3(-25f, -110f, 25f), charge);
-                    else if (release > 0f) angles = Vector3.Lerp(angles, new Vector3(20f, Mathf.Lerp(-75f, 75f, swing), 0f), release);
+                    else if (release > 0f) angles = Vector3.Lerp(angles, new Vector3(20f, strikeIndex % 2 == 0 ? Mathf.Lerp(180f, -180f, swing) : Mathf.Lerp(-75f, 75f, swing), 0f), release);
                     vineScale.z *= Mathf.Lerp(1f, reach / vineModelReach, Mathf.Max(charge, release));
                 }
                 else if (pose == Pose.Slam)
@@ -88,6 +91,8 @@ namespace BossFight.Boss
                 else if (pose == Pose.Scatter || pose == Pose.Storm) angles = new Vector3(-30f * charge, side * (40f + 40f * charge), 0f);
                 else if (pose == Pose.Thrust || pose == Pose.Ring) angles = new Vector3(-50f * charge + 45f * release, side * 25f, 0f);
                 else if (pose == Pose.Barrage) angles = new Vector3(-70f * charge + 35f * release, side * 45f, 0f);
+                else if (pose == Pose.Seed) angles = new Vector3(-70f * charge + release * 40f, side * 20f, 0f);
+                else if (pose == Pose.Children) angles = new Vector3(45f * charge, side * (40f + release * 40f), 0f);
                 vines[i].localRotation = Quaternion.Euler(angles); vines[i].localScale = vineScale;
             }
             stars.gameObject.SetActive(stunned); stars.Rotate(Vector3.up, dt * 120f, Space.Self);

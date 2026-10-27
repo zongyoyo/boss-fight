@@ -12,8 +12,14 @@ namespace BossFight.Boss.Moves
         }
         void Launch()
         {
-            var a = Area(AttackAreaShape.Ring, Origin, Vector3.forward); a.radius = Spec.innerRadius + Spec.width;
-            Spawn(a, 0f, false).Expand(Spec.speed, MaximumRange); index++;
+            var a = Area(AttackAreaShape.Ring, Origin, Vector3.forward);
+            bool inward = Spec.reverseSecond && index == 1;
+            a.radius = inward ? MaximumRange : Spec.innerRadius + Spec.width;
+            a.innerRadius = a.radius - Spec.width;
+            var ring = Spawn(a, 0f, false);
+            if (inward) ring.Contract(Spec.speed, Spec.innerRadius + Spec.width);
+            else ring.Expand(Spec.speed, MaximumRange);
+            index++;
         }
         public override void BeginActive()
         {
@@ -23,7 +29,7 @@ namespace BossFight.Boss.Moves
         public override bool TickActive(float dt)
         {
             timer += dt;
-            if (index < Spec.count && timer >= Spec.interval) { Launch(); timer = 0f; }
+            if (index < Spec.count && timer >= Spec.interval) { Launch(); timer = 0f; if (index < Spec.count) Telegraph(Data.canBlock, Spec.interval); }
             return index >= Spec.count;
         }
     }

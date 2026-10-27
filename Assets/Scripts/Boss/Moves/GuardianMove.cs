@@ -40,7 +40,8 @@ namespace BossFight.Boss.Moves
                 () => Boss.TargetDodgeEligible != null ? Boss.TargetDodgeEligible() : Boss.TargetRolling, preview, Spec.visualStyle);
             return strike;
         }
-        void ImpactArea(AreaStrike strike) => Impact(BossImpactKind.PawSwipe, strike.Area.center);
+        void ImpactArea(AreaStrike strike)
+        { Boss.NotifyAttackWindowOpened(Data.canBlock); Impact(BossImpactKind.PawSwipe, strike.Area.center); }
         void Avoided(Vector3 position) => Boss.NotifyAttackAvoided(position);
         protected bool AllResolved
         {

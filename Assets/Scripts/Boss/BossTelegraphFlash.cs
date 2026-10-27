@@ -49,12 +49,14 @@ namespace BossFight.Boss
         void OnEnable()
         {
             boss.OnMoveTelegraph += HandleMoveTelegraph;
+            boss.OnAttackWindowOpened += AttackWindow;
             boss.OnStateChanged += HandleStateChanged;
         }
 
         void OnDisable()
         {
             boss.OnMoveTelegraph -= HandleMoveTelegraph;
+            boss.OnAttackWindowOpened -= AttackWindow;
             boss.OnStateChanged -= HandleStateChanged;
         }
 
@@ -64,6 +66,7 @@ namespace BossFight.Boss
             telegraphTime = telegraph.duration;
             SetGlow(Glow.Blink);
         }
+        void AttackWindow(bool canBlock) => FlashHit((canBlock ? blockableColor : unblockableColor) * peakIntensity, fadeTime);
 
         void HandleStateChanged(BossState next)
         {

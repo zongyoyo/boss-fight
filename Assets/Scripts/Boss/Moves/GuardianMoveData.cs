@@ -25,6 +25,12 @@ namespace BossFight.Boss.Moves
         [Min(0f), Tooltip("玩家附近的取樣半徑 (m)")] public float scatter;
         [Min(0), Tooltip("玩家附近的數量")] public int nearCount;
         [Min(0f), Tooltip("葉刃中心高度 (m)")] public float centerHeight;
+        [Header("二階段強化")]
+        [Min(1), Tooltip("波數；第一階段維持一波")] public int waves = 1;
+        [Range(0f, 360f), Tooltip("第二次橫掃角度；0 沿用第一掃")] public float secondAngle;
+        [Tooltip("最後一條砸地在該段預兆開始時重新瞄準")] public bool trackLast;
+        [Tooltip("第二圈由場地最遠距離往內收")] public bool reverseSecond;
+        [Tooltip("第二波葉刃錯開角度")] public float angleOffset;
         [Min(0f), Tooltip("萬根第一波預兆 (s)")] public float outerWarning;
         [Min(0f), Tooltip("萬根第二波預兆 (s)")] public float innerWarning;
         [Min(0f), Tooltip("萬根第三波預兆 (s)")] public float crossWarning;

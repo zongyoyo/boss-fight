@@ -34,7 +34,9 @@ namespace BossFight.EditorTools
             var scene = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
             if (scene.path != PrologueBuilder.ScenePath) throw new InvalidOperationException("請開啟 Prologue。");
             var mentor = Object.FindAnyObjectByType<DaisyMentor>();
-            var sapling = Object.FindAnyObjectByType<TrainingSapling>();
+            // 場上另有 T29 戰鬥池；只使用教學綁定器明確指定的樹精。
+            var actorBinding = Object.FindAnyObjectByType<PrologueActorBinding>();
+            var sapling = actorBinding != null ? new SerializedObject(actorBinding).FindProperty("sapling").objectReferenceValue as TrainingSapling : null;
             if (mentor == null || sapling == null) throw new InvalidOperationException("先完成 T26 角色。");
             EnsureData();
             ApplyLockOnCamera();
@@ -270,7 +272,11 @@ namespace BossFight.EditorTools
                 Require(feedback, "sparkPrefab", "impactAnchor");
                 Require(feedback.GetComponent<FeedbackEmitter>(), "data", "audioManager", "impulse");
             }
-            if (Object.FindObjectsByType<TeachingActorFeedback>(FindObjectsSortMode.None).Length != 2) throw new InvalidOperationException("教學角色回饋不完整。");
+            // T29 的戰鬥池也沿用回饋元件，教學驗證只計算自己的兩個角色。
+            var teachingActors = new SerializedObject(director);
+            foreach (string actorField in new[] { "mentor", "sapling" })
+                if (((Component)teachingActors.FindProperty(actorField).objectReferenceValue).GetComponent<TeachingActorFeedback>() == null)
+                    throw new InvalidOperationException("教學角色回饋不完整。");
             var data = AssetDatabase.LoadAssetAtPath<TutorialData>(DataPath);
             if (data.steps.Length != 6 || data.grantedBones != 1 || data.initialBones != 0 || data.endingPause != 1f)
                 throw new InvalidOperationException("教學步數／骨頭／停頓不符。");

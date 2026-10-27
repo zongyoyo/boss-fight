@@ -21,6 +21,23 @@ namespace BossFight.UI
 
         float target = 1f, shown = 1f, trailValue = 1f, trailHoldUntil;
         bool initialized, centered;
+        RectTransform loss;
+        float lossUntil;
+        /// <summary>自損專用白色區段；主條照血量事件更新，白段停留後才消失。</summary>
+        public void FlashLoss(float before, float after, float duration)
+        {
+            Set(after, true); // 自損用白段保留原長度，不再疊一層一般黃色延遲扣血。
+            if (loss == null)
+            {
+                var go = new GameObject("SelfCostFlash", typeof(RectTransform), typeof(Image));
+                loss = (RectTransform)go.transform; loss.SetParent(fill.parent, false);
+                go.GetComponent<Image>().color = Color.white; go.GetComponent<Image>().raycastTarget = false;
+            }
+            loss.anchorMin = new Vector2(Mathf.Clamp01(after), fill.anchorMin.y);
+            loss.anchorMax = new Vector2(Mathf.Clamp01(before), fill.anchorMax.y);
+            loss.offsetMin = loss.offsetMax = Vector2.zero;
+            loss.gameObject.SetActive(true); lossUntil = Time.unscaledTime + duration;
+        }
         float fillMinX;
 
         /// <summary>主條的 Image（擁有者用來換顏色、閃爍）；沒有時為 null。</summary>
@@ -68,6 +85,7 @@ namespace BossFight.UI
 
         void Update()
         {
+            if (loss != null && loss.gameObject.activeSelf && Time.unscaledTime >= lossUntil) loss.gameObject.SetActive(false);
             if (centered) return;
             float dt = Time.unscaledDeltaTime;
             shown = Mathf.MoveTowards(shown, target, data.fillSpeed * dt);

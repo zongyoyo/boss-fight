@@ -19,3 +19,4 @@ MonoBehaviour:
   stunDamageMultiplier: 1.5
   phases:
   - {fileID: 11400000, guid: 7fb70fee4bb4ef742ab34887cbb29cc4, type: 2}
+  - {fileID: 11400000, guid: 1ebf07486c9d9f345a8a8b0628a8c7d6, type: 2}
