@@ -72,7 +72,47 @@ namespace BossFight.EditorTools
             so.FindProperty("data").objectReferenceValue = data;
             so.FindProperty("fade").objectReferenceValue = group;
             so.FindProperty("pause").objectReferenceValue = Object.FindAnyObjectByType<GamePause>();
+            var options = Object.FindAnyObjectByType<GameOptions>();
+            so.FindProperty("options").objectReferenceValue = options;
+            bool hubScene = flow.gameObject.scene.path == HubBuilder.ScenePath || Object.FindAnyObjectByType<HubManager>() != null;
+            so.FindProperty("routePrologueOnLaunch").boolValue = hubScene;
+            if (hubScene)
+            {
+                var startup = flow.transform.Find("StartupCamera");
+                if (startup == null)
+                {
+                    startup = new GameObject("StartupCamera").transform;
+                    startup.SetParent(flow.transform, false);
+                }
+                var startupCamera = DaoDunDogBuilder.GetOrAdd<UnityEngine.Camera>(startup.gameObject);
+                startupCamera.enabled = false;
+                startupCamera.clearFlags = CameraClearFlags.SolidColor;
+                startupCamera.backgroundColor = Color.black;
+                startupCamera.cullingMask = 0;
+                startupCamera.depth = -100f; // 純視覺：只作開機黑幕底圖
+                so.FindProperty("startupCamera").objectReferenceValue = startupCamera;
+            }
+            else so.FindProperty("startupCamera").objectReferenceValue = null;
+            var contents = so.FindProperty("startupContents");
+            contents.arraySize = 0;
+            if (hubScene && options != null)
+            {
+                // 所有接線完成後才分組；保留設定與黑幕在外面，開機分流才不會先生成 Hub 玩家。
+                GameObject content = null;
+                var roots = flow.gameObject.scene.GetRootGameObjects();
+                foreach (var root in roots) if (root.name == "HubContent") content = root;
+                if (content == null) content = new GameObject("HubContent");
+                foreach (var root in roots)
+                {
+                    if (root == content || root == flow.gameObject || root == options.gameObject) continue;
+                    root.transform.SetParent(content.transform, true);
+                }
+                contents.arraySize = 1;
+                contents.GetArrayElementAtIndex(0).objectReferenceValue = content;
+            }
             so.ApplyModifiedPropertiesWithoutUndo();
+            var prologue = Object.FindAnyObjectByType<PrologueSession>();
+            if (prologue != null) DaoDunDogBuilder.SetReference(prologue, "sceneFlow", flow);
 
             var wired = new List<string>();
             var battle = Object.FindAnyObjectByType<BattleManager>();

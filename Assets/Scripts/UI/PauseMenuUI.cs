@@ -84,6 +84,8 @@ namespace BossFight.UI
         [Tooltip("開發者模式開著時才顯示")]
         [SerializeField] Button resetSaveButton;
         [SerializeField] Button settingsBackButton;
+        [Tooltip("開發者模式的略過序章偏好；舊場景尚未重建時可留空")]
+        [SerializeField] Toggle skipPrologueToggle;
 
         [Header("按鍵設定")]
         [SerializeField] GameObject controlsPage;
@@ -179,6 +181,7 @@ namespace BossFight.UI
             developerButton.onClick.AddListener(ToggleDeveloperMode);
             resetSaveButton.onClick.AddListener(() => ShowConfirm(ConfirmAction.ResetSave));
             settingsBackButton.onClick.AddListener(Back);
+            if (skipPrologueToggle != null) skipPrologueToggle.onValueChanged.AddListener(SetSkipPrologue);
             // 改鍵頁第一次打開時才 Awake、建立各列，第一格在換頁之後才拿得到（DefaultSelectable）
             keyboardButton.onClick.AddListener(() => ShowPage(PauseMenuPage.Keyboard, null));
             gamepadButton.onClick.AddListener(() => ShowPage(PauseMenuPage.Gamepad, null));
@@ -208,6 +211,7 @@ namespace BossFight.UI
                 options.OnVolumeChanged += HandleVolumeChanged;
                 options.OnDeveloperModeChanged += HandleDeveloperModeChanged;
                 options.OnDifficultyChanged += HandleDifficultyChanged;
+                options.OnSkipPrologueChanged += HandleSkipPrologue;
             }
             if (battle != null) battle.OnDeveloperOptionsUnlocked += HandleDeveloperOptionsUnlocked;
             if (hub != null)
@@ -228,6 +232,7 @@ namespace BossFight.UI
                 options.OnVolumeChanged -= HandleVolumeChanged;
                 options.OnDeveloperModeChanged -= HandleDeveloperModeChanged;
                 options.OnDifficultyChanged -= HandleDifficultyChanged;
+                options.OnSkipPrologueChanged -= HandleSkipPrologue;
             }
             if (battle != null) battle.OnDeveloperOptionsUnlocked -= HandleDeveloperOptionsUnlocked;
             if (hub != null)
@@ -446,6 +451,16 @@ namespace BossFight.UI
             if (options != null) options.SetDeveloperMode(!developerMode);
         }
 
+        void SetSkipPrologue(bool value)
+        {
+            if (options != null) options.SetSkipPrologue(value);
+        }
+
+        void HandleSkipPrologue(bool value)
+        {
+            if (skipPrologueToggle != null) skipPrologueToggle.SetIsOnWithoutNotify(value);
+        }
+
         void HandleDeveloperModeChanged(bool on)
         {
             developerMode = on;
@@ -470,6 +485,7 @@ namespace BossFight.UI
             bool reset = developerVisible && developerMode;
             developerButton.gameObject.SetActive(developerVisible);
             resetSaveButton.gameObject.SetActive(reset);
+            if (skipPrologueToggle != null) skipPrologueToggle.gameObject.SetActive(reset);
             ((RectTransform)settingsBackButton.transform).anchoredPosition = reset ? settingsBackPosition : developerVisible ? resetSavePosition : developerPosition;
         }
 

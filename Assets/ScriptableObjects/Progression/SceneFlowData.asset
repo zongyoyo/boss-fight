@@ -14,7 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Progression.SceneFlowData
   hubScene: Hub
   battleScene: BossArena
+  prologueScene: Prologue
   startArrival: Start
   portalArrival: Portal
+  wakeArrival: Wake
   fadeOutTime: 0.2
   fadeInTime: 0.2

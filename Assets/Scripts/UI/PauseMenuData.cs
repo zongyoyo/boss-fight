@@ -88,6 +88,8 @@ namespace BossFight.UI
         public string backLabel = "返回";
         [Tooltip("開發者模式開著時，開關下面多一個按鈕")]
         public string resetSaveLabel = "重置存檔";
+        [Tooltip("僅開發者模式顯示；不寫序章完成紀錄")]
+        public string skipPrologueLabel = "略過序章";
         [Tooltip("每一頁下方的操作提示（用鍵鼠時）")]
         public string navigationHintKeyboard = "Esc 返回";
         [Tooltip("每一頁下方的操作提示（用手把時）")]

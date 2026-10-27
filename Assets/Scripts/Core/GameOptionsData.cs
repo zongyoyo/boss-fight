@@ -17,6 +17,8 @@ namespace BossFight.Core
         [Header("開發者模式")]
         [Tooltip("沒有存檔時開發者模式（F1–F7、F12、Debug 面板）是否開啟；關著時選單裡的開關也藏起來，要在選單輸入秘技才出現。沒有 Debug 程式的 build（見 BOSSFIGHT_DEV_TOOLS）這個值沒有作用")]
         public bool defaultDeveloperMode;
+        [Tooltip("開發者模式開啟時略過序章；不會寫入序章完成紀錄")]
+        public bool defaultSkipPrologue;
 
         [Header("難度")]
         [Tooltip("沒有存檔時的難度")]

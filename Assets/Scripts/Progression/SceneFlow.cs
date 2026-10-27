@@ -1,3 +1,4 @@
+using System;
 using BossFight.Core;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -14,6 +15,7 @@ namespace BossFight.Progression
     /// 淡入淡出累加每幀的真實時間，但一幀最多算 MaxFadeStep 秒：載入新場景後的頭幾幀常卡上半秒，直接用時間差的話淡入會整段被吃掉。
     /// Battle 與 Hub 互不引用，兩邊都只靠這裡換場景。
     /// </summary>
+    [DefaultExecutionOrder(-1100)]
     [DisallowMultipleComponent]
     public class SceneFlow : MonoBehaviour
     {
@@ -24,6 +26,17 @@ namespace BossFight.Progression
         [SerializeField] CanvasGroup fade;
         [Tooltip("換場景前解除暫停（ESC 選單開著時）；可留空")]
         [SerializeField] GamePause pause;
+        [SerializeField] GameOptions options;
+        [Tooltip("只在 Hub 啟用：第一次啟動時決定是否進序章")]
+        [SerializeField] bool routePrologueOnLaunch;
+        [Tooltip("分流前停用的 Hub 內容；不包含 SceneFlow 與 GameOptions，並且早於 PlayerSpawner.Awake")]
+        [SerializeField] GameObject[] startupContents = new GameObject[0];
+        [Tooltip("開機分流期間清成全黑的備用相機；位於 Hub 內容閘門外，只在轉入序章時啟用")]
+        [SerializeField] UnityEngine.Camera startupCamera;
+
+        public event Action<bool> OnLoadingChanged;
+        /// <summary>Start 取走 arrival 後送出；訂閱方在 OnEnable 訂閱，不要另行 TakeArrival。</summary>
+        public event Action<string> OnArrived;
 
         /// <summary>換場景中（淡出到載入新場景之間）。</summary>
         public bool IsLoading { get; private set; }
@@ -31,17 +44,45 @@ namespace BossFight.Progression
         string targetScene, targetArrival;
         float fadeElapsed, fadeFrom, fadeTo;
         float fadeDuration = -1f; // < 0 = 沒有在淡入淡出
+        bool redirectOnLaunch, holdArrivalFade;
 
         void Awake()
         {
-            SetFade(0f);
+            bool firstScene = ProfileStore.TakeLaunchRouting();
+            redirectOnLaunch = firstScene && routePrologueOnLaunch && data != null &&
+                               !ProfileStore.PrologueDone && !(options != null && options.CanSkipPrologue);
+            if (redirectOnLaunch)
+            {
+                if (startupCamera != null) startupCamera.enabled = true;
+                foreach (var content in startupContents)
+                    if (content != null) content.SetActive(false);
+            }
+            SetFade(redirectOnLaunch || ProfileStore.PeekArrival(out _) ? 1f : 0f);
         }
 
         void Start()
         {
-            if (!ProfileStore.TakeArrival(out _)) return;
+            if (redirectOnLaunch)
+            {
+                targetScene = data.prologueScene;
+                targetArrival = string.Empty;
+                IsLoading = true;
+                LoadTarget();
+                return;
+            }
+            if (!ProfileStore.TakeArrival(out string arrival)) return;
             // 從全黑淡入
             SetFade(1f);
+            OnArrived?.Invoke(arrival);
+            if (!holdArrivalFade) RevealArrival();
+        }
+
+        /// <summary>T30 醒來演出可在 OnArrived 中保留黑幕，再以 RevealArrival 交還淡入。</summary>
+        public void HoldArrivalFade() => holdArrivalFade = true;
+
+        public void RevealArrival()
+        {
+            holdArrivalFade = false;
             BeginFade(0f, data != null ? data.fadeInTime : 0f);
         }
 
@@ -68,6 +109,18 @@ namespace BossFight.Progression
             if (data != null) Load(data.hubScene, data.portalArrival);
         }
 
+        /// <summary>序章結局演出寫完存檔後返回 Hub；此方法本身不寫完成紀錄。</summary>
+        public void ReturnFromPrologue(bool wake)
+        {
+            if (data != null) Load(data.hubScene, wake ? data.wakeArrival : data.startArrival);
+        }
+
+        /// <summary>開發者略過，回 Hub 一般出生點，保留序章未完成狀態。</summary>
+        public void SkipPrologue()
+        {
+            if (options != null && options.CanSkipPrologue) ReturnFromPrologue(false);
+        }
+
         /// <summary>清空存檔，回到休息區的啟動出生點（開發者模式的「重置存檔」）。</summary>
         public void ResetProfile()
         {
@@ -82,6 +135,7 @@ namespace BossFight.Progression
             IsLoading = true;
             targetScene = scene;
             targetArrival = arrival;
+            OnLoadingChanged?.Invoke(true);
             BeginFade(1f, data.fadeOutTime);
         }
 

@@ -4,6 +4,7 @@ using BossFight.Core;
 using BossFight.Cutscene;
 using BossFight.DebugTools;
 using BossFight.Hub;
+using BossFight.Progression;
 using BossFight.UI;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -66,9 +67,10 @@ namespace BossFight.EditorTools
         {
             var battle = Object.FindAnyObjectByType<BattleManager>();
             var hub = battle == null ? Object.FindAnyObjectByType<HubManager>() : null;
-            if (battle == null && hub == null)
+            var prologue = Object.FindAnyObjectByType<PrologueSession>();
+            if (battle == null && hub == null && prologue == null)
             {
-                Debug.LogError("[PauseMenu] 需要場景裡的 BattleManager（Tools > Cutscene > Build Intro）或休息區的 HubManager（Tools > Hub > Build Hub）。");
+                Debug.LogError("[PauseMenu] 需要 BattleManager、HubManager 或 PrologueSession。");
                 return null;
             }
 
@@ -89,6 +91,8 @@ namespace BossFight.EditorTools
             GetOrCreate<DifficultyData>(DifficultyPath);
             var inputNames = GetOrCreate<InputNameData>(InputNamesPath);
             var optionsData = GetOrCreate<GameOptionsData>(OptionsDataPath);
+            EditorUtility.SetDirty(data); // 序列化新增的略過序章文字與預設設定
+            EditorUtility.SetDirty(optionsData);
             var options = EnsureOptions(optionsData, out var pause);
             var eventSystem = BattleUIBuilder.EnsureEventSystem();
 
@@ -156,9 +160,13 @@ namespace BossFight.EditorTools
 
             // ---------- 設定 ----------
             // 開發者模式、重置存檔沒顯示時 PauseMenuUI 把「返回」往上補
-            var settings = Window("Settings", root.transform, new Vector2(620f, 600f + ButtonGap), data.settingsLabel);
-            var settingButtons = ButtonColumn(settings, 130f + ButtonGap * 0.5f, data.controlsLabel, data.volumeLabel,
+            var settings = Window("Settings", root.transform, new Vector2(620f, 600f + ButtonGap * 2f), data.settingsLabel);
+            var settingButtons = ButtonColumn(settings, 130f + ButtonGap, data.controlsLabel, data.volumeLabel,
                                               string.Format(data.developerModeFormat, data.onText), data.resetSaveLabel, data.backLabel);
+            // 多一列真正的勾選框；關閉開發者模式時沿用原本的返回按鈕補位。
+            var skip = BuildSkipToggle(settings, new Vector2(0f, 130f - ButtonGap * 3f));
+            so.FindProperty("skipPrologueToggle").objectReferenceValue = skip;
+            ((RectTransform)settingButtons[4].transform).anchoredPosition -= Vector2.up * ButtonGap;
             so.FindProperty("settingsPage").objectReferenceValue = settings.gameObject;
             Set(so, "controlsButton", settingButtons[0]);
             Set(so, "volumeButton", settingButtons[1]);
@@ -253,6 +261,7 @@ namespace BossFight.EditorTools
             var hintDevice = DaoDunDogBuilder.GetOrAdd<InputHintDevice>(options.gameObject);
             var battle = Object.FindAnyObjectByType<BattleManager>();
             var hub = Object.FindAnyObjectByType<HubManager>();
+            var prologue = Object.FindAnyObjectByType<PrologueSession>();
             var audio = Object.FindAnyObjectByType<AudioManager>();
 
             // 音量：選單試聽的 AudioSource、演出 Timeline 音軌的 AudioSource
@@ -275,6 +284,11 @@ namespace BossFight.EditorTools
                 DaoDunDogBuilder.SetReference(battle, "difficultyData", AssetDatabase.LoadAssetAtPath<DifficultyData>(DifficultyPath));
             }
             if (hub != null) DaoDunDogBuilder.SetReference(hub, "pause", pause);
+            if (prologue != null)
+            {
+                DaoDunDogBuilder.SetReference(prologue, "pause", pause);
+                DaoDunDogBuilder.SetReference(prologue, "options", options);
+            }
 
             // 開發者模式
             var bossTools = Object.FindAnyObjectByType<BossDebugTools>();
@@ -338,8 +352,8 @@ namespace BossFight.EditorTools
             PlayerSpawnerBuilder.Wire(); // 選單相關的接收者（BattleManager 等）與 AudioManager 重接
 
             EditorSceneManager.MarkSceneDirty(options.gameObject.scene);
-            string missing = (audio == null ? " AudioManager" : "") + (battle == null && hub == null ? " BattleManager／HubManager" : "") +
-                             (bossTools == null && hub == null ? " DebugTools" : "") + (menu == null ? " PauseMenu" : "");
+            string missing = (audio == null ? " AudioManager" : "") + (battle == null && hub == null && prologue == null ? " 場景流程" : "") +
+                             (bossTools == null && hub == null && prologue == null ? " DebugTools" : "") + (menu == null ? " PauseMenu" : "");
             Debug.Log("[PauseMenu] 設定、暫停與按鍵名稱已接上" + (missing.Length > 0 ? $"；缺少：{missing}" : ""));
         }
 
@@ -577,6 +591,24 @@ namespace BossFight.EditorTools
             var text = Label("Label", image.transform, label, fontSize, FontStyle.Normal, data.textColor, TextAnchor.MiddleCenter);
             Stretch(text.rectTransform);
             return button;
+        }
+
+        static Toggle BuildSkipToggle(Transform parent, Vector2 position)
+        {
+            var row = Img("SkipPrologue", parent, roundSprite, data.buttonColor);
+            row.type = Image.Type.Sliced;
+            row.raycastTarget = true;
+            Place(row.rectTransform, new Vector2(0.5f, 0.5f), position, ButtonSize);
+            var box = Img("Box", row.transform, roundSprite, data.panelColor);
+            Place(box.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(-160f, 0f), new Vector2(36f, 36f));
+            var check = Img("Check", box.transform, null, data.titleColor);
+            Place(check.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(24f, 24f));
+            var label = Label("Label", row.transform, data.skipPrologueLabel, 34, FontStyle.Normal, data.textColor, TextAnchor.MiddleCenter);
+            Place(label.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(20f, 0f), new Vector2(320f, 70f));
+            var toggle = row.gameObject.AddComponent<Toggle>();
+            toggle.targetGraphic = row;
+            toggle.graphic = check;
+            return toggle;
         }
 
         static T GetOrCreate<T>(string path) where T : ScriptableObject

@@ -16,4 +16,5 @@ MonoBehaviour:
   defaultMusicVolume: 1
   defaultSfxVolume: 1
   defaultDeveloperMode: 0
+  defaultSkipPrologue: 0
   defaultDifficulty: 0

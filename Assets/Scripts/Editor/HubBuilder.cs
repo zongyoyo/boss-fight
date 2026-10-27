@@ -119,11 +119,14 @@ namespace BossFight.EditorTools
             if (portalStation != null)
                 portalSpawn.SetPositionAndRotation(HubLayoutData.Ground(portalStation.position) + HubLayoutData.Direction(portalStation.facing) * layout.portalSpawnDistance,
                                                    Quaternion.Euler(0f, portalStation.facing, 0f));
+            var wake = new GameObject(flowData.wakeArrival).transform;
+            wake.SetParent(spawns, false);
+            wake.SetPositionAndRotation(HubLayoutData.Ground(layout.wakeSpawn), Quaternion.Euler(0f, layout.wakeFacing, 0f));
 
             // 設定、音效、玩家、鏡頭
             var options = PauseMenuBuilder.EnsureOptions(AssetDatabase.LoadAssetAtPath<GameOptionsData>(OptionsDataPath), out var pause);
             IntroCutsceneBuilder.BuildAudioManager(null);
-            PlayerSpawnerBuilder.Build(start.position, start.rotation, (flowData.startArrival, start), (flowData.portalArrival, portalSpawn));
+            PlayerSpawnerBuilder.Build(start.position, start.rotation, (flowData.startArrival, start), (flowData.portalArrival, portalSpawn), (flowData.wakeArrival, wake));
             var cameraController = CameraRigBuilder.Build(PlayerSpawnerBuilder.Preview().Controller); // 也會接打擊回饋（CombatFeedbackBuilder.Wire）
             WireCampfire(interactables, options);
             WireBlacksmith(interactables, options);
@@ -146,6 +149,7 @@ namespace BossFight.EditorTools
 
             PauseMenuBuilder.Build(); // 休息區版 ESC 選單；Wire 最後建 SceneFlow（接傳送門）並接 spawner
             HubUIBuilder.Build(hub, scanner);
+            SceneFlowBuilder.Build(); // 把最後建立的 HubUI 也納入開機閘門
             PlayerSpawnerBuilder.Wire();
 
             EditorSceneManager.SaveScene(scene, ScenePath);
@@ -157,11 +161,61 @@ namespace BossFight.EditorTools
         /// <summary>Build Settings：Hub 0、BossArena 1（SampleScene 拿掉）。</summary>
         public static void SetBuildScenes()
         {
-            EditorBuildSettings.scenes = new List<EditorBuildSettingsScene>
+            var scenes = new List<EditorBuildSettingsScene>
             {
                 new EditorBuildSettingsScene(ScenePath, true),
                 new EditorBuildSettingsScene(BattleScenePath, true),
-            }.ToArray();
+            };
+            if (AssetDatabase.LoadAssetAtPath<SceneAsset>(PrologueBuilder.ScenePath) != null)
+                scenes.Add(new EditorBuildSettingsScene(PrologueBuilder.ScenePath, true));
+            foreach (var existing in EditorBuildSettings.scenes)
+            {
+                if (existing.path == ScenePath || existing.path == BattleScenePath || existing.path == PrologueBuilder.ScenePath ||
+                    existing.path == "Assets/Scenes/SampleScene.unity") continue;
+                scenes.Add(existing);
+            }
+            EditorBuildSettings.scenes = scenes.ToArray();
+        }
+
+        /// <summary>T25 原地升級目前的 Hub：保留美術與現有出生點，只補 Wake、選單與啟動閘門。</summary>
+        [MenuItem("Tools/Prologue/Upgrade Hub Wiring")]
+        public static void UpgradePrologueWiring()
+        {
+            if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().path != ScenePath)
+                throw new System.InvalidOperationException("請先開啟 Hub 場景。");
+            var spawner = PlayerSpawnerBuilder.Find();
+            var layout = AssetDatabase.LoadAssetAtPath<HubLayoutData>(LayoutPath);
+            var flowData = AssetDatabase.LoadAssetAtPath<SceneFlowData>(SceneFlowBuilder.DataPath);
+            if (spawner == null || layout == null || flowData == null)
+                throw new System.InvalidOperationException("Hub 缺少 PlayerSpawner、HubLayout 或 SceneFlowData。");
+            var so = new SerializedObject(spawner);
+            var points = so.FindProperty("spawnPoints");
+            Transform parent = null, wake = null;
+            for (int i = 0; i < points.arraySize; i++)
+            {
+                var p = points.GetArrayElementAtIndex(i);
+                var point = p.FindPropertyRelative("point").objectReferenceValue as Transform;
+                if (point != null) parent = point.parent;
+                if (p.FindPropertyRelative("id").stringValue == flowData.wakeArrival) wake = point;
+            }
+            if (wake == null)
+            {
+                wake = new GameObject(flowData.wakeArrival).transform;
+                wake.SetParent(parent, false);
+                int index = points.arraySize++;
+                var entry = points.GetArrayElementAtIndex(index);
+                entry.FindPropertyRelative("id").stringValue = flowData.wakeArrival;
+                entry.FindPropertyRelative("point").objectReferenceValue = wake;
+            }
+            wake.SetPositionAndRotation(HubLayoutData.Ground(layout.wakeSpawn), Quaternion.Euler(0f, layout.wakeFacing, 0f));
+            so.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(layout);
+            EditorUtility.SetDirty(flowData);
+            PauseMenuBuilder.Build();
+            SceneFlowBuilder.Build();
+            PlayerSpawnerBuilder.Wire();
+            SetBuildScenes();
+            EditorSceneManager.MarkSceneDirty(spawner.gameObject.scene);
         }
 
         // ---------- 地面、小路 ----------

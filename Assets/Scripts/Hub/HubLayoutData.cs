@@ -110,6 +110,10 @@ namespace BossFight.Hub
         public Vector2 startSpawn = new Vector2(-7f, -6.5f);
         [Tooltip("啟動時的朝向（度）")]
         public float startFacing = 45f;
+        [Tooltip("序章擊倒後的醒來出生點 (x, z)，T25 先不做起身動作")]
+        public Vector2 wakeSpawn = new Vector2(-7f, -6.5f);
+        [Tooltip("醒來時的朝向（度）")]
+        public float wakeFacing = 45f;
         [Tooltip("從 Boss 戰回來的出生點：傳送門往正面多遠 (m)，面向正面（背對傳送門）")]
         [Min(0f)] public float portalSpawnDistance = 5f;
 

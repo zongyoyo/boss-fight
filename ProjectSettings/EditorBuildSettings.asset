@@ -11,6 +11,9 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/BossArena.unity
     guid: 2c412a389f7714945b0dd2db3b7ea870
+  - enabled: 1
+    path: Assets/Scenes/Prologue.unity
+    guid: f8d8d648c34d71745b6f46bee7524b9b
   m_configObjects:
     com.unity.dt.app-ui: {fileID: 11400000, guid: 1b1c20d82303e4b5781c3ef50ac1449f, type: 2}
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}

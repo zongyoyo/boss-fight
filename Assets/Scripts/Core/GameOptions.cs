@@ -21,9 +21,9 @@ namespace BossFight.Core
     /// 這裡只放設定值與存檔，怎麼套用由訂閱方決定：音量是 AudioManager，開發者模式是 Debug 的 DeveloperMode，
     /// 難度是 BattleManager（Awake 時讀 Difficulty，交給玩家與 Boss；戰鬥中改了要重新挑戰才生效）。
     /// Start 時把目前的值各送一次 OnVolumeChanged／OnDeveloperModeChanged／OnDifficultyChanged，訂閱方在 OnEnable 訂閱就會拿到初始值，不用另外讀欄位。
-    /// DefaultExecutionOrder(-100)：Awake 比 BattleManager 早，讀得到存檔的難度。
+    /// DefaultExecutionOrder(-1200)：先讀設定，再由 SceneFlow（-1100）分流，PlayerSpawner（-1000）最後生成玩家。
     /// </summary>
-    [DefaultExecutionOrder(-100)]
+    [DefaultExecutionOrder(-1200)]
     [DisallowMultipleComponent]
     public class GameOptions : MonoBehaviour
     {
@@ -31,6 +31,7 @@ namespace BossFight.Core
         const string BindingsKey = KeyPrefix + "Bindings";
         const string DeveloperModeKey = KeyPrefix + "DeveloperMode";
         const string DifficultyKey = KeyPrefix + "Difficulty";
+        const string SkipPrologueKey = KeyPrefix + "SkipPrologue";
 
         [Tooltip("沒有存檔時的預設值")]
         [SerializeField] GameOptionsData data;
@@ -41,6 +42,22 @@ namespace BossFight.Core
         public event Action<bool> OnDeveloperModeChanged;
         /// <summary>難度改變（Start 時也送一次初始值）。</summary>
         public event Action<Difficulty> OnDifficultyChanged;
+        /// <summary>開發者的略過序章設定（Start 也送一次初始值）。</summary>
+        public event Action<bool> OnSkipPrologueChanged;
+
+        public bool SkipPrologue { get; private set; }
+        /// <summary>正式版不接受開發者略過；開發者模式關閉時保留偏好但不生效。</summary>
+        public bool CanSkipPrologue
+        {
+            get
+            {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || BOSSFIGHT_DEV_TOOLS
+                return DeveloperMode && SkipPrologue;
+#else
+                return false;
+#endif
+            }
+        }
 
         public bool DeveloperMode { get; private set; }
         /// <summary>存檔的難度；這一場套用的是 BattleManager Awake 時讀到的值。</summary>
@@ -56,6 +73,7 @@ namespace BossFight.Core
             foreach (var channel in Channels)
                 volumes[(int)channel] = Mathf.Clamp01(PlayerPrefs.GetFloat(VolumeKey(channel), DefaultVolume(channel)));
             DeveloperMode = PlayerPrefs.GetInt(DeveloperModeKey, data != null && data.defaultDeveloperMode ? 1 : 0) != 0;
+            SkipPrologue = PlayerPrefs.GetInt(SkipPrologueKey, data != null && data.defaultSkipPrologue ? 1 : 0) != 0;
             int difficulty = PlayerPrefs.GetInt(DifficultyKey, (int)(data != null ? data.defaultDifficulty : Difficulty.Hard));
             Difficulty = Enum.IsDefined(typeof(Difficulty), difficulty) ? (Difficulty)difficulty : Difficulty.Hard;
             LoadBindings();
@@ -66,6 +84,7 @@ namespace BossFight.Core
             foreach (var channel in Channels) OnVolumeChanged?.Invoke(channel, volumes[(int)channel]);
             OnDeveloperModeChanged?.Invoke(DeveloperMode);
             OnDifficultyChanged?.Invoke(Difficulty);
+            OnSkipPrologueChanged?.Invoke(SkipPrologue);
         }
 
         void OnDisable() => PlayerPrefs.Save();
@@ -85,6 +104,15 @@ namespace BossFight.Core
             DeveloperMode = on;
             PlayerPrefs.SetInt(DeveloperModeKey, on ? 1 : 0);
             OnDeveloperModeChanged?.Invoke(on);
+        }
+
+        public void SetSkipPrologue(bool on)
+        {
+            if (SkipPrologue == on) return;
+            SkipPrologue = on;
+            PlayerPrefs.SetInt(SkipPrologueKey, on ? 1 : 0);
+            PlayerPrefs.Save();
+            OnSkipPrologueChanged?.Invoke(on);
         }
 
         /// <summary>改難度並立刻存檔；這一場不會變，要重新挑戰（重新載入場景）才套用。</summary>

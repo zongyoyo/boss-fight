@@ -54,6 +54,8 @@ namespace BossFight.Core
         public List<CharacterSkillsSave> characterSkills = new List<CharacterSkillsSave>();
         [Tooltip("看過休息區的開場劇情沒有（T24：村長第一次走過來講話）")]
         public bool storyIntroSeen;
+        [Tooltip("序章結局演出已完成；中途離開及開發者略過不會設定")]
+        public bool prologueDone;
         [Tooltip("接過、還沒回報的任務（QuestData 的 id）")]
         public List<string> acceptedQuests = new List<string>();
         [Tooltip("回報完的任務（id）")]
@@ -76,6 +78,26 @@ namespace BossFight.Core
         static ProfileData data;
         static bool hasArrival;
         static string arrival;
+        static bool launchRoutingPending;
+
+        /// <summary>序章是否完成；舊存檔沒有這個欄位時為 false。</summary>
+        public static bool PrologueDone => Data.prologueDone;
+
+        /// <summary>結局演出完成後才呼叫；T30 加入結果資料時在同一次存檔寫入。</summary>
+        public static void MarkPrologueDone()
+        {
+            if (Data.prologueDone) return;
+            Data.prologueDone = true;
+            Save();
+        }
+
+        /// <summary>每次執行只取一次的開機分流機會；任何初始場景都要取走，返回 Hub 不重新分流。</summary>
+        public static bool TakeLaunchRouting()
+        {
+            bool pending = launchRoutingPending;
+            launchRoutingPending = false;
+            return pending;
+        }
 
         /// <summary>存檔的完整路徑。</summary>
         public static string SavePath => Path.Combine(Application.persistentDataPath, FileName);
@@ -410,6 +432,7 @@ namespace BossFight.Core
         static void ResetOnLaunch()
         {
             data = null; // 下次讀到時重新從檔案載入
+            launchRoutingPending = true;
             hasArrival = false;
             arrival = null;
             Application.quitting -= Save;

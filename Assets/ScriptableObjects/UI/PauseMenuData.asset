@@ -81,7 +81,7 @@ MonoBehaviour:
     checkConflict: 1
   - action: Player/Interact
     compositePart: 
-    label: "互動"
+    label: "\u4E92\u52D5"
     keyboard: 1
     gamepad: 1
     checkConflict: 0
@@ -95,6 +95,7 @@ MonoBehaviour:
   resumeLabel: "\u7E7C\u7E8C"
   settingsLabel: "\u8A2D\u5B9A"
   retryLabel: "\u91CD\u65B0\u6311\u6230"
+  returnToHubLabel: "\u8FD4\u56DE\u4F11\u606F\u5340"
   quitLabel: "\u9000\u51FA\u904A\u6232"
   difficultyLabel: "\u96E3\u5EA6"
   controlsLabel: "\u6309\u9375\u8A2D\u5B9A"
@@ -103,6 +104,8 @@ MonoBehaviour:
   onText: "\u958B"
   offText: "\u95DC"
   backLabel: "\u8FD4\u56DE"
+  resetSaveLabel: "\u91CD\u7F6E\u5B58\u6A94"
+  skipPrologueLabel: "\u7565\u904E\u5E8F\u7AE0"
   navigationHintKeyboard: "Esc \u8FD4\u56DE"
   navigationHintGamepad: "B \u8FD4\u56DE"
   keyboardLabel: "\u9375\u9F20\u6309\u9375\u8A2D\u5B9A"
@@ -145,6 +148,8 @@ MonoBehaviour:
   developerUnlockVolume: 0.9
   retryConfirm: "\u91CD\u65B0\u6311\u6230\uFF1F\n\u9019\u5834\u6230\u9B25\u7684\u9032\u5EA6\u6703\u6D88\u5931\u3002"
   quitConfirm: "\u9000\u51FA\u904A\u6232\uFF1F"
+  returnToHubConfirm: "\u8FD4\u56DE\u4F11\u606F\u5340\uFF1F\n\u9019\u5834\u6230\u9B25\u7684\u9032\u5EA6\u6703\u6D88\u5931\u3002"
+  resetSaveConfirm: "\u91CD\u7F6E\u5B58\u6A94\uFF1F\n\u64CA\u6557\u7D00\u9304\u7B49\u6240\u6709\u9032\u5EA6\u90FD\u6703\u6E05\u7A7A\uFF0C\u4E26\u56DE\u5230\u4F11\u606F\u5340\u3002"
   confirmYes: "\u78BA\u5B9A"
   confirmNo: "\u53D6\u6D88"
   dimColor: {r: 0, g: 0, b: 0, a: 0.6}

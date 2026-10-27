@@ -75,4 +75,6 @@ MonoBehaviour:
   pathWidth: 2
   startSpawn: {x: -7, y: -6.5}
   startFacing: 45
+  wakeSpawn: {x: -7, y: -6.5}
+  wakeFacing: 45
   portalSpawnDistance: 5

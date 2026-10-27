@@ -11,12 +11,16 @@ namespace BossFight.Progression
         public string hubScene = "Hub";
         [Tooltip("Boss 戰的場景名稱（T24 起改由 BossDefinition 指定）")]
         public string battleScene = "BossArena";
+        [Tooltip("第一次啟動、序章尚未完成時進入的場景")]
+        public string prologueScene = "Prologue";
 
         [Header("出生點")]
         [Tooltip("啟動遊戲、重置存檔後在休息區的出生點 id（營火旁）")]
         public string startArrival = "Start";
         [Tooltip("從 Boss 戰回來時在休息區的出生點 id（傳送門前）")]
         public string portalArrival = "Portal";
+        [Tooltip("序章擊倒結局返回營火旁的出生點 id")]
+        public string wakeArrival = "Wake";
 
         [Header("黑幕")]
         [Tooltip("換場景前淡出成全黑的秒數（真實時間）")]
