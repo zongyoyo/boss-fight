@@ -80,6 +80,7 @@ namespace BossFight.EditorTools
             DaoDunDogBuilder.SetReference(session, "cameraController", camera);
             PauseMenuBuilder.Build();
             SceneFlowBuilder.Build();
+            PrologueActorsBuilder.Build();
             PlayerSpawnerBuilder.Wire();
             EditorSceneManager.SaveScene(scene, ScenePath);
             AssetDatabase.SaveAssets();

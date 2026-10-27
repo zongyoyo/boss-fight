@@ -203,6 +203,15 @@ namespace BossFight.EditorTools
 
         // ---------- 玩家 HUD（左下） ----------
 
+        /// <summary>序章等獨立場景只建立玩家 HUD，不建立 BossArena 的戰鬥流程或勝敗介面。</summary>
+        internal static void BuildStandalonePlayerHud(RectTransform parent, BattleUIData data)
+        {
+            font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            roundSprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/UISprite.psd");
+            knobSprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Knob.psd");
+            BuildPlayerHud(parent, data);
+        }
+
         static void BuildPlayerHud(RectTransform parent, BattleUIData data)
         {
             var panel = Node("PlayerHud", parent);

@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9f4d082e7cf312f46b754314666f130d, type: 3}
+  m_Name: AngrySapling
+  m_EditorClassIdentifier: Assembly-CSharp::BossFight.Boss.TrainingSaplingData
+  displayName: "\u61A4\u6012\u7684\u5C0F\u6A39\u7CBE"
+  maxHealth: 30
+  targetHealthFloor: 1
+  initialMode: 1
+  initiallyInvulnerable: 0
+  initiallyAccumulateStagger: 1
+  lifetime: 15
+  damage: 25
+  attackPeriod: 1.5
+  telegraphTime: 1
+  activeTime: 0.15
+  reach: 2.5
+  width: 1.5
+  height: 1.2
+  turnSpeed: 180
+  canBlock: 1
+  canParry: 1
+  staggerMax: 100
+  staggerDecayDelay: 3
+  staggerDecayRate: 8

@@ -138,11 +138,11 @@ namespace BossFight.Player
 
             bool blocking = controller.IsBlocking;
             float held = blocking ? controller.BlockHeldTime : -1f;
-            bool guarded = blocking && IsInFront(info.sourcePosition);
+            bool guarded = !info.ignoreDefense && blocking && IsInFront(info.sourcePosition);
 
             DamageResult result;
             float healthLoss = 0f, staminaLoss = 0f;
-            if (ForcedInvulnerable || controller.IsInvulnerable || IsHitInvulnerable)
+            if (!info.ignoreInvulnerability && (ForcedInvulnerable || controller.IsInvulnerable || IsHitInvulnerable))
             {
                 result = DamageResult.Evaded;
             }

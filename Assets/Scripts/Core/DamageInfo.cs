@@ -25,10 +25,17 @@ namespace BossFight.Core
         public readonly float blockStaminaMultiplier;
         /// <summary>處決（頭暈時按 F）：固定傷害，不吃頭暈的受傷倍率，打到就結束頭暈。</summary>
         public readonly bool isExecution;
+        /// <summary>劇情攻擊可繞過翻滾、受擊與強制無敵；一般攻擊維持 false。</summary>
+        public readonly bool ignoreInvulnerability;
+        /// <summary>劇情攻擊可繞過格擋與盾反；一般攻擊維持 false。</summary>
+        public readonly bool ignoreDefense;
+        /// <summary>直接命中時的水平擊退距離與時間；0 距離不推動。數值來自攻擊方 SO。</summary>
+        public readonly float pushDistance, pushDuration;
 
         public DamageInfo(float damage, bool canBlock, bool canParry, float imbalance,
                           Vector3 sourcePosition = default, GameObject source = null, float blockStaminaMultiplier = 1f,
-                          bool isExecution = false)
+                          bool isExecution = false, bool ignoreInvulnerability = false, bool ignoreDefense = false,
+                          float pushDistance = 0f, float pushDuration = 0f)
         {
             this.damage = damage;
             this.canBlock = canBlock;
@@ -38,15 +45,21 @@ namespace BossFight.Core
             this.source = source;
             this.blockStaminaMultiplier = blockStaminaMultiplier;
             this.isExecution = isExecution;
+            this.ignoreInvulnerability = ignoreInvulnerability;
+            this.ignoreDefense = ignoreDefense;
+            this.pushDistance = pushDistance;
+            this.pushDuration = pushDuration;
         }
 
         /// <summary>換掉來源位置與物件，其他不變。</summary>
         public DamageInfo WithSource(Vector3 position, GameObject sourceObject) =>
-            new DamageInfo(damage, canBlock, canParry, imbalance, position, sourceObject, blockStaminaMultiplier, isExecution);
+            new DamageInfo(damage, canBlock, canParry, imbalance, position, sourceObject, blockStaminaMultiplier, isExecution,
+                           ignoreInvulnerability, ignoreDefense, pushDistance, pushDuration);
 
         /// <summary>換掉格擋時的耐力倍率，其他不變。</summary>
         public DamageInfo WithBlockStaminaMultiplier(float multiplier) =>
-            new DamageInfo(damage, canBlock, canParry, imbalance, sourcePosition, source, multiplier, isExecution);
+            new DamageInfo(damage, canBlock, canParry, imbalance, sourcePosition, source, multiplier, isExecution,
+                           ignoreInvulnerability, ignoreDefense, pushDistance, pushDuration);
     }
 
     /// <summary>被打方結算一次攻擊的結果，會回報給攻擊方（例如 Boss 被盾反時加失衡）。</summary>

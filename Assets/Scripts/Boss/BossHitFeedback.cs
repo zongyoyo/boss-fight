@@ -6,17 +6,21 @@ namespace BossFight.Boss
 {
     /// <summary>
     /// 招式打到目標的那一刻，在目標身上爆一下火花，顏色看結算結果：命中紅、格擋藍、破防橘、盾反金、無敵閃過綠。
-    /// 只訂閱 BossController.OnMoveHit；顏色、大小都是純視覺參數。
+    /// 訂閱 BossController.OnMoveHit 或 TrainingSapling 的攻擊事件；顏色、大小都是純視覺參數。
     /// </summary>
     [DisallowMultipleComponent]
     public class BossHitFeedback : MonoBehaviour
     {
         [SerializeField] BossController boss;
+        [Tooltip("小樹精使用同一套命中回饋；和 boss 擇一接線")]
+        [SerializeField] TrainingSapling sapling;
         [SerializeField] TimedFx sparkPrefab;
         [Tooltip("火花大小倍率")]
         [Min(0f)] [SerializeField] float size = 1f;
         [Tooltip("火花從受擊範圍中心往攻擊來源偏移的距離 (m)，才不會被角色身體擋住")]
         [Min(0f)] [SerializeField] float towardSource = 0.6f;
+        [Tooltip("翻滾移出判定範圍時，火花在玩家根位置上方的高度 (m)")]
+        [Min(0f)] [SerializeField] float evadedHeight = 1f;
 
         [Header("顏色（HDR）")]
         [SerializeField] [ColorUsage(true, true)] Color hitColor = new Color(3f, 0.35f, 0.25f, 1f);
@@ -28,17 +32,42 @@ namespace BossFight.Boss
         void OnEnable()
         {
             if (boss != null) boss.OnMoveHit += HandleMoveHit;
+            if (sapling != null)
+            {
+                sapling.OnAttackHit += HandleSaplingHit;
+                sapling.OnAttackResolved += HandleSaplingResolved;
+            }
         }
 
         void OnDisable()
         {
             if (boss != null) boss.OnMoveHit -= HandleMoveHit;
+            if (sapling != null)
+            {
+                sapling.OnAttackHit -= HandleSaplingHit;
+                sapling.OnAttackResolved -= HandleSaplingResolved;
+            }
         }
 
         void HandleMoveHit(BossMove move, HitReport report)
         {
+            Vector3 pos = report.hurtbox != null ? report.hurtbox.Center : transform.position;
+            PlayResult(report.result, pos, report.info.sourcePosition);
+        }
+
+        void HandleSaplingHit(int id, HitReport report) => HandleMoveHit(null, report);
+
+        void HandleSaplingResolved(SaplingAttackReport report)
+        {
+            // 有 HitReport 的閃避已經播放過；走遠處空滾或取消的攻擊不補播。
+            if (report.cancelled || report.hasHit || !report.rollEvaded) return;
+            PlayResult(DamageResult.Evaded, report.targetPosition + Vector3.up * evadedHeight, transform.position);
+        }
+
+        void PlayResult(DamageResult result, Vector3 pos, Vector3 sourcePosition)
+        {
             Color color;
-            switch (report.result)
+            switch (result)
             {
                 case DamageResult.Hit: color = hitColor; break;
                 case DamageResult.Blocked: color = blockedColor; break;
@@ -47,8 +76,7 @@ namespace BossFight.Boss
                 case DamageResult.Evaded: color = evadedColor; break;
                 default: return;
             }
-            Vector3 pos = report.hurtbox != null ? report.hurtbox.Center : transform.position;
-            Vector3 toSource = report.info.sourcePosition - pos;
+            Vector3 toSource = sourcePosition - pos;
             toSource.y = 0f;
             if (toSource.sqrMagnitude > 1e-4f) pos += toSource.normalized * towardSource;
             TimedFx.Spawn(sparkPrefab, pos, Quaternion.identity, color, size);

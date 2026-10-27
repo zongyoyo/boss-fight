@@ -108,8 +108,7 @@ namespace BossFight.Player
                 case DamageResult.Evaded:
                     // 只有翻滾閃過才響；受擊後無敵、Debug 無敵時不響
                     if (!controller.IsRolling || evadedThisRoll) break;
-                    evadedThisRoll = true;
-                    emitter.Play(Data.evade, Body);
+                    PlayEvadeFeedback();
                     break;
             }
         }
@@ -118,6 +117,14 @@ namespace BossFight.Player
         {
             evadedThisRoll = false;
             if (Data != null) emitter.Play(Data.roll, transform.position);
+        }
+
+        /// <summary>上層確認翻滾移出了整個攻擊範圍時補播；與 HitReport 的無敵閃避共用去重。</summary>
+        public void PlayEvadeFeedback()
+        {
+            if (evadedThisRoll || Data == null) return;
+            evadedThisRoll = true;
+            emitter.Play(Data.evade, Body);
         }
 
         void HandleJumped()

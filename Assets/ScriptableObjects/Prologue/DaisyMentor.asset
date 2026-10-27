@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dc19cd6e5fc77c1478c7404ec29c91b4, type: 3}
+  m_Name: DaisyMentor
+  m_EditorClassIdentifier: Assembly-CSharp::BossFight.Boss.DaisyMentorData
+  emergeTime: 0.5
+  burrowTime: 0.4
+  turnSpeed: 180
+  whipTime: 0.7
+  whipImpactTime: 0.35
+  slapTime: 0.6
+  slapImpactTime: 0.3
+  whipDamage: 40
+  pushDistance: 1
+  pushDuration: 0.25
+  hitWindow: 0.15
+  hitRadius: 0.4
+  targetHeight: 0.7

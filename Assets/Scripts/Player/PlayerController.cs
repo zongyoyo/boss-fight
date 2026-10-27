@@ -100,6 +100,8 @@ namespace BossFight.Player
         bool jumpRequested, bufferedAttack, bufferedRoll, bufferedExecute;
         Vector3 scriptedTarget, scriptedFace;
         bool hasScriptedTarget;
+        Vector3 damagePushDirection;
+        float damagePushDistance, damagePushDuration, damagePushTime, damagePushTravelled;
 
         /// <summary>移動方向以這個鏡頭為準（Main Camera）；PlayerSpawner 生成後設定。</summary>
         public void SetCameraTransform(Transform value) => cameraTransform = value;
@@ -162,6 +164,7 @@ namespace BossFight.Player
 
         void OnDisable()
         {
+            damagePushDistance = 0f;
             health.OnDamageTaken -= HandleDamageTaken;
             health.OnDied -= HandleDied;
             ReleaseExecutionTarget();
@@ -200,6 +203,7 @@ namespace BossFight.Player
         /// <summary>直接瞬移到 position、轉向 rotation（演出開始、跳過時用）。</summary>
         public void Teleport(Vector3 position, Quaternion rotation)
         {
+            damagePushDistance = 0f;
             cc.enabled = false;
             transform.SetPositionAndRotation(position, rotation);
             cc.enabled = true;
@@ -265,6 +269,10 @@ namespace BossFight.Player
             // 畫面停頓（timeScale = 0）時不動 CharacterController：Move 位移為 0 時 isGrounded 會變成 false，舉盾跟著掉
             if (dt > 0f)
             {
+                // 擊退是傷害鏈的可選資料；鎖輸入時也照走，不改相機或別人的輸入鎖。
+                Vector3 push = DamagePushStep(dt);
+                delta += push;
+                if (InputLocked && hasScriptedTarget) scriptedTarget += push;
                 // 重力：著地時歸零再加一幀的量，讓 CharacterController 持續貼地
                 IsGrounded = cc.isGrounded;
                 if (IsGrounded && verticalVelocity < 0f) verticalVelocity = 0f;
@@ -357,7 +365,7 @@ namespace BossFight.Player
                 case PlayerAction.Execute:
                     if (!attack.IsFinished) break;
                     attack.Stop();
-                    SetAction(PlayerAction.None); // 放開目標在 SetAction
+                    SetAction(PlayerAction.None, true); // 完整播完才標記成功結束，放開目標在 SetAction
                     break;
                 case PlayerAction.Charge:
                     actionTime += dt;
@@ -373,7 +381,7 @@ namespace BossFight.Player
             }
         }
 
-        void SetAction(PlayerAction next)
+        void SetAction(PlayerAction next, bool executionCompleted = false)
         {
             actionTime = 0f;
             if (next == Action) return;
@@ -381,7 +389,7 @@ namespace BossFight.Player
             Action = next;
             if (next != PlayerAction.None) IsBlocking = false;
             if (prev == PlayerAction.Roll) OnRollEnded?.Invoke();
-            if (prev == PlayerAction.Execute) ReleaseExecutionTarget();
+            if (prev == PlayerAction.Execute) ReleaseExecutionTarget(executionCompleted);
             OnActionChanged?.Invoke(next);
         }
 
@@ -500,11 +508,11 @@ namespace BossFight.Player
         }
 
         // 處決動作結束（打完、倒地、元件停用）時通知目標
-        void ReleaseExecutionTarget()
+        void ReleaseExecutionTarget(bool completed = false)
         {
             var target = ExecutingTarget;
             ExecutingTarget = null;
-            if (target != null) target.EndExecution();
+            if (target != null) target.EndExecution(completed);
         }
 
         // 出手瞬間轉向：鎖定時對準目標，否則轉向輸入方向（沒輸入就維持面向）
@@ -568,12 +576,21 @@ namespace BossFight.Player
         void HandleDamageTaken(PlayerDamageReport report)
         {
             if (IsDead) return;
+            if (report.result == DamageResult.Hit && report.info.pushDistance > 0f)
+            {
+                Vector3 away = Flat(transform.position - report.info.sourcePosition);
+                damagePushDirection = away.sqrMagnitude > 1e-6f ? away.normalized : -transform.forward;
+                damagePushDistance = report.info.pushDistance;
+                damagePushDuration = Mathf.Max(0f, report.info.pushDuration);
+                damagePushTime = damagePushTravelled = 0f;
+            }
             if (report.result == DamageResult.Hit && Action == PlayerAction.Charge) SetAction(PlayerAction.None); // 蓄力中被打會中斷
             else if (report.result == DamageResult.GuardBroken) SetAction(PlayerAction.GuardBreak);
         }
 
         void HandleDied()
         {
+            damagePushDistance = 0f;
             attack.Stop();
             SetAction(PlayerAction.Dead);
         }
@@ -606,6 +623,18 @@ namespace BossFight.Player
             if (target == LockTarget) return;
             LockTarget = target;
             OnLockTargetChanged?.Invoke(target);
+        }
+
+        Vector3 DamagePushStep(float dt)
+        {
+            if (damagePushDistance <= 0f) return Vector3.zero;
+            damagePushTime += dt;
+            float t = damagePushDuration > 0f ? Mathf.Clamp01(damagePushTime / damagePushDuration) : 1f;
+            float travelled = damagePushDistance * Mathf.SmoothStep(0f, 1f, t);
+            Vector3 step = damagePushDirection * (travelled - damagePushTravelled);
+            damagePushTravelled = travelled;
+            if (t >= 1f) damagePushDistance = 0f;
+            return step;
         }
 
         static Vector3 Flat(Vector3 v) => new Vector3(v.x, 0f, v.z);

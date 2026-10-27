@@ -6,6 +6,42 @@
             "id": "df70fa95-8a34-4494-b137-73ab6b9c7d37",
             "actions": [
                 {
+                  "name": "DebugSaplingMode",
+                  "type": "Button",
+                  "id": "d4ca623f-7f89-4900-a50a-729ea41e2a46",
+                  "expectedControlType": "Button",
+                  "processors": "",
+                  "interactions": "",
+                  "initialStateCheck": false
+                },
+                {
+                  "name": "DebugMentorWhip",
+                  "type": "Button",
+                  "id": "e8299061-a0bf-40fb-a7a4-48987f1e5876",
+                  "expectedControlType": "Button",
+                  "processors": "",
+                  "interactions": "",
+                  "initialStateCheck": false
+                },
+                {
+                  "name": "DebugMentorSlap",
+                  "type": "Button",
+                  "id": "480628c3-b2ad-44ce-bc29-6f53baa8daba",
+                  "expectedControlType": "Button",
+                  "processors": "",
+                  "interactions": "",
+                  "initialStateCheck": false
+                },
+                {
+                  "name": "DebugSaplingInvulnerability",
+                  "type": "Button",
+                  "id": "1add9895-3052-479c-9514-caeab9dffd19",
+                  "expectedControlType": "Button",
+                  "processors": "",
+                  "interactions": "",
+                  "initialStateCheck": false
+                },
+                {
                     "name": "Move",
                     "type": "Value",
                     "id": "351f2ccd-1f9f-44bf-9bec-d62ac5c5f408",
@@ -142,6 +178,50 @@
                 }
             ],
             "bindings": [
+                {
+                  "name": "",
+                  "id": "6bcfa42c-0f4a-48a0-9bcb-9c5920a804e4",
+                  "path": "<Keyboard>/f8",
+                  "interactions": "",
+                  "processors": "",
+                  "groups": "Keyboard&Mouse",
+                  "action": "DebugSaplingMode",
+                  "isComposite": false,
+                  "isPartOfComposite": false
+                },
+                {
+                  "name": "",
+                  "id": "9fb267f2-9f40-452b-819c-a1cabc2bf27a",
+                  "path": "<Keyboard>/f9",
+                  "interactions": "",
+                  "processors": "",
+                  "groups": "Keyboard&Mouse",
+                  "action": "DebugMentorWhip",
+                  "isComposite": false,
+                  "isPartOfComposite": false
+                },
+                {
+                  "name": "",
+                  "id": "3893fbf0-e0ca-458f-8059-b9c00bb6a919",
+                  "path": "<Keyboard>/f10",
+                  "interactions": "",
+                  "processors": "",
+                  "groups": "Keyboard&Mouse",
+                  "action": "DebugMentorSlap",
+                  "isComposite": false,
+                  "isPartOfComposite": false
+                },
+                {
+                  "name": "",
+                  "id": "46abe2a6-d6ea-4e7f-ba3f-0e2b85d3372a",
+                  "path": "<Keyboard>/f11",
+                  "interactions": "",
+                  "processors": "",
+                  "groups": "Keyboard&Mouse",
+                  "action": "DebugSaplingInvulnerability",
+                  "isComposite": false,
+                  "isPartOfComposite": false
+                },
                 {
                     "name": "",
                     "id": "978bfe49-cc26-4a3d-ab7b-7d7a29327403",

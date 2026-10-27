@@ -19,6 +19,8 @@ namespace BossFight.Core
         public event Action OnExecutionStarted;
         /// <summary>玩家的處決動作結束（不管有沒有打到）。</summary>
         public event Action OnExecutionEnded;
+        /// <summary>處決動作結束；true 是完整播完，false 是取消或停用。是否命中仍由傷害鏈決定。</summary>
+        public event Action<bool> OnExecutionFinished;
 
         /// <summary>現在可以被處決（物件停用時視為不行）。</summary>
         public bool IsExecutable => executable && isActiveAndEnabled;
@@ -45,11 +47,12 @@ namespace BossFight.Core
         }
 
         /// <summary>玩家的處決動作結束（打完、或中途被取消）。</summary>
-        public void EndExecution()
+        public void EndExecution(bool completed = false)
         {
             if (!IsBeingExecuted) return;
             IsBeingExecuted = false;
             OnExecutionEnded?.Invoke();
+            OnExecutionFinished?.Invoke(completed);
         }
 
         void OnDisable()
