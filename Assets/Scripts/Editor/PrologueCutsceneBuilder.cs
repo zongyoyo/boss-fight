@@ -23,14 +23,14 @@ using Object = UnityEngine.Object;
 
 namespace BossFight.EditorTools
 {
-    /// <summary>定點建立五段正式演出；時間軸只在不存在時建立，重建場景物件後按名稱重綁，不動 OIIA。</summary>
+    /// <summary>定點建立序章開場與五段正式演出；時間軸只在不存在時建立，重建場景物件後按名稱重綁，不動 OIIA。</summary>
     public static class PrologueCutsceneBuilder
     {
         public const string DataPath = "Assets/ScriptableObjects/Cutscene/PrologueCutscene.asset";
         public const string TimelineDirectory = "Assets/Timelines/Prologue";
         const string ProfilePath = "Assets/ScriptableObjects/Cutscene/Prologue/PresentationVolume.asset";
         const string MaterialDirectory = "Assets/Models/Prologue/Cutscene";
-        static readonly string[] Names = { "GuardianEntrance", "GuardianTransition", "Knockdown", "GuardianVictory", "HubWake" };
+        static readonly string[] Names = { "GuardianEntrance", "GuardianTransition", "Knockdown", "GuardianVictory", "HubWake", "PrologueOpening" };
 
         [MenuItem("Tools/Prologue/Build Cutscenes")]
         public static void BuildAll()
@@ -88,6 +88,7 @@ namespace BossFight.EditorTools
             Set(stage, "guardianOrigin", actor); Set(stage, "guardianModel", actor.Find("Model")); Set(stage, "guardianCrown", actor.Find("Model/Crown"));
             Array(stage, "cracks", actor.GetComponentsInChildren<Renderer>(true).Where(r => r.name.StartsWith("Crack_")).ToArray());
             BuildGroundFx(stage, root.transform, actor.position);
+            BuildForeshadowRoots(stage, root.transform, actor.position);
             var playerStage = Node(root.transform, "PlayerStage", PlayerSpawnerBuilder.Preview().transform.position);
             Set(stage, "playerStage", playerStage);
             var mentor = Object.FindAnyObjectByType<DaisyMentor>();
@@ -95,6 +96,9 @@ namespace BossFight.EditorTools
             var head = Node(root.transform, "GuardianHead", actor.position + Vector3.up * 5.5f);
             var low = Node(root.transform, "GuardianGround", actor.position + Vector3.up);
             var deathLook = Node(playerStage, "DeathLook", Vector3.zero); deathLook.localPosition = Vector3.up * 0.4f;
+            var riseLook = Node(playerStage, "RiseLook", Vector3.zero); riseLook.localPosition = Vector3.up * 0.5f;
+            // 開場第二鏡看中央土堆與北側樹根之間
+            var openingLook = Node(root.transform, "OpeningLook", Vector3.Lerp(mentor.transform.position, actor.position, 0.45f) + Vector3.up * 0.4f);
             var shots = new Dictionary<string, CinemachineCamera>();
             Add("E1_OverShoulder", new Vector3(0.7f, 1.5f, -2.7f), flower, 50f, playerStage, true);
             Add("E2_Wide", new Vector3(10f, 7f, -11f), low, 65f);
@@ -110,10 +114,13 @@ namespace BossFight.EditorTools
             Add("V1_Wither", actor.position + new Vector3(3f, 2f, -9f), head, 55f);
             Add("V2_Sink", new Vector3(8f, 5f, -6f), low, 65f);
             Add("V3_Flower", mentor.transform.position + new Vector3(0f, 0.8f, -2.2f), flower, 45f);
+            Add("O1_Rise", new Vector3(1.3f, 0.7f, 1.9f), riseLook, 50f, playerStage, true);
+            Add("O2_Sweep", new Vector3(0.8f, 1.8f, -2.6f), openingLook, 55f, playerStage, true);
             var entrance = Sequence(root.transform, "GuardianEntrance", d.entranceShots.Sum(), stage, shots, sounds, tl => Entrance(tl, d));
             var transition = Sequence(root.transform, "GuardianTransition", d.transitionDuration, stage, shots, sounds, tl => Transition(tl, d));
             var knockdown = Sequence(root.transform, "Knockdown", d.knockdownDuration, stage, shots, sounds, tl => Knockdown(tl, d));
             var victory = Sequence(root.transform, "GuardianVictory", d.victoryDuration, stage, shots, sounds, tl => Victory(tl, d));
+            var opening = Sequence(root.transform, "PrologueOpening", d.openingDuration, stage, shots, sounds, tl => Opening(tl, d));
             var flow = root.AddComponent<PrologueCutsceneFlow>();
             Set(flow, "tutorial", tutorial); Set(flow, "guardian", guardian); Set(flow, "phaseTwo", phase);
             Set(flow, "outcome", guardian.GetComponent<PrologueOutcome>()); Set(flow, "session", Object.FindAnyObjectByType<InputLockArbiter>());
@@ -122,6 +129,9 @@ namespace BossFight.EditorTools
             Set(flow, "audioManager", Object.FindAnyObjectByType<AudioManager>()); Set(flow, "cameraController", Object.FindAnyObjectByType<CameraController>());
             Set(flow, "sceneFlow", Object.FindAnyObjectByType<SceneFlow>()); Set(flow, "pause", Object.FindAnyObjectByType<GamePause>());
             Set(flow, "stage", stage); Set(flow, "data", d); Set(flow, "entrance", entrance); Set(flow, "transition", transition); Set(flow, "knockdown", knockdown); Set(flow, "victory", victory);
+            Set(flow, "opening", opening);
+            // 有開場演出：教學等開場播完才開始；地鳴與低吼從守衛破土的位置發出
+            Bool(tutorial, "autoStart", false); Set(tutorial, "roarSource", actor);
             Array(stage, "noise", root.GetComponentsInChildren<CinemachineBasicMultiChannelPerlin>(true));
             WireAudio(stage); PlayerSpawnerBuilder.Wire(); EditorSceneManager.MarkSceneDirty(root.scene);
             void Add(string name, Vector3 position, Transform look, float fov, Transform parent = null, bool local = false, float roll = 0f)
@@ -325,6 +335,47 @@ namespace BossFight.EditorTools
             Value(tl, CinematicValue.Lying, 0, end, Curve((0, 1), (0.55f, 1), (0.9f, 0), (1, 0)));
             Audio(tl, "Fire", 0, end); Audio(tl, "Birds", 0, end);
         }
+        // 序章開場（H3）：黑幕淡入 → 玩家從躺姿起身 → 鏡頭帶過空地、中央土堆與北側樹根 → 土堆動兩下 → 交還操作
+        static void Opening(TimelineAsset tl, PrologueCutsceneData d)
+        {
+            double end = d.openingDuration, sweep = end * 0.48;
+            Shots(tl, ("O1_Rise", 0, sweep), ("O2_Sweep", sweep, end - sweep));
+            Value(tl, CinematicValue.Black, 0, end, Curve((0, 1), (0.08f, 1), (0.3f, 0), (1, 0)));
+            Value(tl, CinematicValue.Lying, 0, end, Curve((0, 1), (0.18f, 1), (0.45f, 0), (1, 0)));
+            Move(tl, "O2_Sweep", sweep, end - sweep, new Vector3(0.8f, 1.8f, -2.6f), new Vector3(0.5f, 3.2f, 2.5f), true);
+            Cue(tl, CutsceneCue.MoundPeek, end * 0.66); Cue(tl, CutsceneCue.MoundPeek, end * 0.82);
+            Audio(tl, "Birds", 0, end);
+        }
+        // H7 的伏筆：守衛破土的位置露出幾截焦黑樹根與淡紅裂縫，守衛破土時收掉（PrologueCinematicStage 的 Rise）
+        static void BuildForeshadowRoots(PrologueCinematicStage stage, Transform parent, Vector3 center)
+        {
+            var roots = Node(parent, "ForeshadowRoots", center);
+            var bark = Mat("ForeshadowRoot", new Color(0.07f, 0.045f, 0.035f));
+            var glow = Mat("ForeshadowCrack", new Color(1.2f, 0.05f, 0.02f));
+            float[] angles = { 200f, 150f, 245f, 110f, 290f };
+            for (int i = 0; i < angles.Length; i++)
+            {
+                var root = GameObject.CreatePrimitive(PrimitiveType.Capsule); root.name = "Root_" + i; Object.DestroyImmediate(root.GetComponent<Collider>());
+                root.transform.SetParent(roots, false);
+                var dir = Quaternion.Euler(0f, angles[i], 0f) * Vector3.forward;
+                root.transform.localPosition = dir * (2.2f + 0.4f * (i % 2)) + Vector3.up * 0.15f;
+                // 斜斜插進地裡，像爪子
+                root.transform.localRotation = Quaternion.LookRotation(dir) * Quaternion.Euler(60f - 8f * i, 0f, 0f);
+                root.transform.localScale = new Vector3(0.35f, 0.9f + 0.15f * i, 0.35f);
+                root.GetComponent<Renderer>().sharedMaterial = bark;
+            }
+            for (int i = 0; i < 3; i++)
+            {
+                var crack = GameObject.CreatePrimitive(PrimitiveType.Cube); crack.name = "Fissure_" + i; Object.DestroyImmediate(crack.GetComponent<Collider>());
+                crack.transform.SetParent(roots, false);
+                var dir = Quaternion.Euler(0f, 160f + 20f * i, 0f) * Vector3.forward;
+                crack.transform.localRotation = Quaternion.LookRotation(dir);
+                crack.transform.localPosition = dir * 3.2f + Vector3.up * 0.03f;
+                crack.transform.localScale = new Vector3(0.08f, 0.02f, 2.2f);
+                crack.GetComponent<Renderer>().sharedMaterial = glow;
+            }
+            Set(stage, "foreshadowRoots", roots.gameObject);
+        }
         static void Slow(TimelineAsset tl, double total, float seconds)
         { float stop = seconds / (float)total; Value(tl, CinematicValue.Slow, 0, total, Curve((0, 1), (stop, 1), (stop + 0.0001f, 0), (1, 0))); }
         static void Value(TimelineAsset tl, CinematicValue channel, double at, double length, AnimationCurve curve, bool hold = false)
@@ -417,7 +468,7 @@ namespace BossFight.EditorTools
         public static string Validate()
         {
             var d = AssetDatabase.LoadAssetAtPath<PrologueCutsceneData>(DataPath);
-            double[] durations = { d.entranceShots.Sum(), d.transitionDuration, d.knockdownDuration, d.victoryDuration, d.wakeDuration };
+            double[] durations = { d.entranceShots.Sum(), d.transitionDuration, d.knockdownDuration, d.victoryDuration, d.wakeDuration, d.openingDuration };
             for (int i = 0; i < Names.Length; i++)
             {
                 var tl = AssetDatabase.LoadAssetAtPath<TimelineAsset>(TimelineDirectory + "/" + Names[i] + ".playable");
@@ -458,7 +509,8 @@ namespace BossFight.EditorTools
             { bool found = false; for (int j = 0; j < receivers.arraySize; j++) found |= receivers.GetArrayElementAtIndex(j).objectReferenceValue == receiver; if (!found) throw new InvalidOperationException("未 Wire 玩家：" + receiver.GetType().Name); }
             if (SceneManager.GetActiveScene().path == PrologueBuilder.ScenePath)
             {
-                Require(Object.FindAnyObjectByType<PrologueCutsceneFlow>(), "tutorial", "guardian", "phaseTwo", "outcome", "session", "dialogue", "mentor", "fullPower", "audioManager", "cameraController", "sceneFlow", "pause", "data", "stage", "entrance", "transition", "knockdown", "victory");
+                Require(Object.FindAnyObjectByType<PrologueCutsceneFlow>(), "tutorial", "guardian", "phaseTwo", "outcome", "session", "dialogue", "mentor", "fullPower", "audioManager", "cameraController", "sceneFlow", "pause", "data", "stage", "entrance", "transition", "knockdown", "victory", "opening");
+                Require(Object.FindAnyObjectByType<TutorialDirector>(), "roarSource");
                 GuardianPhaseTwoBuilder.ValidatePureRules();
             }
             else
@@ -467,7 +519,7 @@ namespace BossFight.EditorTools
                 Require(Object.FindAnyObjectByType<HubManager>(), "inputLock");
             }
             ValidateCompletionProtocol();
-            return "[PrologueCutscene] 演出接線檢查通過（五段 Timeline 的長度、軌道綁定、結束標記、後處理、玩家接收者與結局協定）";
+            return "[PrologueCutscene] 演出接線檢查通過（開場與五段 Timeline 的長度、軌道綁定、結束標記、後處理、玩家接收者與結局協定）";
         }
         static void Require(Object o, params string[] fields)
         { if (o == null) throw new InvalidOperationException("缺少演出元件"); var so = new SerializedObject(o); foreach (string f in fields) if (so.FindProperty(f)?.objectReferenceValue == null) throw new InvalidOperationException(o.name + " 缺少 " + f); }

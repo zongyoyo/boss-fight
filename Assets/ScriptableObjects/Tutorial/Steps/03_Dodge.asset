@@ -13,13 +13,31 @@ MonoBehaviour:
   m_Name: 03_Dodge
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Battle.TutorialStepData
   id: 03_Dodge
+  title: "\u9583\u907F"
   opening:
-  - text: "\u9019\u662F\u9583\u907F\u3002\u525B\u525B\u90A3\u4E0B\u8981\u662F\u6703\u6EFE\uFF0C\u5C31\u4E0D\u6703\u75DB\u4E86\u3002\u5C0F\u6A39\u7CBE\u8981\u7529\u6A39\u679D\u4E86\uFF0C\u7D05\u5149\u9019\u62DB\u4E0D\u80FD\u64CB\uFF0C\u6253\u5230\u4E4B\u524D\u6EFE\u958B\uFF01"
+  - text: "\u525B\u624D\u90A3\u4E00\u4E0B\uFF0C\u4F60\u8981\u662F\u61C2\u5F97\u7FFB\u6EFE\uFF0C\u5C31\u4E0D\u6703\u6328\u6253\u4E86\u3002"
+    gesture: 0
+    saplingGesture: 0
+    shot: 0
     after: 0
+    cueShot: 0
+  - text: "\u770B\u597D\u4E86\uFF0C\u5C0F\u6A39\u7CBE\u8981\u7529\u6A39\u679D\u4E86\u3002\u5730\u4E0A\u4EAE\u8D77\u7D05\u5149\uFF0C\u5C31\u4EE3\u8868\u9019\u62DB\u64CB\u4E0D\u4F4F\u2014\u2014"
+    gesture: 5
+    saplingGesture: 0
+    shot: 1
+    after: 5
+    cueShot: 5
+  - text: "\u5728\u5B83\u6253\u4E0B\u4F86\u4E4B\u524D\uFF0C\u6EFE\u51FA\u7D05\u8272\u7684\u7BC4\u570D\uFF01"
+    gesture: 0
+    saplingGesture: 0
+    shot: 0
+    after: 0
+    cueShot: 0
   hintFormat: "[{0}] \u7FFB\u6EFE\u9583\u907F"
   actionPath: Player/Roll
   condition: 2
   target: 2
   mode: 3
   invulnerable: 1
-  praise: "\u6EFE\u5F97\u633A\u5713\u7684\u561B\u3002"
+  praise: "\u6EFE\u5F97\u9084\u633A\u5713\u7684\u561B\u3002"
+  praiseGesture: 6

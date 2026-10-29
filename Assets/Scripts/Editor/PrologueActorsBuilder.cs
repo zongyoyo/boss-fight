@@ -52,7 +52,7 @@ namespace BossFight.EditorTools
             var hud = Object.FindAnyObjectByType<TrainingSaplingHudUI>(FindObjectsInactive.Include);
             Require(mentor, "data", "whipHitbox", "hurtCollider");
             Require(sapling, "data", "attackHitbox", "hurtCollider");
-            Require(mentor.GetComponent<DaisyMentorVisual>(), "mentor", "model", "flower", "petalHand", "vine");
+            Require(mentor.GetComponent<DaisyMentorVisual>(), "mentor", "model", "flower", "petalHand", "vine", "smile", "bone");
             Require(sapling.GetComponent<TrainingSaplingVisual>(), "sapling", "model", "branch", "stars", "leavesPrefab", "telegraphPrefab", "palette");
             Require(sapling.GetComponent<BossHitFeedback>(), "boss", "sparkPrefab");
             Require(binding, "mentor", "sapling", "session");
@@ -167,6 +167,16 @@ namespace BossFight.EditorTools
             vine.sharedMaterial = green; vine.widthMultiplier = 0.055f; vine.useWorldSpace = true; vine.enabled = false;
             Set(actor, "data", data); Set(actor, "whipHitbox", hitbox); Set(actor, "hurtCollider", hurt);
             Set(visual, "mentor", actor); Set(visual, "model", model); Set(visual, "flower", flower); Set(visual, "petalHand", hand); Set(visual, "vine", vine);
+            // 丟給玩家的骨頭（佔位：細圓柱加兩端各兩顆小球），平時藏著
+            var bone = Node("TossBone", root.transform, Vector3.zero);
+            var boneMat = Mat("TossBone", new Color(0.95f, 0.92f, 0.82f));
+            var shaft = Prim("Shaft", bone, PrimitiveType.Cylinder, Vector3.zero, new Vector3(0.05f, 0.1f, 0.05f), boneMat);
+            shaft.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            foreach (float end in new[] { -0.1f, 0.1f })
+                foreach (float side in new[] { -0.03f, 0.03f })
+                    Prim("Knob", bone, PrimitiveType.Sphere, new Vector3(side, 0f, end), Vector3.one * 0.07f, boneMat);
+            bone.gameObject.SetActive(false);
+            Set(visual, "smile", smile.transform); Set(visual, "bone", bone);
             var prefab = PrefabUtility.SaveAsPrefabAsset(root, DaisyPrefabPath);
             Object.DestroyImmediate(root);
             return prefab;

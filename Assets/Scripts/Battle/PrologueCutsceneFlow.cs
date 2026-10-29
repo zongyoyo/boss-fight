@@ -11,7 +11,7 @@ using UnityEngine.SceneManagement;
 namespace BossFight.Battle
 {
     /// <summary>
-    /// 序章的上層演出協調（T30）：教學結尾鑽回 → 守衛登場 → 開戰；活過萬根齊發 → 轉階段演出 → 二階段；擊倒、勝利演出 → 單次提交結局。
+    /// 序章的上層演出協調（T30）：開場（玩家起身、帶過空地）→ 教學；教學結尾鑽回 → 守衛登場 → 開戰；活過萬根齊發 → 轉階段演出 → 二階段；擊倒、勝利演出 → 單次提交結局。
     /// Timeline 只送 CutsceneCue，這裡接對白、角色與戰鬥；台詞與說話者讀 GuardianBattleData／TutorialData／PrologueCutsceneData。
     /// 也是序章這場戰鬥給開發者工具的入口（IBattleDebugTarget）。
     /// </summary>
@@ -32,8 +32,10 @@ namespace BossFight.Battle
         [SerializeField] PrologueCutsceneData data;
         [SerializeField] PrologueCinematicStage stage;
         [SerializeField] CutsceneDirector entrance, transition, knockdown, victory;
+        [Tooltip("序章開場；留空時教學直接開始")]
+        [SerializeField] CutsceneDirector opening;
 
-        enum Kind { None, Entrance, Transition, Knockdown, Victory }
+        enum Kind { None, Entrance, Transition, Knockdown, Victory, Opening }
 
         Kind kind;
         CutsceneDirector current;
@@ -71,7 +73,11 @@ namespace BossFight.Battle
 
         void Start()
         {
-            if (guardian.Stage == GuardianStage.Dormant && !sceneFlow.IsLoading) audioManager.PlayMusic(data.tutorialMusic);
+            if (guardian.Stage != GuardianStage.Dormant || sceneFlow.IsLoading) return;
+            // 開場與教學只在序章一開始跑一次；沒接開場演出就直接開始教學
+            if (opening != null) Begin(Kind.Opening, opening);
+            else tutorial.StartApproach();
+            audioManager.PlayMusic(data.tutorialMusic);
         }
 
         void OnDisable()
@@ -95,7 +101,7 @@ namespace BossFight.Battle
             session.SetCursorReleased(this, false);
         }
 
-        CutsceneDirector[] Sequences() => new[] { entrance, transition, knockdown, victory };
+        CutsceneDirector[] Sequences() => opening != null ? new[] { entrance, transition, knockdown, victory, opening } : new[] { entrance, transition, knockdown, victory };
 
         void Enter()
         {
@@ -163,6 +169,9 @@ namespace BossFight.Battle
                     dialogue.Hide();
                     mentor.Burrow();
                     break;
+                case CutsceneCue.MoundPeek:
+                    mentor.Peek();
+                    break;
             }
         }
 
@@ -180,7 +189,13 @@ namespace BossFight.Battle
                 return;
             }
             dialogue.Hide();
-            if (kind == Kind.Entrance)
+            if (kind == Kind.Opening)
+            {
+                stage.ResetTransient();
+                cameraController.ResetBehind(mentor.transform.position);
+                tutorial.StartApproach();
+            }
+            else if (kind == Kind.Entrance)
             {
                 stage.ResetTransient();
                 StartGuardianBattle();
@@ -252,6 +267,8 @@ namespace BossFight.Battle
             if (old == Kind.Victory && outcome != null) outcome.CancelVictoryPresentation(victoryToken);
             if (old == Kind.Knockdown && outcome != null) outcome.CancelKnockdownPresentation();
             if (old == Kind.Transition && phaseTwo != null) phaseTwo.CancelTransition();
+            // 開場被中止（開發者跳步或略過登場）時教學照樣能開始；已經開始就不動
+            if (old == Kind.Opening && tutorial != null && tutorial.isActiveAndEnabled && gameObject.scene.isLoaded) tutorial.StartApproach();
             if (stage != null)
             {
                 stage.ResetTransient();
@@ -271,7 +288,7 @@ namespace BossFight.Battle
         public bool DebugSkipEntrance()
         {
             if (guardian.Stage != GuardianStage.Dormant) return false;
-            if (kind == Kind.Entrance) Cancelled();
+            if (kind == Kind.Entrance || kind == Kind.Opening) Cancelled();
             entered = true;
             tutorial.Abort();
             stage.Apply(CinematicValue.Rise, 1f);

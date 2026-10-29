@@ -9,6 +9,7 @@ namespace BossFight.Cutscene
         [Header("時間軸（秒）")]
         [Tooltip("登場七鏡的長度，依分鏡表順序")]
         public float[] entranceShots = { 1f, 1.5f, 1.5f, 1.5f, 1.5f, 2f, 0.5f };
+        [Tooltip("序章開場（玩家起身、鏡頭帶過空地與北側樹根、土堆動兩下）的秒數")][Min(0f)] public float openingDuration = 3.5f;
         [Tooltip("轉階段演出秒數")][Min(0f)] public float transitionDuration = 5f;
         [Tooltip("擊倒演出秒數")][Min(0f)] public float knockdownDuration = 5f;
         [Tooltip("勝利演出秒數")][Min(0f)] public float victoryDuration = 10f;

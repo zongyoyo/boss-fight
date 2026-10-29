@@ -14,9 +14,11 @@ namespace BossFight.Hub
     /// 任務照 GameDatabase.quests 的順序挑，狀態由 ProgressRecorder 依存檔算。頭上的標記（有可回報「?」、有可接「!」）用 OnMarkerChanged 送出。
     /// 開場劇情：存檔沒看過時，HubManager 在淡入後呼叫 BeginIntro，村長直線走到玩家面前（期間 ReadyToTalk 是 false，HubManager 不切鏡頭），
     /// 走到之後他的站位點剛好在玩家腳下，站點鏡頭（他的子物件）就是雙人鏡頭；講完開場對白（HubStoryData）存檔記住看過、開放第一個任務，再走回原位。
-    /// 走回去的路上也可以找他講話（講話時停下來，講完繼續走）。對話一開始就送 OnDialogue，介面講完後呼叫 Accept 或 HubManager.CloseStation。
+    /// 走回去的路上也可以找他講話（講話時停下來，講完繼續走）。對話一開始就送 OnDialogue，介面講完後呼叫 Accept、Decline 或 HubManager.CloseStation。
+    /// 開場（含序章的擊倒版／勝利版）講完直接接第一個可接任務的說明（I2）：CompleteIntroDialogue 回傳那個任務，介面接著問「接受／再想想」；
+    /// 選再想想時 Decline 講提醒（HubStoryData.declineLines），關掉介面後頭上亮「!」。在原位、有任務時，玩家走近會轉身面向玩家（I3）。
     /// </summary>
-    public class VillageChief : Interactable
+    public class VillageChief : Interactable, IPlayerBinding
     {
         /// <summary>頭上的標記。</summary>
         public enum QuestMarker
@@ -63,6 +65,10 @@ namespace BossFight.Hub
         Quaternion homeRotation, finalRotation;
         bool walking, turning, comingOver, open, dialogueStarted, introPlaying, markerSent;
         QuestMarker marker;
+        PlayerRig player;
+
+        /// <summary>只記引用（轉身面向玩家用）。</summary>
+        public void BindPlayer(PlayerRig rig) => player = rig;
 
         void Awake()
         {
@@ -90,11 +96,24 @@ namespace BossFight.Hub
         public void PlaceForWake(Vector3 playerPosition)
         { BeginIntro(playerPosition); transform.SetPositionAndRotation(walkTarget, finalRotation); walking = turning = comingOver = false; }
 
-        /// <summary>只有對應的對話完整讀完才開放任務；取消或關面板不算。</summary>
-        public void CompleteIntroDialogue()
+        /// <summary>
+        /// 開場對白完整讀完時呼叫（取消或關面板不算）：記住看過、開放第一個任務，回傳現在可接的任務（介面接著問接不接）；
+        /// 不是開場或沒有可接的任務時回傳 null。
+        /// </summary>
+        public QuestData CompleteIntroDialogue()
         {
-            if (!open || !introPlaying) return;
+            if (!open || !introPlaying) return null;
             introPlaying = false; ProfileStore.MarkStoryIntroSeen(); RefreshMarker();
+            return Find(QuestState.Available);
+        }
+
+        /// <summary>任務說明後選「再想想」：村長講提醒（任務照樣可接，頭上的「!」在關掉介面後出現）。</summary>
+        public void Decline()
+        {
+            if (!open) return;
+            BeginView();
+            if (story != null) AddLines(story.declineLines);
+            OnDialogue?.Invoke(view);
         }
 
         public override void Opened(PlayerRig rig)
@@ -138,6 +157,7 @@ namespace BossFight.Hub
             RefreshMarker();
             BeginView();
             if (story != null) view.lines.Add(string.Format(story.questAcceptedFormat, quest.title));
+            AddLines(quest.acceptedLines);
             OnDialogue?.Invoke(view);
             return true;
         }
@@ -147,6 +167,20 @@ namespace BossFight.Hub
             if (story == null || (open && !comingOver)) return; // 開場走過來時站點已經打開了；其他時候講話時停下來
             if (walking) Walk();
             else if (turning) Turn();
+            else if (!open) Greet();
+        }
+
+        // 在原位、有任務可接或可回報時，玩家走近就轉身看他；走遠了轉回原本的朝向
+        void Greet()
+        {
+            Quaternion want = homeRotation;
+            if (player != null && marker != QuestMarker.None)
+            {
+                Vector3 to = player.transform.position - transform.position;
+                to.y = 0f;
+                if (to.sqrMagnitude <= story.greetRadius * story.greetRadius && to.sqrMagnitude > 1e-4f) want = Quaternion.LookRotation(to);
+            }
+            transform.rotation = Quaternion.RotateTowards(transform.rotation, want, story.turnSpeed * Time.deltaTime);
         }
 
         // 直線走向 walkTarget、面向前進方向；到了之後開場是直接面向玩家（站位點要剛好在玩家腳下），回原位是慢慢轉回原本的朝向

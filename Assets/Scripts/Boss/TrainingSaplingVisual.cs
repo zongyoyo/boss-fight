@@ -28,6 +28,8 @@ namespace BossFight.Boss
         bool warning;
         float telegraphStartedAt;
         Color attackGlow = Color.white;
+        SaplingGesture gesture;
+        float gestureClock;
         static readonly int Emission = Shader.PropertyToID("_EmissionColor");
 
         void Awake()
@@ -52,6 +54,7 @@ namespace BossFight.Boss
             sapling.OnAttackResolved += HandleResolved;
             sapling.OnDamaged += HandleDamaged;
             sapling.OnDefeated += HandleDefeated;
+            sapling.OnGesture += HandleGesture;
         }
         void OnDisable()
         {
@@ -63,6 +66,7 @@ namespace BossFight.Boss
             sapling.OnAttackResolved -= HandleResolved;
             sapling.OnDamaged -= HandleDamaged;
             sapling.OnDefeated -= HandleDefeated;
+            sapling.OnGesture -= HandleGesture;
         }
         void OnDestroy()
         {
@@ -79,7 +83,7 @@ namespace BossFight.Boss
             model.gameObject.SetActive(view.visible);
             stunned = view.stunned && view.visible;
             stars.gameObject.SetActive(stunned);
-            if (!view.visible || view.stunned || (view.mode != SaplingMode.Attack && view.mode != SaplingMode.DodgeAttack)) HideTelegraph();
+            if (!view.visible || view.stunned || (view.mode != SaplingMode.Attack && view.mode != SaplingMode.DodgeAttack && !view.demo)) HideTelegraph();
         }
         void HandleTelegraph(SaplingTelegraph info)
         {
@@ -114,6 +118,7 @@ namespace BossFight.Boss
             warning = false;
             if (telegraph != null) telegraph.HideImmediate();
         }
+        void HandleGesture(SaplingGesture value) { gesture = value; gestureClock = 0f; }
         void HandleDamaged(SaplingDamageReport hit) { if (hit.result == DamageResult.Hit) hurtLeft = hurtTime; }
         void HandleDefeated(SaplingDefeatReason _)
         {
@@ -140,8 +145,19 @@ namespace BossFight.Boss
             model.localPosition = rest - Vector3.up * (rise * model.localScale.y);
             float hurt = hurtTime > 0f ? hurtLeft / hurtTime : 0f;
             float lean = stunned ? Mathf.Sin(clock * 5f) * 9f : Mathf.Sin(clock * 2f) * 2f;
-            model.localRotation = Quaternion.Euler(-hurt * 18f, 0f, lean);
             float angle = 0f;
+            float scared = 0f, lift = 0f;
+            if (gesture != SaplingGesture.None && telegraphLeft <= 0f && activeLeft <= 0f)
+            {
+                gestureClock += dt;
+                float g = Mathf.Clamp01(gestureClock / sapling.Data.gestureTime);
+                float wave = Mathf.Sin(g * Mathf.PI);
+                if (gesture == SaplingGesture.Wave) lift = (60f + Mathf.Sin(g * Mathf.PI * 6f) * 25f) * wave;
+                else if (gesture == SaplingGesture.Scared) { scared = wave; lean += Mathf.Sin(clock * 40f) * 4f * wave; }
+                if (g >= 1f) gesture = SaplingGesture.None;
+            }
+            model.localRotation = Quaternion.Euler(-hurt * 18f + scared * 14f, 0f, lean);
+            model.localPosition -= Vector3.up * (scared * 0.08f * model.localScale.y);
             float glow = 0f;
             if (telegraphLeft > 0f)
             {
@@ -157,7 +173,7 @@ namespace BossFight.Boss
                 angle = Mathf.Lerp(-100f, 70f, k);
                 glow = 1f;
             }
-            branch.localRotation = branchRest * Quaternion.Euler(0f, angle, stunned ? -35f : 0f);
+            branch.localRotation = branchRest * Quaternion.Euler(0f, angle, stunned ? -35f : lift);
             if (stunned) stars.Rotate(0f, 220f * dt, 0f, Space.Self);
             foreach (var renderer in renderers)
             {

@@ -25,7 +25,7 @@ namespace BossFight.Battle
         [Min(0f), Tooltip("轉階段演出開始時把玩家擺到守衛南側的距離 (m)；推開的終點在 PrologueCutsceneData.pushRadius")] public float transitionStageRadius = 6f;
         [Tooltip("二階段血條名稱")] public string phase2Name = "大樹守衛・全力";
         [Tooltip("守衛的名字（轉階段、勝利演出的說話者）")] public string guardianName = "大樹守衛";
-        [TextArea, Tooltip("轉階段演出的台詞（PrologueCutsceneFlow 在 TransitionLine cue 播）")] public string phase2Line = "很少有人能堅持到這裡，我認可你了，接下來我要出全力了。";
+        [TextArea, Tooltip("轉階段演出的台詞（PrologueCutsceneFlow 在 TransitionLine cue 播）")] public string phase2Line = "很少有人能撐到這裡……我認可你。接下來，我要拿出全力了！";
         [Tooltip("二階段血條顏色")] public Color phase2HealthColor = new Color(0.85f, 0.06f, 0.04f);
         [Min(0f), Tooltip("自損區段白閃秒數（純視覺）")] public float selfCostFlashTime = 0.2f;
     }

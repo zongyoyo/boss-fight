@@ -106,6 +106,7 @@ namespace BossFight.EditorTools
             promptSo.FindProperty("inputNames").objectReferenceValue = inputNames;
             promptSo.FindProperty("hintDevice").objectReferenceValue = hintDevice;
             promptSo.FindProperty("label").objectReferenceValue = prompt;
+            promptSo.FindProperty("chief").objectReferenceValue = Object.FindAnyObjectByType<VillageChief>();
             promptSo.ApplyModifiedPropertiesWithoutUndo();
 
             // ---------- 站點面板 ----------

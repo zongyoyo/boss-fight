@@ -23296,6 +23296,7 @@ MonoBehaviour:
   inputNames: {fileID: 11400000, guid: 71e9d9ddd0501574ea128bcc81e2714b, type: 2}
   hintDevice: {fileID: 1859696192}
   label: {fileID: 616722669}
+  chief: {fileID: 726326399}
 --- !u!114 &616722668
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -41629,12 +41630,13 @@ MonoBehaviour:
   bosses: []
   receivers:
   - {fileID: 2119573461}
+  - {fileID: 726326399}
   - {fileID: 313423073}
-  - {fileID: 313423072}
   - {fileID: 313423075}
+  - {fileID: 313423072}
   - {fileID: 1566904939}
-  - {fileID: 1454660332}
   - {fileID: 1454660333}
+  - {fileID: 1454660332}
 --- !u!4 &1104619818
 Transform:
   m_ObjectHideFlags: 0
@@ -53618,6 +53620,7 @@ MonoBehaviour:
   birds: {fileID: 0}
   wave: {fileID: 0}
   groundCracks: {fileID: 0}
+  foreshadowRoots: {fileID: 0}
   filters:
   - {fileID: 1207821761}
   - {fileID: 1566904936}

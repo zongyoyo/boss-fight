@@ -20,6 +20,7 @@ MonoBehaviour:
   - 1.5
   - 2
   - 0.5
+  openingDuration: 3.5
   transitionDuration: 5
   knockdownDuration: 5
   victoryDuration: 10

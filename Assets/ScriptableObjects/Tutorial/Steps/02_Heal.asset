@@ -13,17 +13,31 @@ MonoBehaviour:
   m_Name: 02_Heal
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Battle.TutorialStepData
   id: 02_Heal
+  title: "\u5543\u9AA8\u982D"
   opening:
-  - text: "\u63A5\u4E0B\u4F86\u662F\u5192\u96AA\u8005\u6700\u91CD\u8981\u7684\u4E00\u8AB2\u2026\u2026"
+  - text: "\u63A5\u4E0B\u4F86\u662F\u5192\u96AA\u8005\u6700\u91CD\u8981\u7684\u4E00\u8AB2\u2014\u2014"
+    gesture: 0
+    saplingGesture: 0
+    shot: 1
     after: 2
-  - text: "\u75DB\u55CE\uFF1F\u563B\u563B\uFF0C\u5916\u9762\u7684\u4E16\u754C\u53EF\u4E0D\u6703\u5148\u6253\u62DB\u547C\u5594\u3002"
+    cueShot: 4
+  - text: "\u75DB\u5427\uFF1F\u563B\u563B\uFF0C\u5916\u9762\u7684\u602A\u7269\u53EF\u4E0D\u6703\u5148\u8DDF\u4F60\u6253\u62DB\u547C\u3002"
+    gesture: 7
+    saplingGesture: 0
+    shot: 0
     after: 0
-  - text: "\u9019\u662F\u5543\u9AA8\u982D\u3002\u62FF\u53BB\uFF0C\u53D7\u50B7\u4E86\u5C31\u5543\u4E00\u6839\u3002"
+    cueShot: 0
+  - text: "\u53D7\u4E86\u50B7\u5C31\u5543\u9AA8\u982D\u88DC\u8840\u3002\u558F\uFF0C\u5148\u7D66\u4F60\u4E00\u6839\uFF0C\u73FE\u5728\u5C31\u5543\u6389\u5427\u3002"
+    gesture: 0
+    saplingGesture: 0
+    shot: 0
     after: 3
+    cueShot: 0
   hintFormat: "[{0}] \u5543\u9AA8\u982D\u56DE\u8840"
   actionPath: Player/Heal
   condition: 1
   target: 1
   mode: 0
   invulnerable: 1
-  praise: "\u5403\u5F97\u771F\u9999\uFF0C\u56DE\u6EFF\u4E86\u5427\uFF1F\u90A3\u6211\u5011\u7E7C\u7E8C\u3002"
+  praise: "\u5403\u5F97\u771F\u9999\u3002\u8840\u56DE\u6EFF\u4E86\u5427\uFF1F\u6211\u5011\u7E7C\u7E8C\u3002"
+  praiseGesture: 0

@@ -4,7 +4,10 @@ using UnityEngine;
 
 namespace BossFight.Boss
 {
-    public enum DaisyAction { Hidden, Emerge, Idle, Burrow, Whip, Slap, PrankBurrow, PrankEmerge }
+    // 新的動作加在最後
+    public enum DaisyAction { Hidden, Emerge, Idle, Burrow, Whip, Slap, PrankBurrow, PrankEmerge, Toss, Peek }
+    /// <summary>說話時的動作（純表現，不影響狀態）；新的加在最後，保留資產的編號。</summary>
+    public enum DaisyGesture { None, Wave, TiltHead, PatChest, Spin, Point, Clap, Snicker, Surprised, BigGrin, Nod }
 
     /// <summary>菊花的命令與事件；劇情流程由上層指揮，傷害仍經 Hitbox。</summary>
     [DefaultExecutionOrder(100)]
@@ -24,6 +27,12 @@ namespace BossFight.Boss
         public event Action OnBurrowed;
         public event Action OnWhipFinished;
         public event Action OnSlapFinished;
+        /// <summary>丟出的骨頭飛到目標身上（動作結束）。</summary>
+        public event Action OnTossFinished;
+        /// <summary>丟骨頭期間每幀送目標位置（骨頭的落點，表現用）。</summary>
+        public event Action<Vector3> OnTossTarget;
+        /// <summary>說話時的動作；Vector3 是指向的位置（Point 用）。</summary>
+        public event Action<DaisyGesture, Vector3> OnGesture;
         public event Action<Vector3> OnSlapTarget;
         public event Action<DaisyAction> OnActionCancelled;
         public event Action<HitReport> OnWhipHit;
@@ -68,6 +77,12 @@ namespace BossFight.Boss
         bool OnlyTarget(Collider collider) => target != null && collider.transform.IsChildOf(target);
         /// <summary>上層播菊花的一句台詞時呼叫。</summary>
         public void Talk() => OnTalked?.Invoke();
+        /// <summary>說話時的動作（純表現）；point 是 Point 指向的位置。藏在土裡時不做。</summary>
+        public void Gesture(DaisyGesture gesture, Vector3 point = default)
+        {
+            if (Action == DaisyAction.Hidden) return;
+            OnGesture?.Invoke(gesture, point);
+        }
 
         void HandleWhipHit(HitReport report)
         {
@@ -103,6 +118,20 @@ namespace BossFight.Boss
             Begin(DaisyAction.Whip);
             return true;
         }
+        /// <summary>把骨頭丟給目標；骨頭飛到時送 OnTossFinished。</summary>
+        public bool TossBone()
+        {
+            if (Action != DaisyAction.Idle || target == null) return false;
+            Begin(DaisyAction.Toss);
+            return true;
+        }
+        /// <summary>還藏在土裡時讓土堆動一下（冒出一點再縮回）。</summary>
+        public bool Peek()
+        {
+            if (Action != DaisyAction.Hidden) return false;
+            Begin(DaisyAction.Peek);
+            return true;
+        }
         public bool Slap(TrainingSapling sapling)
         {
             if (Action != DaisyAction.Idle || sapling == null || !sapling.IsAlive) return false;
@@ -117,7 +146,7 @@ namespace BossFight.Boss
             Action = action;
             timer = 0f;
             impact = false;
-            hurtCollider.enabled = action == DaisyAction.Idle || action == DaisyAction.Whip || action == DaisyAction.Slap;
+            hurtCollider.enabled = action == DaisyAction.Idle || action == DaisyAction.Whip || action == DaisyAction.Slap || action == DaisyAction.Toss;
             OnActionChanged?.Invoke(action);
             OnActionProgress?.Invoke(action, 0f);
         }
@@ -154,6 +183,7 @@ namespace BossFight.Boss
                 if (slapTarget != null) slapTarget.ForceStun();
             }
             if (Action == DaisyAction.Slap && slapTarget != null) OnSlapTarget?.Invoke(slapTarget.transform.position);
+            if (Action == DaisyAction.Toss && target != null) OnTossTarget?.Invoke(target.position);
             float duration = Duration(Action);
             OnActionProgress?.Invoke(Action, duration > 0f ? Mathf.Clamp01(timer / duration) : 1f);
             if (timer >= duration && !(Action == DaisyAction.Whip && whipHitbox.IsActive)) Complete();
@@ -167,6 +197,8 @@ namespace BossFight.Boss
                 case DaisyAction.Burrow: case DaisyAction.PrankBurrow: return data.burrowTime;
                 case DaisyAction.Whip: return Mathf.Max(data.whipTime, data.whipImpactTime + data.hitWindow);
                 case DaisyAction.Slap: return Mathf.Max(data.slapTime, data.slapImpactTime);
+                case DaisyAction.Toss: return data.tossTime;
+                case DaisyAction.Peek: return data.peekTime;
                 default: return 0f;
             }
         }
@@ -175,7 +207,7 @@ namespace BossFight.Boss
         {
             DaisyAction completed = Action;
             if (completed == DaisyAction.PrankBurrow) Begin(DaisyAction.PrankEmerge);
-            else Begin(completed == DaisyAction.Burrow ? DaisyAction.Hidden : DaisyAction.Idle);
+            else Begin(completed == DaisyAction.Burrow || completed == DaisyAction.Peek ? DaisyAction.Hidden : DaisyAction.Idle);
             OnActionFinished?.Invoke(completed);
             switch (completed)
             {
@@ -183,6 +215,7 @@ namespace BossFight.Boss
                 case DaisyAction.Burrow: OnBurrowed?.Invoke(); break;
                 case DaisyAction.Whip: OnWhipFinished?.Invoke(); break;
                 case DaisyAction.Slap: OnSlapFinished?.Invoke(); break;
+                case DaisyAction.Toss: OnTossFinished?.Invoke(); break;
                 case DaisyAction.PrankEmerge: OnPrankFinished?.Invoke(); break;
             }
             if (prankQueued && Action == DaisyAction.Idle) { prankQueued = false; Begin(DaisyAction.PrankBurrow); }

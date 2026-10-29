@@ -1,6 +1,8 @@
 using System;
 using BossFight.Boss;
+using BossFight.Cameras;
 using BossFight.Core;
+using BossFight.Cutscene;
 using BossFight.Player;
 using BossFight.Progression;
 using UnityEngine;
@@ -14,11 +16,20 @@ namespace BossFight.Battle
         public readonly float progress;
         public readonly bool visible, completed;
         public readonly string interactionHint;
-        public TutorialView(TutorialStepData step, float progress, bool visible, bool completed, string interactionHint = null)
-        { this.step = step; this.progress = progress; this.visible = visible; this.completed = completed; this.interactionHint = interactionHint; }
+        /// <summary>第幾步（0 起算）與總步數，提示上方的進度用。</summary>
+        public readonly int stepIndex, stepCount;
+        public TutorialView(TutorialStepData step, float progress, bool visible, bool completed, string interactionHint, int stepIndex, int stepCount)
+        {
+            this.step = step; this.progress = progress; this.visible = visible; this.completed = completed; this.interactionHint = interactionHint;
+            this.stepIndex = stepIndex; this.stepCount = stepCount;
+        }
     }
 
-    /// <summary>六步教學的事件式流程；只指揮下層，不引用 UI 或 Hub，不寫序章完成存檔。</summary>
+    /// <summary>
+    /// 六步教學的事件式流程；只指揮下層，不引用 UI 或 Hub，不寫序章完成存檔。
+    /// 每句台詞照資料做菊花與小樹精的動作、切對白鏡頭（TutorialStage），開放操作時切回玩家鏡頭並面向小樹精。
+    /// 開場演出（PrologueCutsceneFlow）播完才呼叫 StartApproach；沒接演出時（autoStart）自己開始。
+    /// </summary>
     public class TutorialDirector : MonoBehaviour, IPlayerBinding
     {
         [SerializeField] TutorialData data;
@@ -28,13 +39,25 @@ namespace BossFight.Battle
         [SerializeField] TrainingSapling sapling;
         [Tooltip("劇情的距離觸發中心，由 Builder 接中央花壇錨點")]
         [SerializeField] Transform startCenter;
+        [Tooltip("對白鏡頭")]
+        [SerializeField] TutorialStage shots;
+        [Tooltip("開放操作時把自由視角轉到玩家背後、面向小樹精")]
+        [SerializeField] CameraController cameraController;
+        [Tooltip("地鳴、低吼、丟骨頭的聲音與震動")]
+        [SerializeField] FeedbackEmitter feedback;
+        [Tooltip("地鳴與北方低吼的發聲位置（守衛破土的地方）；PrologueCutsceneBuilder 接守衛本體")]
+        [SerializeField] Transform roarSource;
+        [Tooltip("Start 時自己開始；有開場演出時由 PrologueCutsceneBuilder 關掉，演出播完才 StartApproach")]
+        [SerializeField] bool autoStart = true;
         public event Action<TutorialView> OnViewChanged;
         public event Action<string> OnStepCompleted;
         public event Action OnTutorialCompleted;
         /// <summary>結尾台詞與停頓已完成，開始鑽回；正式登場首鏡在這裡接手。</summary>
         public event Action OnEndingBurrowStarted;
+        /// <summary>菊花丟的骨頭飛到玩家身上、骨頭補上（HUD 閃骨頭用）。</summary>
+        public event Action OnBonesGranted;
 
-        enum Stage { Approach, Emerge, Inviting, Opening, Explanation, Operating, Completing, Praise, Ending, EndingPause, Burrow, Complete }
+        enum Stage { Waiting, Approach, Emerge, Inviting, Opening, Explanation, Operating, Completing, Praise, Ending, EndingPause, Burrow, Complete }
         Stage stage;
         PlayerRig player;
         bool subscribed, started, waitingLine, waitingCue, parryPending, parrySaid, prankPending, sideDialogue;
@@ -42,7 +65,7 @@ namespace BossFight.Battle
         bool inInteractionRange;
         InputAction interactAction;
         int stepIndex = -1, lineIndex, lastAttackId = -1;
-        float progress, delayLeft, greetingLeft;
+        float progress, delayLeft, greetingLeft, cueLeft;
         TutorialLine[] lines;
         Action sequenceFinished;
         Action debugResume; // 開發者跳步：菊花冒出來之後接著做的事
@@ -54,7 +77,7 @@ namespace BossFight.Battle
         public int StepIndex => stepIndex;
         public int StepCount => data.steps.Length;
         /// <summary>教學還在進行（可以跳步）。</summary>
-        public bool IsRunning => started && stage != Stage.Burrow && stage != Stage.Complete;
+        public bool IsRunning => (started || stage == Stage.Waiting) && stage != Stage.Burrow && stage != Stage.Complete;
 
         void Awake() => interactAction = InputSystem.actions?.FindAction("Player/Interact", true);
 
@@ -73,6 +96,8 @@ namespace BossFight.Battle
             mentor.OnEmerged += HandleEmerged;
             mentor.OnWhipFinished += FinishCue;
             mentor.OnSlapFinished += FinishCue;
+            mentor.OnTossFinished += HandleTossed;
+            sapling.OnDemoFinished += FinishCue;
             mentor.OnBurrowed += HandleBurrowed;
             mentor.OnPrankRequested += HandlePrank;
             mentor.OnPrankFinished += HandlePrankFinished;
@@ -90,6 +115,8 @@ namespace BossFight.Battle
             mentor.OnEmerged -= HandleEmerged;
             mentor.OnWhipFinished -= FinishCue;
             mentor.OnSlapFinished -= FinishCue;
+            mentor.OnTossFinished -= HandleTossed;
+            sapling.OnDemoFinished -= FinishCue;
             mentor.OnBurrowed -= HandleBurrowed;
             mentor.OnPrankRequested -= HandlePrank;
             mentor.OnPrankFinished -= HandlePrankFinished;
@@ -98,6 +125,7 @@ namespace BossFight.Battle
             sapling.OnDamaged -= HandleDamaged;
             sapling.OnDefeated -= HandleDefeated;
             session.SetInputLocked(this, false);
+            if (shots != null) shots.Release();
         }
         void SubscribePlayer()
         {
@@ -120,9 +148,16 @@ namespace BossFight.Battle
         }
         void Start()
         {
-            started = true;
             player.Health.SetBoneGainEnabled(false);
             player.Health.SetBones(data.initialBones);
+            stage = Stage.Waiting;
+            if (autoStart) StartApproach();
+        }
+        /// <summary>開場演出播完後呼叫：開放自由走動，靠近中央時小花冒出。已經開始（例如開發者跳步）就不動。</summary>
+        public void StartApproach()
+        {
+            if (stage != Stage.Waiting) return;
+            started = true;
             stage = Stage.Approach;
             session.SetInputLocked(this, false);
             HandlePositionChanged(player.transform.position);
@@ -158,6 +193,7 @@ namespace BossFight.Battle
             // 招呼只逐字顯示，不攔操作、不要求按鍵讀完；靠近後的互動才接正式劇情。
             dialogue.Begin(data.speaker, new[] { data.greeting }, false, false);
             mentor.Talk();
+            mentor.Gesture(data.greetingGesture);
             greetingLeft = data.greetingDuration;
             PublishState();
         }
@@ -185,9 +221,27 @@ namespace BossFight.Battle
                 done?.Invoke();
                 return;
             }
+            var line = lines[lineIndex];
+            Show(line.shot);
+            if (line.gesture != DaisyGesture.None) mentor.Gesture(line.gesture, GesturePoint(line.gesture));
+            if (line.saplingGesture != SaplingGesture.None) sapling.Gesture(line.saplingGesture);
             waitingLine = true;
-            dialogue.Begin(data.speaker, new[] { lines[lineIndex].text }, false);
-            mentor.Talk();
+            // 空白台詞不開對話框（DialogueSession 立刻送完成），直接執行這句的動作
+            if (!string.IsNullOrEmpty(line.text)) mentor.Talk();
+            dialogue.Begin(data.speaker, new[] { line.text }, false);
+        }
+        // 對白鏡頭：None 用雙人鏡頭
+        void Show(TutorialShot shot)
+        {
+            if (shots == null || player == null) return;
+            shots.Show(shot == TutorialShot.None ? TutorialShot.TwoShot : shot, player.transform, mentor.transform, sapling.IsAlive ? sapling.transform : null);
+        }
+        // 指向小樹精（還在時），不在就指向玩家
+        Vector3 GesturePoint(DaisyGesture gesture)
+        {
+            if (gesture != DaisyGesture.Point) return default;
+            Transform t = sapling.IsAlive ? sapling.transform : player.transform;
+            return t.position + Vector3.up * 0.5f;
         }
         void HandleDialogueFinished(int id, bool completed)
         {
@@ -200,13 +254,18 @@ namespace BossFight.Battle
                 else if (stage == Stage.Operating) ResumeOperation();
                 return;
             }
-            TutorialCue cue = lines[lineIndex].after;
+            var line = lines[lineIndex];
+            TutorialCue cue = line.after;
             lineIndex++;
             if (cue == TutorialCue.None) { PlayLine(); return; }
             waitingCue = true;
+            if (line.cueShot != TutorialShot.None) Show(line.cueShot);
             switch (cue)
             {
-                case TutorialCue.Summon: sapling.Appear(); break;
+                case TutorialCue.Summon:
+                    mentor.Gesture(DaisyGesture.Spin);
+                    sapling.Appear();
+                    break;
                 case TutorialCue.Whip:
                     if (!mentor.Whip()) RetryCue();
                     break;
@@ -214,10 +273,32 @@ namespace BossFight.Battle
                     if (!mentor.Slap(sapling)) RetryCue();
                     break;
                 case TutorialCue.GiveBone:
-                    player.Health.SetBones(data.grantedBones);
+                    if (mentor.TossBone()) { if (feedback != null) feedback.Play(data.boneToss, mentor.transform.position); }
+                    else RetryCue();
+                    break;
+                case TutorialCue.Demo:
+                    // 往遠離玩家的方向甩一次（不開判定）；做不到（例如小樹精不在）就直接下一句
+                    Vector3 away = sapling.transform.position - player.transform.position;
+                    if (!sapling.Demonstrate(away, Step != null ? Step.mode : SaplingMode.DodgeAttack)) FinishCue();
+                    break;
+                case TutorialCue.ShowBars:
+                    // 攻擊這步先把小樹精切成標靶，頭上的血量與軀幹條才會出現
+                    sapling.SetMode(SaplingMode.Target);
                     FinishCue();
                     break;
+                case TutorialCue.Rumble:
+                    if (feedback != null) feedback.Play(data.rumble, roarSource != null ? roarSource.position : mentor.transform.position);
+                    cueLeft = data.rumbleTime;
+                    if (cueLeft <= 0f) FinishCue();
+                    break;
             }
+        }
+        void HandleTossed()
+        {
+            if (!waitingCue) return;
+            player.Health.SetBones(data.grantedBones);
+            OnBonesGranted?.Invoke();
+            FinishCue();
         }
         // 菊花彩蛋若剛好仍在收尾，保留命令，等 OnPrankFinished 再執行。
         bool retryCue;
@@ -229,17 +310,21 @@ namespace BossFight.Battle
             var cue = lines[lineIndex - 1].after;
             if (cue == TutorialCue.Whip) mentor.Whip();
             else if (cue == TutorialCue.Slap) mentor.Slap(sapling);
+            else if (cue == TutorialCue.GiveBone) mentor.TossBone();
         }
         void HandleAppeared()
         {
             sapling.SetInvulnerable(true);
             sapling.SetStaggerAccumulation(false);
-            if (waitingCue) FinishCue();
+            if (!waitingCue) return;
+            sapling.Gesture(SaplingGesture.Wave);
+            FinishCue();
         }
         void FinishCue()
         {
             if (!waitingCue) return;
             waitingCue = false;
+            cueLeft = 0f;
             PlayLine();
         }
         void NextStep()
@@ -264,6 +349,10 @@ namespace BossFight.Battle
         void BeginOperation()
         {
             stage = Stage.Operating;
+            // 回到玩家鏡頭，自由視角轉到玩家背後、面向小樹精
+            if (shots != null) shots.Release();
+            if (cameraController != null && player != null)
+                cameraController.ResetBehind(sapling.IsAlive ? sapling.transform.position : mentor.transform.position);
             ResumeOperation();
         }
         void ResumeOperation()
@@ -311,7 +400,12 @@ namespace BossFight.Battle
                 AddProgress(1f);
         }
         void HandleDefeated(SaplingDefeatReason reason)
-        { if (Step != null && Step.condition == TutorialCondition.Execute && reason == SaplingDefeatReason.Execution) AddProgress(1f); }
+        {
+            if (Step == null || Step.condition != TutorialCondition.Execute || reason != SaplingDefeatReason.Execution) return;
+            // 伏筆（H7）：孩子倒下的那一刻，北方傳來一聲低吼
+            if (feedback != null && stage == Stage.Operating) feedback.Play(data.distantRoar, roarSource != null ? roarSource.position : mentor.transform.position);
+            AddProgress(1f);
+        }
         void CompleteStep()
         {
             stage = Stage.Completing;
@@ -333,7 +427,7 @@ namespace BossFight.Battle
             if (parryPending) { ShowSideDialogue(data.parryPraise, true); return; }
             stage = Stage.Praise;
             if (string.IsNullOrEmpty(Step.praise)) NextStep();
-            else Say(new[] { new TutorialLine { text = Step.praise } }, NextStep);
+            else Say(new[] { new TutorialLine { text = Step.praise, gesture = Step.praiseGesture } }, NextStep);
         }
         void HandlePrank()
         {
@@ -348,8 +442,22 @@ namespace BossFight.Battle
             sapling.SetMode(SaplingMode.Idle);
             dialogue.Begin(data.speaker, new[] { text }, false);
             mentor.Talk();
+            if (parry) mentor.Gesture(data.parryGesture);
         }
-        void BeginEndingPause() { stage = Stage.EndingPause; delayLeft = data.endingPause; }
+        void BeginEndingPause()
+        {
+            stage = Stage.EndingPause;
+            delayLeft = data.endingPause;
+            mentor.Gesture(data.endingGesture);
+        }
+        // 鑽回時交給登場演出（Timeline 的鏡頭接手），先收掉對白鏡頭
+        void BeginBurrow()
+        {
+            stage = Stage.Burrow;
+            if (shots != null) shots.Release();
+            OnEndingBurrowStarted?.Invoke();
+            mentor.Burrow();
+        }
         void HandleBurrowed()
         {
             if (stage != Stage.Burrow) return;
@@ -381,7 +489,12 @@ namespace BossFight.Battle
             else if (stage == Stage.EndingPause)
             {
                 delayLeft -= Time.deltaTime;
-                if (delayLeft <= 0f) { stage = Stage.Burrow; OnEndingBurrowStarted?.Invoke(); mentor.Burrow(); }
+                if (delayLeft <= 0f) BeginBurrow();
+            }
+            if (waitingCue && cueLeft > 0f)
+            {
+                cueLeft -= Time.deltaTime;
+                if (cueLeft <= 0f) FinishCue();
             }
             else if (stage == Stage.Operating && prankPending && !sideDialogue && !actionBusy)
             { prankPending = false; ShowSideDialogue(data.prankLine, false); }
@@ -393,7 +506,8 @@ namespace BossFight.Battle
         {
             stage = Stage.Complete; started = false; debugResume = null;
             waitingLine = waitingCue = retryCue = sideDialogue = prankPending = parryPending = false;
-            sequenceFinished = null; lines = null; delayLeft = greetingLeft = 0f;
+            sequenceFinished = null; lines = null; delayLeft = greetingLeft = cueLeft = 0f;
+            if (shots != null) shots.Release();
             dialogue.Hide(); sapling.SetMode(SaplingMode.Idle); sapling.Despawn(SaplingDespawnReason.Cleared);
             mentor.CancelActions(); PublishState(); session.SetInputLocked(this, false); enabled = false;
         }
@@ -420,11 +534,9 @@ namespace BossFight.Battle
             {
                 stepIndex = data.steps.Length;
                 if (sapling.IsAlive) sapling.Despawn(SaplingDespawnReason.Cleared);
-                stage = Stage.Burrow;
                 PublishState();
                 session.SetInputLocked(this, true);
-                OnEndingBurrowStarted?.Invoke();
-                mentor.Burrow();
+                BeginBurrow();
             });
             return true;
         }
@@ -434,8 +546,9 @@ namespace BossFight.Battle
             waitingLine = waitingCue = retryCue = sideDialogue = prankPending = parryPending = parrySaid = false;
             sequenceFinished = null;
             lines = null;
-            delayLeft = greetingLeft = 0f;
+            delayLeft = greetingLeft = cueLeft = 0f;
             progress = 0f;
+            started = true;
             dialogue.Hide();
             if (sapling.IsAlive) sapling.Despawn(SaplingDespawnReason.Cleared);
             sapling.Appear();
@@ -448,6 +561,7 @@ namespace BossFight.Battle
 
         public void PublishState() => OnViewChanged?.Invoke(new TutorialView(Step, progress,
             stage == Stage.Operating || stage == Stage.Completing || (stage == Stage.Inviting && inInteractionRange),
-            stage == Stage.Completing, stage == Stage.Inviting && inInteractionRange ? data.interactionHint : null));
+            stage == Stage.Completing, stage == Stage.Inviting && inInteractionRange ? data.interactionHint : null,
+            stepIndex, data.steps.Length));
     }
 }

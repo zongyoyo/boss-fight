@@ -34,6 +34,9 @@ namespace BossFight.Boss
         [Tooltip("鎖定小樹精時的俯視角度（度）；T27 驗收的 32°")] [Range(-10f, 60f)] public float lockOnPitch = 32f;
         [Tooltip("鎖定小樹精時鏡頭離玩家的距離 (m)；0 = 鎖定鏡頭原本的距離")] [Min(0f)] public float lockOnDistance;
 
+        [Header("表情動作（純表現）")]
+        [Tooltip("揮手、害怕等動作的長度（秒）")] [Min(0.01f)] public float gestureTime = 0.9f;
+
         [Header("軀幹")]
         [Tooltip("軀幹上限；滿值進入永久頭暈")] [Min(1f)] public float staggerMax = 100f;
         [Tooltip("未增加多久後開始衰減（秒）")] [Min(0f)] public float staggerDecayDelay = 3f;

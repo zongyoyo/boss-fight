@@ -13,13 +13,37 @@ MonoBehaviour:
   m_Name: 04_Block
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Battle.TutorialStepData
   id: 04_Block
+  title: "\u683C\u64CB"
   opening:
-  - text: "\u9019\u662F\u683C\u64CB\u3002\u770B\u6E05\u695A\uFF0C\u9019\u6B21\u662F\u767D\u5149\u3002\u4E00\u76F4\u6EFE\u6703\u7D2F\uFF0C\u7528\u76FE\u64CB\u4E0B\u4F86\u4E5F\u884C\u3002"
+  - text: "\u4E0D\u904E\u4E00\u76F4\u6EFE\u5F88\u7D2F\u4EBA\uFF0C\u8010\u529B\u7528\u5B8C\u5C31\u6EFE\u4E0D\u52D5\u4E86\u3002"
+    gesture: 0
+    saplingGesture: 0
+    shot: 0
     after: 0
+    cueShot: 0
+  - text: "\u9019\u6B21\u63DB\u767D\u5149\uFF0C\u770B\u6E05\u695A\u2014\u2014"
+    gesture: 5
+    saplingGesture: 0
+    shot: 1
+    after: 5
+    cueShot: 5
+  - text: "\u767D\u5149\u7684\u62DB\u5F0F\u53EF\u4EE5\u7528\u76FE\u724C\u64CB\u4E0B\u4F86\uFF0C\u6B63\u9762\u8209\u76FE\u63A5\u4F4F\u5B83\u5C31\u597D\u3002"
+    gesture: 0
+    saplingGesture: 0
+    shot: 0
+    after: 0
+    cueShot: 0
+  - text: "\u8981\u662F\u5728\u6253\u4E2D\u7684\u524D\u4E00\u523B\u624D\u8209\u76FE\uFF0C\u9084\u80FD\u628A\u653B\u64CA\u5F48\u56DE\u53BB\u5594\u3002"
+    gesture: 7
+    saplingGesture: 0
+    shot: 0
+    after: 0
+    cueShot: 0
   hintFormat: "\u6309\u4F4F [{0}] \u683C\u64CB"
   actionPath: Player/Block
   condition: 3
   target: 2
   mode: 1
   invulnerable: 1
-  praise: "\u64CB\u5F97\u4F4F\uFF0C\u5C31\u4E0D\u6015\u4E86\u3002"
+  praise: "\u64CB\u5F97\u4F4F\uFF0C\u5C31\u4E0D\u7528\u6015\u4E86\u3002"
+  praiseGesture: 10

@@ -14,6 +14,19 @@ namespace BossFight.Boss
         [Tooltip("抽打命中時刻（秒）")] [Min(0f)] public float whipImpactTime = 0.35f;
         [Tooltip("巴掌動作總長（秒）")] [Min(0f)] public float slapTime = 0.6f;
         [Tooltip("巴掌打滿軀幹的時刻（秒）")] [Min(0f)] public float slapImpactTime = 0.3f;
+        [Tooltip("丟骨頭：骨頭從花瓣飛到玩家身上的時間（秒）；飛到才給骨頭")] [Min(0f)] public float tossTime = 0.6f;
+        [Tooltip("丟骨頭的拋物線高度 (m)")] [Min(0f)] public float tossHeight = 1.2f;
+        [Tooltip("土堆動一下：冒出一點再縮回的時間（秒）")] [Min(0f)] public float peekTime = 0.35f;
+        [Tooltip("土堆動一下時冒出的比例（0 = 不露出、1 = 整朵冒出）")] [Range(0f, 1f)] public float peekHeight = 0.25f;
+
+        [Header("說話時的動作（純表現）")]
+        [Tooltip("一般動作（歪頭、拍胸、點頭、拍手、竊笑、驚訝、揮手、指向）的長度（秒）")] [Min(0.01f)] public float gestureTime = 0.8f;
+        [Tooltip("轉一圈的長度（秒）")] [Min(0.01f)] public float spinTime = 0.6f;
+        [Tooltip("歪頭的角度（度）")] public float tiltAngle = 25f;
+        [Tooltip("點頭的角度（度）")] public float nodAngle = 20f;
+        [Tooltip("指向時花瓣手伸出的距離 (m，模型縮放前)")] [Min(0f)] public float pointReach = 0.2f;
+        [Tooltip("驚訝時往上跳的高度 (m)")] [Min(0f)] public float surpriseJump = 0.15f;
+        [Tooltip("笑臉咧開時笑臉的放大倍率")] [Min(1f)] public float grinScale = 1.35f;
 
         [Header("藤蔓的劇情傷害")]
         [Tooltip("固定扣血，不受格擋或無敵影響")] [Min(0f)] public float whipDamage = 40f;

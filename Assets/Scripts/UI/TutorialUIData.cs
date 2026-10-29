@@ -13,6 +13,9 @@ namespace BossFight.UI
         [Tooltip("完成記號")] public string checkMark = "✓";
         [Tooltip("次數／距離顯示格式")] public string progressFormat = "  {0:0.#} / {1:0.#}";
         [Tooltip("方向鍵之間的分隔")] public string bindingSeparator = " / ";
+        [Tooltip("提示上方的步驟進度：{0} = 第幾步、{1} = 總步數、{2} = 步驟名稱")] public string stepCounterFormat = "{0} / {1}　{2}";
+        [Tooltip("步驟進度的文字大小")] public int counterFontSize = 24;
+        [Tooltip("步驟進度的顏色")] public Color counterColor = new Color(1f, 0.85f, 0.6f);
         [Tooltip("提示文字顏色")] public Color textColor = Color.white;
         [Tooltip("完成顏色")] public Color completeColor = new Color(0.55f, 1f, 0.65f);
         [Min(0f), Tooltip("完成淡出秒數")] public float fadeTime = 0.45f;

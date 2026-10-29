@@ -17,7 +17,7 @@ namespace BossFight.EditorTools
                 ("Roar", 2f), ("Wave", 1f), ("Wither", 2.5f), ("Sink", 2.5f), ("Surprise", 0.6f), ("Fire", 4f), ("Birds", 4f),
                 ("Victory", 3f), ("Phase1", 8f), ("Phase2", 8f), ("Tutorial", 8f), ("Wind", 6f),
                 ("VineStrike", 0.45f), ("LeafBlade", 0.4f), ("RootBurst", 0.6f), ("SeedBlast", 0.7f), ("Summon", 1.2f),
-                ("WoodKnock", 0.25f), ("Chatter", 0.6f) })
+                ("WoodKnock", 0.25f), ("Chatter", 0.6f), ("Tremor", 1.6f), ("Toss", 0.35f) })
             {
                 string path = DirectoryPath + "/" + row.Item1 + ".wav";
                 if (!File.Exists(path)) { Write(path, Synthesize(row.Item1, row.Item2)); AssetDatabase.ImportAsset(path); }
@@ -77,6 +77,8 @@ namespace BossFight.EditorTools
                     value = Mathf.Sin(t * notes[note] * 2f * Mathf.PI) * (0.25f + 0.1f * Mathf.Sin(t * notes[note] * 4f * Mathf.PI)) * Mathf.Exp(-u * 2f);
                 }
                 else if (name == "Fire") value = low * 0.5f + (noise > 0.992f ? noise * 0.35f : 0f);
+                else if (name == "Tremor") value = (low * 2.2f + Mathf.Sin(t * 2f * Mathf.PI * 32f) * 0.3f) * Mathf.Sin(u * Mathf.PI);
+                else if (name == "Toss") value = Mathf.Sin(2f * Mathf.PI * (380f + 900f * u) * t) * (1f - u) * 0.35f;
                 else if (name == "Rumble") value = (low * 2f + Mathf.Sin(t * 2f * Mathf.PI * 35f) * 0.28f) * u;
                 else if (name == "VineStrike")
                     value = (noise - low) * Mathf.Sin(u * Mathf.PI) * 0.7f + (u > 0.75f ? noise * Mathf.Exp(-(u - 0.75f) * 30f) * 0.6f : 0f);

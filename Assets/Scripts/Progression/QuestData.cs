@@ -57,6 +57,8 @@ namespace BossFight.Progression
         [TextArea(1, 3)] public List<string> offerLines = new List<string>();
         [Tooltip("進行中（接了、目標還沒達成）")]
         [TextArea(1, 3)] public List<string> activeLines = new List<string>();
+        [Tooltip("接下任務時村長補的話（接在 HubStoryData.questAcceptedFormat 那句後面），例如傳送門在哪裡")]
+        [TextArea(1, 3)] public List<string> acceptedLines = new List<string>();
         [Tooltip("回報時（獎勵已經發了，最後村長再講一句拿到什麼）")]
         [TextArea(1, 3)] public List<string> turnInLines = new List<string>();
 

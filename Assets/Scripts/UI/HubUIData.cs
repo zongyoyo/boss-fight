@@ -32,6 +32,10 @@ namespace BossFight.UI
             new StationText { kind = HubStationKind.Campfire, verb = "休息", title = "營火" },
             new StationText { kind = HubStationKind.Portal, verb = "出發", title = "選擇挑戰" },
         };
+        [Tooltip("村長有任務可接時，提示改用這個動詞（「按 [E] 接任務」）")]
+        public string chiefNewQuestVerb = "接任務";
+        [Tooltip("村長有任務可回報時，提示改用這個動詞")]
+        public string chiefTurnInVerb = "回報任務";
         public Color promptColor = Color.white;
         [Range(10, 80)] public int promptFontSize = 34;
         [Tooltip("提示離畫面下緣多高（Canvas 單位，參考解析度 1920×1080）")]

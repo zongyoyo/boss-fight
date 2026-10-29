@@ -8,6 +8,8 @@ namespace BossFight.Boss
     public enum SaplingMode { Idle, Attack, Target, DodgeAttack }
     public enum SaplingDefeatReason { Damage, Execution }
     public enum SaplingDespawnReason { Lifetime, Cleared, Disabled }
+    /// <summary>小樹精的表情動作（純表現）；新的加在最後。</summary>
+    public enum SaplingGesture { None, Wave, Scared }
 
     /// <summary>這次預兆的完整資料；表現從事件取色，和實際判定使用同一份可格擋設定。</summary>
     public readonly struct SaplingTelegraph
@@ -29,8 +31,11 @@ namespace BossFight.Boss
         public readonly float health, maxHealth, stagger, maxStagger;
         public readonly SaplingMode mode;
         public readonly bool visible, stunned;
+        /// <summary>正在示範甩枝（待機模式也要畫預兆）。</summary>
+        public readonly bool demo;
         public SaplingView(TrainingSapling s)
         {
+            demo = s.IsDemonstrating;
             health = s.Health; maxHealth = s.Data.maxHealth;
             stagger = s.Stagger; maxStagger = s.Data.staggerMax;
             mode = s.Mode; visible = s.IsAlive; stunned = s.IsStunned;
@@ -91,6 +96,10 @@ namespace BossFight.Boss
         public event Action<SaplingDespawnReason> OnDespawned;
         public event Action OnAppeared;
         public event Action<SaplingView> OnViewChanged;
+        /// <summary>表情動作（純表現）。</summary>
+        public event Action<SaplingGesture> OnGesture;
+        /// <summary>示範的一次甩枝做完（或被取消）。</summary>
+        public event Action OnDemoFinished;
 
         public TrainingSaplingData Data => data;
         public float Health { get; private set; }
@@ -100,6 +109,7 @@ namespace BossFight.Boss
         public bool IsStunned { get; private set; }
         public bool Invulnerable { get; private set; }
         public bool AccumulateStagger { get; private set; }
+        public bool IsDemonstrating => demo;
 
         enum AttackPhase { Waiting, Telegraph, Active }
         AttackPhase phase;
@@ -109,6 +119,9 @@ namespace BossFight.Boss
         float age, cycleTime, phaseTime, lastGain, executionHealthBeforeHit;
         int attackId, openedFrame;
         bool attackPending, hadWindow, hasHit, executionHit, shuttingDown;
+        // 示範：朝 demoDirection 甩一次，照常預兆與揮枝，但不開判定、不計閃避
+        bool demo;
+        Vector3 demoDirection;
         HitReport lastHit;
         SaplingTelegraph currentWarning;
         // 目標在範圍裡翻滾過（預兆或判定窗）、判定窗內翻滾過：兩者都成立又沒被打中，就向目標回報閃過
@@ -186,6 +199,26 @@ namespace BossFight.Boss
         }
 
         public void SetInvulnerable(bool value) => Invulnerable = value;
+
+        /// <summary>表情動作（純表現）；沒出現時不做。</summary>
+        public void Gesture(SaplingGesture gesture)
+        {
+            if (IsAlive) OnGesture?.Invoke(gesture);
+        }
+
+        /// <summary>
+        /// 示範一次甩枝：轉向 direction（水平），照 attackMode 的白／紅預兆與預兆時間揮下去，但不開判定、不計閃避；做完送 OnDemoFinished。
+        /// 只在待機模式、沒頭暈時有效（回傳 false 時不會送事件）。
+        /// </summary>
+        public bool Demonstrate(Vector3 direction, SaplingMode attackMode)
+        {
+            direction.y = 0f;
+            if (!IsAlive || IsStunned || executionHit || demo || Mode != SaplingMode.Idle || direction.sqrMagnitude < 1e-6f) return false;
+            demo = true;
+            demoDirection = direction.normalized;
+            BeginTelegraph(attackMode);
+            return true;
+        }
         public void SetStaggerAccumulation(bool value) => AccumulateStagger = value;
 
         public void PublishState()
@@ -207,6 +240,7 @@ namespace BossFight.Boss
                 Stagger = Mathf.Max(0f, Stagger - data.staggerDecayRate * dt);
                 PublishState();
             }
+            if (demo) { UpdateDemo(dt); return; }
             if ((Mode != SaplingMode.Attack && Mode != SaplingMode.DodgeAttack) || target == null) return;
             // 預兆開始後 telegraphTrackTime 秒內照樣轉向，之後鎖住方向，判定照鎖住的方向打
             if (phase == AttackPhase.Waiting || (phase == AttackPhase.Telegraph && phaseTime < data.telegraphTrackTime)) FaceTarget(dt);
@@ -220,7 +254,7 @@ namespace BossFight.Boss
             switch (phase)
             {
                 case AttackPhase.Waiting:
-                    if (cycleTime >= data.attackPeriod) BeginTelegraph();
+                    if (cycleTime >= data.attackPeriod) BeginTelegraph(Mode);
                     break;
                 case AttackPhase.Telegraph:
                     if (phaseTime >= data.telegraphTime) OpenWindow();
@@ -230,6 +264,21 @@ namespace BossFight.Boss
                     if (phaseTime >= data.activeTime && Time.frameCount > openedFrame) ResolveAttack(false);
                     break;
             }
+        }
+
+        void UpdateDemo(float dt)
+        {
+            transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(demoDirection), data.turnSpeed * dt);
+            phaseTime += dt;
+            if (phase == AttackPhase.Telegraph && phaseTime >= data.telegraphTime)
+            {
+                phase = AttackPhase.Active;
+                phaseTime = 0f;
+                openedFrame = Time.frameCount;
+                hadWindow = true;
+                OnAttackWindowOpened?.Invoke(attackId);
+            }
+            else if (phase == AttackPhase.Active && phaseTime >= data.activeTime && Time.frameCount > openedFrame) ResolveAttack(false);
         }
 
         void FaceTarget(float dt)
@@ -264,7 +313,7 @@ namespace BossFight.Boss
             return Mathf.Abs(local.x) <= data.width * 0.5f && local.z >= 0f && local.z <= data.reach;
         }
 
-        void BeginTelegraph()
+        void BeginTelegraph(SaplingMode attackMode)
         {
             phase = AttackPhase.Telegraph;
             phaseTime = cycleTime = 0f;
@@ -273,7 +322,7 @@ namespace BossFight.Boss
             hadWindow = hasHit = false;
             rollOverlapped = rollThreatened = false;
             lastHit = default;
-            currentWarning = new SaplingTelegraph(attackId, data, Mode);
+            currentWarning = new SaplingTelegraph(attackId, data, attackMode);
             OnAttackWarning?.Invoke(currentWarning);
             OnAttackTelegraphed?.Invoke(attackId);
         }
@@ -303,12 +352,15 @@ namespace BossFight.Boss
         {
             attackHitbox.Deactivate();
             phase = AttackPhase.Waiting;
-            if (!attackPending) return;
+            bool wasDemo = demo;
+            demo = false;
+            if (!attackPending) { if (wasDemo) OnDemoFinished?.Invoke(); return; }
             attackPending = false;
             // 翻滾無敵中被打到（Evaded）由被打方自己算；這裡只回報沒打到的那種閃過
             bool nearMiss = !cancelled && hadWindow && rollOverlapped && rollThreatened && !hasHit;
             if (nearMiss && Dodger != null) Dodger.NotifyNearMiss(currentDamage.WithSource(transform.position, gameObject));
             OnAttackResolved?.Invoke(new SaplingAttackReport(this, attackId, hadWindow, hasHit, lastHit, cancelled, nearMiss));
+            if (wasDemo) OnDemoFinished?.Invoke();
         }
 
         public DamageOutcome TakeDamage(in DamageInfo info)

@@ -29,6 +29,8 @@ namespace BossFight.Cutscene
         [SerializeField] ParticleSystem debris, birds;
         [SerializeField] Transform wave;
         [SerializeField] GameObject groundCracks;
+        [Tooltip("北側露出地面的焦黑樹根（H7 伏筆）；守衛破土（Rise > 0）時收掉")]
+        [SerializeField] GameObject foreshadowRoots;
         [SerializeField] AudioLowPassFilter[] filters = new AudioLowPassFilter[0];
         [SerializeField] GamePause pause;
         [SerializeField] HitStop hitStop;
@@ -85,7 +87,11 @@ namespace BossFight.Cutscene
                     RenderSettings.fogDensity = Mathf.Lerp(fogDensity, data.darkFogDensity, t);
                     if (colors != null) { colors.saturation.Override(data.darkSaturation * t); colors.colorFilter.Override(Color.Lerp(Color.white, data.darkColorFilter, t)); }
                     break;
-                case CinematicValue.Rise: rise = t; if (guardianModel != null) guardianModel.gameObject.SetActive(t > 0f); break;
+                case CinematicValue.Rise:
+                    rise = t;
+                    if (guardianModel != null) guardianModel.gameObject.SetActive(t > 0f);
+                    if (foreshadowRoots != null) foreshadowRoots.SetActive(t <= 0f);
+                    break;
                 case CinematicValue.GroundCrack: if (groundCracks != null) groundCracks.SetActive(t > 0f); break;
                 case CinematicValue.Wither: wither = t; break;
                 case CinematicValue.Glow: glow = t; break;

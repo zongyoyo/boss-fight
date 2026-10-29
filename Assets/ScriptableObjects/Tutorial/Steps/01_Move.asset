@@ -13,13 +13,19 @@ MonoBehaviour:
   m_Name: 01_Move
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Battle.TutorialStepData
   id: 01_Move
+  title: "\u79FB\u52D5"
   opening:
-  - text: "\u9019\u662F\u79FB\u52D5\u3002\u5148\u8D70\u5169\u6B65\u7D66\u6211\u770B\u770B\u3002"
+  - text: "\u5148\u52D5\u52D5\u8173\uFF0C\u5728\u9019\u9644\u8FD1\u8D70\u5E7E\u6B65\u7D66\u6211\u770B\u770B\u3002"
+    gesture: 0
+    saplingGesture: 0
+    shot: 0
     after: 0
+    cueShot: 0
   hintFormat: "[{0}] \u79FB\u52D5"
   actionPath: Player/Move
   condition: 0
   target: 4
   mode: 0
   invulnerable: 1
-  praise: "\u55EF\uFF0C\u81F3\u5C11\u8173\u662F\u597D\u7684\u3002"
+  praise: "\u55EF\uFF0C\u81F3\u5C11\u817F\u8173\u9084\u7B97\u9748\u6D3B\u3002"
+  praiseGesture: 10

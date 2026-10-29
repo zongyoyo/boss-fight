@@ -13,13 +13,31 @@ MonoBehaviour:
   m_Name: 05_Attack
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Battle.TutorialStepData
   id: 05_Attack
+  title: "\u653B\u64CA"
   opening:
-  - text: "\u9019\u662F\u653B\u64CA\u3002\u597D\u5566\uFF0C\u63DB\u4F60\u6253\u5B83\uFF0C\u5148\u780D\u4E09\u5200\u3002"
+  - text: "\u597D\u5566\uFF0C\u63DB\u4F60\u53CD\u64CA\u4E86\u3002"
+    gesture: 0
+    saplingGesture: 0
+    shot: 0
+    after: 6
+    cueShot: 0
+  - text: "\u770B\u5230\u5B83\u982D\u4E0A\u7684\u91CF\u689D\u4E86\u55CE\uFF1F\u4E0A\u9762\u662F\u8840\u91CF\uFF0C\u4E0B\u9762\u90A3\u689D\u662F\u8EC0\u5E79\u2014\u2014\u8EC0\u5E79\u689D\u4E00\u6EFF\uFF0C\u6575\u4EBA\u5C31\u6703\u7AD9\u4E0D\u7A69\u3002"
+    gesture: 5
+    saplingGesture: 0
+    shot: 6
     after: 0
+    cueShot: 0
+  - text: "\u5C0D\u8457\u5B83\u780D\u4E09\u5200\u8A66\u8A66\u3002"
+    gesture: 0
+    saplingGesture: 0
+    shot: 0
+    after: 0
+    cueShot: 0
   hintFormat: "[{0}] \u653B\u64CA"
   actionPath: Player/Attack
   condition: 4
   target: 3
   mode: 2
   invulnerable: 0
-  praise: "\u780D\u5F97\u4E0D\u932F\uFF0C\u53EF\u662F\u5B83\u9084\u7AD9\u8457\u5462\u3002"
+  praise: 
+  praiseGesture: 0

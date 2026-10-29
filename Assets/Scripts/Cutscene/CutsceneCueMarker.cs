@@ -19,6 +19,8 @@ namespace BossFight.Cutscene
         FlowerEmerge,
         Surprise,
         FlowerBurrow,
+        /// <summary>序章開場：中央土堆動一下（菊花還藏在土裡）。</summary>
+        MoundPeek,
     }
 
     /// <summary>Timeline 標記：播到時把 kind 交給 CutsceneDirector.OnCue。</summary>

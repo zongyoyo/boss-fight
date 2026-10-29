@@ -22,7 +22,7 @@ namespace BossFight.EditorTools
     ///    角色的裝備欄空著時填上（刀盾狗：項圈、護符；測試狗：護符），裝備加進 GameDatabase.equipment。數值只在建立時寫入，之後在資產調。
     ///    技能樹（T23，SkillTrees/）：刀盾狗 DaoDunDogTree（企劃書的 5 個節點，共 7 點）、測試狗 TestDogTree（疾風、厚毛 2 個節點）；
     ///    節點只在樹是空的時候寫入（之後在資產調），角色的 skillTree 空著時接上。
-    ///    Boss 與任務（T24）：Bosses/OiiaCat.asset（id oiia_cat，首通：技能點 ×3、厚皮項圈）、Quests/SpinTheCat.asset（「轉暈那隻小笨貓!」：擊敗 OIIA 貓，
+    ///    Boss 與任務（T24）：Bosses/OiiaCat.asset（id oiia_cat，首通：技能點 ×3、厚皮項圈）、Quests/SpinTheCat.asset（「轉暈那隻小笨貓！」：擊敗 OIIA 貓，
     ///    獎勵 技能點 ×2、反擊護符；對白是佔位文字），加進 GameDatabase.bosses／quests；BossArena 的 BattleSettings.boss 空著時接上 OIIA 貓。
     ///    獎勵與對白只在建立時寫入，之後在資產調。
     /// 3. 檢查 id（GameDatabaseValidator），再接好目前場景的 PlayerSpawner（PlayerSpawnerBuilder.Wire 會接 GameDatabase）。
@@ -264,7 +264,8 @@ namespace BossFight.EditorTools
             {
                 quest.offerLines.AddRange(new[]
                 {
-                    "那隻怪貓就在傳送門的另一頭，整天轉個不停。",
+                    "那隻怪貓就在傳送門的另一頭，整天一邊唱歌一邊原地轉圈。",
+                    "牠轉得越快，森林裡的雷雨就越大，連樹都快被吹倒了。",
                     "只要讓牠轉到頭暈、乖乖停下來，森林就會恢復平靜。",
                     "這件事就交給你了，願意幫忙嗎？",
                 });
@@ -273,6 +274,7 @@ namespace BossFight.EditorTools
                     "那隻貓還在轉嗎？傳送門就在南邊的小路盡頭。",
                     "記得用盾牌擋住牠的爪子，看準時機反擊！",
                 });
+                quest.acceptedLines.Add("傳送門就在南邊小路的盡頭，路上小心！");
                 quest.turnInLines.AddRange(new[]
                 {
                     "喔喔！雷雨停了……你真的讓那隻貓停下來了！",
@@ -282,7 +284,7 @@ namespace BossFight.EditorTools
                 quest.rewards.Add(RewardData.Unlock(counterAmulet));
             }
             if (string.IsNullOrEmpty(quest.id)) quest.id = "spin_the_cat";
-            if (string.IsNullOrEmpty(quest.title)) quest.title = "轉暈那隻小笨貓!";
+            if (string.IsNullOrEmpty(quest.title)) quest.title = "轉暈那隻小笨貓！";
             if (string.IsNullOrEmpty(quest.description)) quest.description = "擊敗森林深處的 OIIA 貓。";
             if (quest.objective == null) quest.objective = new QuestObjective();
             if (quest.objective.boss == null) quest.objective.boss = cat;

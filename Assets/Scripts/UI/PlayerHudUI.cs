@@ -33,8 +33,17 @@ namespace BossFight.UI
         [Tooltip("目前用鍵鼠還是手把；留空時一律鍵鼠")]
         [SerializeField] InputHintDevice hintDevice;
 
+        [Header("骨頭閃爍（純表現）")]
+        [Tooltip("FlashBones 閃多久（秒）")]
+        [SerializeField] float boneFlashTime = 1.5f;
+        [Tooltip("放大的比例（0.4 = 最大 1.4 倍）")]
+        [SerializeField] float boneFlashScale = 0.4f;
+        [Tooltip("閃幾下")]
+        [SerializeField] int boneFlashPulses = 3;
+
         Image[][] bones = new Image[0][];
-        float staminaFlashUntil;
+        RectTransform[] boneRects = new RectTransform[0];
+        float staminaFlashUntil, boneFlashUntil;
         bool staminaWasEmpty, staminaFull, regenBoosted;
         PlayerHealth health;   // PlayerSpawner 交給 BindPlayer
         PlayerStamina stamina;
@@ -152,6 +161,7 @@ namespace BossFight.UI
             }
             boneTemplate.gameObject.SetActive(false);
             bones = new Image[count][];
+            boneRects = new RectTransform[count];
             for (int i = 0; i < count; i++)
             {
                 var bone = Instantiate(boneTemplate, parent);
@@ -159,11 +169,23 @@ namespace BossFight.UI
                 bone.gameObject.SetActive(true);
                 bone.anchoredPosition = boneTemplate.anchoredPosition + Vector2.right * (boneSpacing * i);
                 bones[i] = bone.GetComponentsInChildren<Image>(true);
+                boneRects[i] = bone;
             }
         }
 
+        /// <summary>骨頭圖示放大閃幾下（序章教學拿到第一根骨頭時，TutorialHudUI 呼叫）。</summary>
+        public void FlashBones() => boneFlashUntil = Time.unscaledTime + boneFlashTime;
+
         void Update()
         {
+            if (boneFlashUntil > 0f)
+            {
+                float left = boneFlashUntil - Time.unscaledTime;
+                float scale = left > 0f ? 1f + boneFlashScale * Mathf.Abs(Mathf.Sin(left * Mathf.PI * boneFlashPulses / boneFlashTime)) : 1f;
+                foreach (var rect in boneRects)
+                    if (rect != null) rect.localScale = Vector3.one * scale;
+                if (left <= 0f) boneFlashUntil = 0f;
+            }
             var image = staminaBar.FillImage;
             if (image == null) return;
             bool flashing = Time.unscaledTime < staminaFlashUntil &&

@@ -13,18 +13,31 @@ MonoBehaviour:
   m_Name: Tutorial
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Battle.TutorialData
   greetingRadius: 10
-  greeting: "\u6B38\u90A3\u908A\u7684\u80D6\u5446\uFF0C\u904E\u4F86\u904E\u4F86"
+  greeting: "\u6B38\u2014\u2014\u90A3\u908A\u90A3\u96BB\u80D6\u5446\uFF01\u904E\u4F86\u904E\u4F86"
+  greetingGesture: 1
   greetingDuration: 2
   startRadius: 1.5
   interactionHint: "\u6309 [{0}] \u8207\u795E\u7955\u5C0F\u82B1\u5C0D\u8A71"
   speaker: "\u795E\u7955\u5C0F\u82B1"
   opening:
-  - text: "\u53C8\u4F86\u4E00\u500B\u61F5\u61C2\u7684\u5192\u96AA\u8005\uFF1F"
+  - text: "\u55EF\u2026\u2026\u53C8\u4E00\u500B\u8FF7\u8DEF\u95D6\u9032\u68EE\u6797\u6DF1\u8655\u7684\u5192\u96AA\u8005\uFF1F"
+    gesture: 2
+    saplingGesture: 0
+    shot: 0
     after: 0
-  - text: "\u6C92\u4E8B\uFF0C\u6211\u4F86\u6559\u4F60\u3002"
+    cueShot: 0
+  - text: "\u770B\u4F60\u9023\u76FE\u90FD\u62FF\u4E0D\u7A69\u7684\u6A23\u5B50\u2026\u2026\u597D\u5566\uFF0C\u672C\u5C0F\u82B1\u5C31\u5927\u767C\u6148\u60B2\u6559\u4F60\u5E7E\u62DB\u3002"
+    gesture: 3
+    saplingGesture: 0
+    shot: 1
     after: 1
-  - text: "\u5C31\u628A\u9019\u500B\u7576\u8A13\u7DF4\u9776\u5427\u3002"
+    cueShot: 3
+  - text: "\u4F86\uFF0C\u9019\u96BB\u5C0F\u6A39\u7CBE\u501F\u4F60\u7576\u7DF4\u7FD2\u9776\u3002\u5225\u5BA2\u6C23\uFF0C\u5B83\u5F88\u8010\u6253\u7684\u3002"
+    gesture: 5
+    saplingGesture: 0
+    shot: 0
     after: 0
+    cueShot: 0
   steps:
   - {fileID: 11400000, guid: 069381724ba30b44099f329145f994db, type: 2}
   - {fileID: 11400000, guid: 83286f187f6958c488de2e2556787892, type: 2}
@@ -33,13 +46,45 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 4e09818de7c2d8449aa417a7fa275618, type: 2}
   - {fileID: 11400000, guid: 0a352e7738a18a242802e3d84d52fc16, type: 2}
   ending:
-  - text: "\u4E0D\u932F\u561B\uFF0C\u4F60\u5DF2\u7D93\u662F\u500B\u5408\u683C\u7684\u5192\u96AA\u8005\u4E86\uFF0C\u53EF\u4EE5\u53BB\u6311\u6230\u5927\u6A39\u5B88\u885B\u4E86\u3002"
+  - text: "\u4E0D\u932F\u561B\uFF0C\u4F60\u5DF2\u7D93\u662F\u500B\u5408\u683C\u7684\u5192\u96AA\u8005\u4E86\u3002"
+    gesture: 6
+    saplingGesture: 0
+    shot: 0
     after: 0
-  - text: "\u9806\u5E36\u4E00\u63D0\uFF0C\u4F60\u525B\u525B\u6253\u5230\u7684\u5C0F\u6A39\u7CBE\u662F\u5927\u6A39\u5B88\u885B\u7684\u5C0F\u5B69\u5594\uFF0C\u563B\u563B\u3002"
+    cueShot: 0
+  - text: "\u5C0D\u4E86\uFF0C\u9019\u7247\u68EE\u6797\u7684\u4E3B\u4EBA\u662F\u4E00\u68F5\u5927\u6A39\u5B88\u885B\u3002\u6709\u672C\u4E8B\u7684\u8A71\uFF0C\u53BB\u6311\u6230\u770B\u770B\u5427\uFF1F"
+    gesture: 10
+    saplingGesture: 0
+    shot: 2
     after: 0
-  parryPraise: "\u5594\uFF01\u6293\u6E96\u6642\u6A5F\u9084\u80FD\u628A\u5B83\u5F48\u56DE\u53BB\uFF0C\u6709\u5929\u5206\u3002"
+    cueShot: 0
+  - text: "\u9806\u5E36\u4E00\u63D0\u2026\u2026\u4F60\u525B\u525B\u6253\u5012\u7684\u90A3\u96BB\u5C0F\u6A39\u7CBE\uFF0C\u5C31\u662F\u5927\u6A39\u5B88\u885B\u7684\u5C0F\u5B69\u5594\u3002\u563B\u563B\u3002"
+    gesture: 7
+    saplingGesture: 0
+    shot: 9
+    after: 0
+    cueShot: 0
+  endingGesture: 9
+  parryPraise: "\u5594\uFF01\u771F\u7684\u5F48\u56DE\u53BB\u4E86\uFF0C\u6709\u5929\u5206\u561B\u3002"
+  parryGesture: 8
   prankLine: "\u6253\u6211\u5E79\u561B\u5566\uFF01\u662F\u6253\u90A3\u908A\uFF01"
   initialBones: 0
   grantedBones: 1
-  completionDelay: 0.5
+  completionDelay: 1
   endingPause: 1
+  rumbleTime: 1.2
+  rumble:
+    clips:
+    - {fileID: 8300000, guid: b6a2bda5f16306c4aaf7f36cd75cf982, type: 3}
+    volume: 0.7
+    shake: 0.35
+  distantRoar:
+    clips:
+    - {fileID: 8300000, guid: 8f93b6e5093a80142a411b6aa4c4ec99, type: 3}
+    volume: 0.45
+    shake: 0.12
+  boneToss:
+    clips:
+    - {fileID: 8300000, guid: 2ba7286bded45ad4cbaeba787ca29ae3, type: 3}
+    volume: 0.5
+    shake: 0
