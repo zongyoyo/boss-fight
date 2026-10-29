@@ -65,8 +65,9 @@ namespace BossFight.UI
             if (!active || id != dialogueId) return;
             if (completed)
             {
+                // 開場講完：接著講第一個任務的說明（Show 會收到新的對話），講完才問接不接
                 var introOffer = chief.CompleteIntroDialogue();
-                if (introOffer != null) offer = introOffer;
+                if (introOffer != null) { chief.Offer(introOffer); return; }
             }
             if (!completed || offer == null) { Close(); return; }
             var text = new StringBuilder(string.Format(data.questTitleFormat, offer.title));

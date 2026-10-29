@@ -15,7 +15,7 @@ namespace BossFight.Hub
     /// 開場劇情：存檔沒看過時，HubManager 在淡入後呼叫 BeginIntro，村長直線走到玩家面前（期間 ReadyToTalk 是 false，HubManager 不切鏡頭），
     /// 走到之後他的站位點剛好在玩家腳下，站點鏡頭（他的子物件）就是雙人鏡頭；講完開場對白（HubStoryData）存檔記住看過、開放第一個任務，再走回原位。
     /// 走回去的路上也可以找他講話（講話時停下來，講完繼續走）。對話一開始就送 OnDialogue，介面講完後呼叫 Accept、Decline 或 HubManager.CloseStation。
-    /// 開場（含序章的擊倒版／勝利版）講完直接接第一個可接任務的說明（I2）：CompleteIntroDialogue 回傳那個任務，介面接著問「接受／再想想」；
+    /// 開場（含序章的擊倒版／勝利版）講完直接接第一個可接任務的說明（I2）：CompleteIntroDialogue 回傳那個任務，介面接著呼叫 Offer 講任務說明，講完問「接受／再想想」；
     /// 選再想想時 Decline 講提醒（HubStoryData.declineLines），關掉介面後頭上亮「!」。在原位、有任務時，玩家走近會轉身面向玩家（I3）。
     /// </summary>
     public class VillageChief : Interactable, IPlayerBinding
@@ -105,6 +105,16 @@ namespace BossFight.Hub
             if (!open || !introPlaying) return null;
             introPlaying = false; ProfileStore.MarkStoryIntroSeen(); RefreshMarker();
             return Find(QuestState.Available);
+        }
+
+        /// <summary>講可接任務的說明（QuestData.offerLines），講完介面問接不接；開場講完時用。不是可接時不做。</summary>
+        public void Offer(QuestData quest)
+        {
+            if (!open || quest == null || ProgressRecorder.GetState(quest) != QuestState.Available) return;
+            BeginView();
+            AddLines(quest.offerLines);
+            view.offer = quest;
+            OnDialogue?.Invoke(view);
         }
 
         /// <summary>任務說明後選「再想想」：村長講提醒（任務照樣可接，頭上的「!」在關掉介面後出現）。</summary>
