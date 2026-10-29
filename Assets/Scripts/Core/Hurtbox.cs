@@ -14,6 +14,8 @@ namespace BossFight.Core
         [SerializeField] MonoBehaviour owner;
 
         public IDamageable Owner { get; private set; }
+        /// <summary>owner 同時實作 IDodgeable 時（玩家）回傳它，否則 null；攻擊方回報翻滾閃避用。</summary>
+        public IDodgeable Dodger => (Owner ?? owner as IDamageable) as IDodgeable;
         /// <summary>受擊範圍的中心（世界座標），命中特效放在這裡。</summary>
         public Vector3 Center => col != null ? col.bounds.center : transform.position;
 

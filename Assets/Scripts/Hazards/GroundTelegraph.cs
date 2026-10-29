@@ -8,6 +8,8 @@ namespace BossFight.Hazards
     /// 外框標出範圍，裡面的填色由出招方用 SetFill 從 0 推到 1，填滿的那一刻就是判定發生的瞬間；
     /// 判定那一幀呼叫 Strike 讓整片範圍閃亮，Hide 淡出。可擋的招白色、不可擋的紅色（和 Boss 身上的預兆閃光同一套規則）。
     /// 圓形以中心定位（innerRadius &gt; 0 時是環）；長方形從起點往 direction 長出去，填色也從起點往前長。
+    /// 序章修正（C1、C7）加上扇形（由中心往外填）、十字（由中心沿四條臂往外填）、全場（由填色起點往外填），
+    /// 以及 SetClip 裁切到場地內、SetHoles 挖掉最多 3 個安全圈；安全區的綠色（SafeColor）也在這裡，跟紅、白同一個 prefab。
     /// 每個實例用自己的材質複本，參數直接改材質。這裡的數字全是視覺參數。
     /// </summary>
     [DisallowMultipleComponent]
@@ -18,6 +20,8 @@ namespace BossFight.Hazards
         [Header("顏色（HDR，A 是整體不透明度）")]
         [SerializeField] [ColorUsage(true, true)] Color blockableColor = new Color(1f, 1f, 1f, 0.9f);
         [SerializeField] [ColorUsage(true, true)] Color unblockableColor = new Color(1f, 0.12f, 0.08f, 0.95f);
+        [Tooltip("安全區、安全指引（序章大樹守衛的萬根齊發）")]
+        [SerializeField] [ColorUsage(true, true)] Color safeColor = new Color(0.2f, 2f, 0.6f, 0.7f);
 
         [Header("樣式")]
         [Tooltip("外框寬度 (m)")]
@@ -41,13 +45,29 @@ namespace BossFight.Hazards
         static readonly int ParamsId = Shader.PropertyToID("_Params");
         static readonly int StyleId = Shader.PropertyToID("_Style");
         static readonly int SizeId = Shader.PropertyToID("_Size");
+        static readonly int FieldId = Shader.PropertyToID("_Field");
+        static readonly int[] HoleIds = { Shader.PropertyToID("_Hole0"), Shader.PropertyToID("_Hole1"), Shader.PropertyToID("_Hole2") };
+        const int MaxHoles = 3;
 
         Material material;
         float shape, fill, inner, flash;
         float fadeTimer;
         bool visible, fading;
+        // 投影範圍 (m) 與形狀的額外參數（扇形角度、十字臂寬）；全場的填色起點、裁切與安全圈都存世界座標，Apply 時換成投影座標
+        Vector2 boxSize;
+        float extra;
+        bool hasSource, hasClip;
+        Vector3 source, clipCenter;
+        float clipRadius;
+        readonly Vector3[] holes = new Vector3[MaxHoles];
+        int holeCount;
+        float holeRadius;
 
         public bool IsVisible => visible;
+        public Color BlockableColor => blockableColor;
+        public Color UnblockableColor => unblockableColor;
+        public Color SafeColor => safeColor;
+        public Color ColorFor(bool blockable) => blockable ? blockableColor : unblockableColor;
 
         void Awake()
         {
@@ -82,12 +102,66 @@ namespace BossFight.Hazards
         }
 
         /// <summary>從 groundStart 往 direction 長 length、寬 width 的長方形，填色從 0 開始。</summary>
-        public void ShowRect(Vector3 groundStart, Vector3 direction, float length, float width, bool blockable)
+        public void ShowRect(Vector3 groundStart, Vector3 direction, float length, float width, bool blockable) =>
+            ShowRect(groundStart, direction, length, width, blockable ? blockableColor : unblockableColor);
+
+        /// <summary>同上，但顏色另外指定。</summary>
+        public void ShowRect(Vector3 groundStart, Vector3 direction, float length, float width, Color tint)
         {
             shape = 1f;
             inner = 0f;
             Place(groundStart, direction, new Vector2(width, length), length * 0.5f);
-            Begin(blockable ? blockableColor : unblockableColor);
+            Begin(tint);
+        }
+
+        /// <summary>以 groundCenter 為圓心、往 direction 張開 angle 度、半徑 radius 的扇形，填色由圓心往外。</summary>
+        public void ShowSector(Vector3 groundCenter, Vector3 direction, float radius, float angle, Color tint)
+        {
+            shape = 2f;
+            inner = 0f;
+            extra = angle;
+            Place(groundCenter, direction, new Vector2(radius * 2f, radius * 2f), 0f);
+            Begin(tint);
+        }
+
+        /// <summary>以 groundCenter 為中心、沿世界南北與東西向的十字，每條臂寬 armWidth、從中心延伸 reach，填色由中心沿四條臂往外。</summary>
+        public void ShowCross(Vector3 groundCenter, float armWidth, float reach, Color tint)
+        {
+            shape = 3f;
+            inner = 0f;
+            extra = armWidth;
+            Place(groundCenter, Vector3.forward, new Vector2(reach * 2f, reach * 2f), 0f);
+            Begin(tint);
+        }
+
+        /// <summary>整個場地（以 fieldCenter 為中心、半徑 fieldRadius），填色由 fillOrigin（攻擊源）往外；搭配 SetHoles 挖安全圈。</summary>
+        public void ShowField(Vector3 fieldCenter, float fieldRadius, Vector3 fillOrigin, Color tint)
+        {
+            shape = 4f;
+            inner = 0f;
+            Place(fieldCenter, Vector3.forward, new Vector2(fieldRadius * 2f, fieldRadius * 2f), 0f);
+            Begin(tint);
+            hasSource = true;
+            source = fillOrigin;
+            Apply();
+        }
+
+        /// <summary>裁切到以 center 為中心、半徑 radius 的場地內（邊緣也畫外框）；radius ≤ 0 取消。Show 會重設。</summary>
+        public void SetClip(Vector3 center, float radius)
+        {
+            hasClip = radius > 0f;
+            clipCenter = center;
+            clipRadius = radius;
+            if (visible) Apply();
+        }
+
+        /// <summary>挖掉最多 3 個半徑 radius 的安全圈（圈邊畫外框）；null 取消。Show 會重設。</summary>
+        public void SetHoles(Vector3[] centers, float radius)
+        {
+            holeCount = centers != null ? Mathf.Min(centers.Length, MaxHoles) : 0;
+            for (int i = 0; i < holeCount; i++) holes[i] = centers[i];
+            holeRadius = radius;
+            if (visible) Apply();
         }
 
         /// <summary>移動長方形，不重設填色（預兆期間跟著 Boss 轉）。</summary>
@@ -118,6 +192,8 @@ namespace BossFight.Hazards
 
         void Begin(Color tint)
         {
+            hasSource = hasClip = false;
+            holeCount = 0;
             fill = 0f;
             flash = 0f;
             fading = false;
@@ -138,7 +214,14 @@ namespace BossFight.Hazards
                                              Quaternion.LookRotation(Vector3.down, direction.normalized));
             projector.size = new Vector3(size.x, size.y, depth);
             projector.pivot = new Vector3(0f, forwardOffset, depth * 0.5f);
-            material.SetVector(SizeId, new Vector4(size.x, size.y, 0f, 0f));
+            boxSize = size;
+        }
+
+        // 世界座標 → 投影座標（相對投影範圍中心，x 向右、y 沿 direction，m）
+        Vector2 Local(Vector3 world)
+        {
+            Vector3 local = transform.InverseTransformPoint(world);
+            return new Vector2(local.x - projector.pivot.x, local.y - projector.pivot.y);
         }
 
         void Update()
@@ -163,6 +246,15 @@ namespace BossFight.Hazards
         {
             material.SetVector(ParamsId, new Vector4(shape, fill, inner, flash));
             material.SetVector(StyleId, new Vector4(edgeWidth, fillAlpha, areaAlpha, emission));
+            Vector2 origin = hasSource ? Local(source) : Vector2.zero;
+            material.SetVector(SizeId, new Vector4(boxSize.x, boxSize.y, hasSource ? origin.x : extra, hasSource ? origin.y : 0f));
+            Vector2 clip = hasClip ? Local(clipCenter) : Vector2.zero;
+            material.SetVector(FieldId, new Vector4(clip.x, clip.y, hasClip ? clipRadius : 0f, 0f));
+            for (int i = 0; i < MaxHoles; i++)
+            {
+                Vector2 hole = i < holeCount ? Local(holes[i]) : Vector2.zero;
+                material.SetVector(HoleIds[i], new Vector4(hole.x, hole.y, i < holeCount ? holeRadius : 0f, 0f));
+            }
         }
     }
 }

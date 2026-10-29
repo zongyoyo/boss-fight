@@ -36,7 +36,7 @@
 | `Assets/ScriptableObjects` | 數值資產（`.asset`），依系統分子資料夾：`Arena/`（ArenaData、Atmosphere 天色）、`Boss/`（BossStats）、`Boss/Phases/`、`Boss/Moves/Phase1/`（第一階段 5 招）、`Boss/Moves/Phase2/`（第二階段 4 個強化招，和第一階段同一招共用類別；新招龍捲風、幻影分身與終極技大迴旋）、`Cutscene/`（IntroCutsceneSettings）、`Battle/`（BattleSettings）、`UI/`（BattleUIData：血條刻度、動畫時間、顏色、文字；PauseMenuData：ESC 選單的文字、顏色、改鍵清單；InputNameData：按鍵顯示名稱）、`Options/`（GameOptionsData：玩家設定的預設值；Difficulty：各難度的修正值）、`Feedback/`（CombatFeedback：打擊回饋的音效、音量、鏡頭震動）、`Debug/`（測試木樁、T19 的測試修正 TestModifiers）、`Progression/`（SceneFlowData、GameDatabase、CharacterRoster；`Characters/` 是各角色的 CharacterDefinition 與基礎數值，刀盾狗的是 `DaoDunDog.asset`、`DaoDunDogStats.asset`（T18 以前的 `Player/PlayerStats.asset`，GUID 不變），測試狗（T21）是 `TestDog.asset`、`TestDogStats.asset`；`Equipment/`（T22）是欄位種類 `Slot_Collar`／`Slot_Amulet`、厚皮項圈 `ThickCollar`、反擊護符 `CounterAmulet` 與它的效果 `ParryHeal`；`SkillTrees/`（T23）是刀盾狗 `DaoDunDogTree`、測試狗 `TestDogTree`；`Bosses/`（T24）是 OIIA 貓 `OiiaCat`；`Quests/`（T24）是測試任務 `SpinTheCat`）、`Hub/`（T20 起：HubLayout 版面、HubAtmosphere 休息區天色、HubUIData 介面文字與顏色；T24 的 HubStory 村長名稱、開場與閒聊對白） |
 | `Assets/Timelines` | Timeline 資產：`Intro.playable`（開場 14.5 秒）、`Transition.playable`（轉階段 5.0 秒）；鏡頭與各效果的時間點都在這裡調 |
 | `Assets/Prefabs` | 玩家角色（`Prefabs/Characters/DaoDunDog.prefab` 與測試狗的 prefab variant `DaoDunDog_Test.prefab`，DaoDunDogBuilder 產生）、Boss（`OiiaCat`、幻影 `OiiaCatPhantom`，BossBuilder 產生）、UI 的 prefab；`Prefabs/Hazards` 是地面提示、Hazard 與特效，由 HazardBuilder 產生，重建會覆寫 |
-| `Assets/Shaders` | 自製 shader（都是手寫 JSON 的 URP Decal Shader Graph，Custom Function 用 UV 畫圖）：`TelegraphDecal.shadergraph`（地面範圍提示：圓、環、長方形）、`MagicCircleDecal.shadergraph`（魔法陣：雙環、符文帶、倒五芒星，由中心描繪、外圈分段點亮；`_Holes` 加上 Size.y、Params.w 是大迴旋安全區的熄滅區） |
+| `Assets/Shaders` | 自製 shader（都是手寫 JSON 的 URP Decal Shader Graph，Custom Function 用 UV 畫圖）：`TelegraphDecal.shadergraph`（地面範圍提示：圓、環、長方形、扇形、十字、全場挖最多 3 個安全圈，可裁切到場地內；序章修正 C1 擴充）、`MagicCircleDecal.shadergraph`（魔法陣：雙環、符文帶、倒五芒星，由中心描繪、外圈分段點亮；`_Holes` 加上 Size.y、Params.w 是大迴旋安全區的熄滅區） |
 | `Assets/Scenes` | `Hub.unity`（休息區，HubBuilder 產生）、`BossArena.unity`（`SampleScene` 是範本殘留，不在 Build Settings） |
 | `Assets/Audio` | BGM 與音效；OIIA 音樂放 `Assets/Audio/oiia_bgm`，放進來後在場景 `AudioManager` 的 battleMusic 指定（重跑 IntroCutsceneBuilder 也會自動找路徑含 oiia_bgm 的音檔）；`Audio/Placeholder` 是 PlaceholderAudioBuilder 合成的佔位音效（戰鬥音效是 `Sfx_Combat_*`），重建會覆寫 |
 | `Assets/Models` | 模型、網格、材質；`Models/Arena`、`Models/DaoDunDog`、`Models/TrainingDummy`、`Models/OiiaCat`、`Models/Hazards`、`Models/Cutscene`、`Models/Hub` 由 Builder 自動產生，重建會覆寫網格；`Models/UI` 是 BattleUIBuilder 產生的 UI 圖（處決標記的圓環），`Models/UI/Equipment` 是 ProgressionBuilder 產生的裝備佔位圖示（T22），都只在不存在時產生 |
@@ -223,6 +223,19 @@ ScriptableObject 的「類別」寫在 `Scripts/` 對應的系統資料夾，「
 - 格擋沿用藍色、盾反沿用金色、成功閃避沿用綠色回饋。空滾與真正避開攻擊分開：只在有效攻擊窗內受到威脅且成功避開時播放成功回饋／計教學次數，同次攻擊或同次翻滾避免重複播放，不把距離外空滾或強制無敵冒充成功。
 - 回饋以事件與實際 `HitReport`／攻擊結算結果驅動；VFX／SFX 不反向決定傷害或教學完成。新增玩法參數仍放 SO，保留既有盾反停頓規則，不因新增回饋自行添加其他畫面停頓或改戰鬥數值。
 - 小樹精的 `SaplingMode.Attack` 是白色格擋訓練，`SaplingMode.DodgeAttack` 是紅色閃避訓練；T27 必須依步驟切換模式。T28／T29 新招、衍生危害物件與召喚物也須遵守上述分類與 VFX／SFX 驗收。
+
+## 序章修正 A–C 之後的規則（Oct 29，`docs/prologue-fix-list.md`）
+
+- 成功閃避只在被打方結算一次：`Core/IDodgeable`（玩家的 `PlayerHealth` 實作）。翻滾無敵中被打到（Evaded）由 PlayerHealth 自己算；攻擊方只在「目標在範圍裡翻滾（`Hurtbox.Dodger.IsDodging`）、判定窗結束沒打中」時呼叫 `NotifyNearMiss`。強制無敵、受擊後無敵、倒下不算，同一次翻滾只送一次 `PlayerHealth.OnDodgeSucceeded`；綠色火花、閃避聲（PlayerFeedback）與教學計次（TutorialDirector）都訂閱它。攻擊方不再自己判斷無敵種類，也不經上層灌翻滾狀態（`BossController.TargetRolling`／`TargetDodgeEligible`、`TrainingSapling.SetTargetRolling` 已刪）。
+- 命中火花（`BossHitFeedback`）只認 `Boss/IHitReportSource`（`OnHitReported`）：BossController、TrainingSapling、DaisyMentor 都實作，欄位名稱沿用 `boss`（OIIA 的 prefab 與 BossBuilder 不用改）。BossHitFeedback 不畫 Evaded（綠色在玩家那邊）。新的攻擊角色實作這個介面，照 `PrologueActorsBuilder.WireHitFeedback` 複製 OIIA 的設定，不另開特例。
+- 玩家的可見回饋都在角色身上的 PlayerFeedback（三個場景、換角色都一樣）：刀光 `Fx_DogSlash`／`Fx_DogSlashHeavy`（HazardBuilder.BuildExtraFx 建，輕攻擊每段換傾斜與大小、重擊與處決由上往下）、成功閃避的綠色火花；CombatFeedbackBuilder 接到角色 prefab。不要在場景物件上補角色的表現。
+- `LockOnTarget` 自帶構圖：`aimPoint`（鏡頭看的點）、`markerPoint`（鎖定菱形與處決標記，空的用 aimPoint）、`framingRadius`、`lockOnPitch`（預設 12°）、`lockOnDistance`（0 = 鏡頭原本的距離）。CameraController 鎖定時平滑轉到目標的俯仰與距離，解除時自由視角回到鎖定前的俯仰。大樹守衛的值在 `GuardianBattleData`（看樹幹中段、標記在樹洞），小樹精的在 `TrainingSaplingData`（看身體中心、32°），由 `GuardianBuilder.WireLockFraming`／`PrologueActorsBuilder.WireLockFraming` 寫入。不要在鏡頭或場景路徑上寫特例。
+- 大樹守衛的地面預兆用共用的 `GroundTelegraph`（`Prefabs/Hazards/GroundTelegraph`）：AreaStrike 執行時複製幾份當主範圍、環波前方預警帶（`ShowLead`）與安全圈；紅、白、安全區綠都在這個 prefab（`ColorFor`／`SafeColor`）。填色一律由攻擊源往外推，填滿那一刻開判定；範圍裁切在場地內。模型閃光的顏色（BossTelegraphFlash、TrainingSaplingVisual）還各有一份，留給 D1 統一。
+- 多段招在招式預兆開始時就把每一段畫出來、依序填滿，段與段照 `interval`；只有每段開預兆時才鎖玩家或重新瞄準的段（藤蔓連砸最後一條、樹根突刺／追獵）邊打邊畫，預兆長度用 `GuardianMoveData.warning`，不得低於該階段的預兆下限（一階段 0.4、二階段 0.3 秒）。不要拿段與段的間隔充當預兆。
+- 守衛招式的衝擊音效照表現樣式：`BossImpactKind.VineStrike`／`LeafBlade`／`RootBurst`／`SeedBlast`／`Summon`（`CombatFeedbackData` 同名欄位，PrologueAudioBuilder 合成佔位音，CombatFeedbackBuilder 一起填）。新招要有自己的聲音就加 BossImpactKind，不要借 OIIA 的。
+- 萬根齊發的安全圈找不到時逐步放寬（可走到 → 整個場地 → 不檢查路徑 → 玩家位置），一定會放出、一定會結束，只留 Warning，不再 `SuspendCombat`。
+- 小樹精預兆開始後 `TrainingSaplingData.telegraphTrackTime`（0.5 秒）還會轉向，之後鎖住方向，判定照鎖住的方向打。
+- 舊的 `GuardianTelegraph.shader`、`AreaTelegraph.mat`、`AreaQuad.asset`、`Battle/TutorialPlayerVisual`、`PrologueLayoutData.lockOnPitch`、`TutorialBuilder.ApplyLockOnCamera` 已刪；已存在的守衛 prefab 用 `GuardianBuilder.UpgradePrefab` 補接（不重建整個守衛、不動開戰流程）。
 
 ## 工作流程
 

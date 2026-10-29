@@ -3,7 +3,11 @@ using UnityEngine;
 
 namespace BossFight.Hazards
 {
-    /// <summary>純視覺範圍效果：藤蔓掃痕、下降葉片與破土根刺。沒有 Collider，也不決定傷害或安全區。</summary>
+    /// <summary>
+    /// 純視覺範圍效果：藤蔓掃痕、下降葉片與破土根刺。沒有 Collider，也不決定傷害或安全區。
+    /// 藤蔓（序章修正 C9）：橫掃在判定窗內從一側掃到另一側（掃過的弧留下掃痕），砸地從高處落下；
+    /// 網格只在形狀有變時重建（C13：根刺升起、葉片落下、淡出期間），升起完靜止時不重建。
+    /// </summary>
     public class AttackAreaFx : MonoBehaviour
     {
         [SerializeField] MeshFilter filter;
@@ -15,6 +19,12 @@ namespace BossFight.Hazards
         [Min(0.01f), SerializeField] float fadeTime = 0.35f;
         [Min(0.01f), SerializeField] float riseTime = 0.08f;
         [Min(0f), SerializeField] float fallHeight = 4f;
+        [Tooltip("藤蔓砸地從多高落下 (m)")]
+        [Min(0f), SerializeField] float vineDropHeight = 3f;
+        [Tooltip("藤蔓砸地落下的時間（秒）")]
+        [Min(0.01f), SerializeField] float vineDropTime = 0.08f;
+        [Tooltip("橫掃最短的掃動時間（秒）；判定窗更長時照判定窗")]
+        [Min(0.01f), SerializeField] float minSweepTime = 0.12f;
         [Min(0.01f), SerializeField] float rootWidth = 0.2f;
         [Min(0.01f), SerializeField] float vineWidth = 0.45f;
         [Min(8), SerializeField] int ringSegments = 48;
@@ -26,17 +36,23 @@ namespace BossFight.Hazards
         AttackArea area;
         AreaStrikeStyle style;
         Color tint;
-        float progress, impactAge, fadeAge;
+        float progress, impactAge, fadeAge, sweepTime, sweepSign = 1f;
         bool struck, released;
+        // 上一次重建網格時的狀態；一樣就不重建
+        float drawnProgress = -1f, drawnRise = -1f, drawnFade = -1f;
 
         void Awake()
         {
             mesh = new Mesh { name = "AttackAreaFx_Runtime" }; mesh.MarkDynamic(); filter.sharedMesh = mesh;
             block = new MaterialPropertyBlock();
         }
-        public void Show(AttackArea value, AreaStrikeStyle look, Color color, bool prewarning)
+        /// <param name="strikeWindow">判定窗長度（秒）：藤蔓橫掃在這段時間內掃完。</param>
+        /// <param name="direction">藤蔓橫掃方向：1 從左到右、-1 反過來。</param>
+        public void Show(AttackArea value, AreaStrikeStyle look, Color color, bool prewarning, float strikeWindow = 0f, float direction = 1f)
         {
             area = value; style = look; tint = color; struck = !prewarning;
+            sweepTime = Mathf.Max(minSweepTime, strikeWindow);
+            sweepSign = direction < 0f ? -1f : 1f;
             surface.sharedMaterial = style == AreaStrikeStyle.Leaf ? leafMaterial : rootMaterial;
             surface.enabled = style != AreaStrikeStyle.Vine; vine.enabled = style == AreaStrikeStyle.Vine;
             Draw();
@@ -59,27 +75,51 @@ namespace BossFight.Hazards
         {
             float fade = released ? 1f - Mathf.Clamp01(fadeAge / fadeTime) : 1f;
             if (style == AreaStrikeStyle.Vine) { DrawVine(fade); return; }
-            vertices.Clear(); triangles.Clear();
-            if (style == AreaStrikeStyle.Leaf) DrawLeaves(fade);
-            else DrawRoots(fade);
-            mesh.Clear(); mesh.SetVertices(vertices); mesh.SetTriangles(triangles, 0); mesh.RecalculateNormals(); mesh.RecalculateBounds();
+            // 葉片落地後還會轉，一直重建；根刺只在升起、淡出與範圍移動時重建
+            float rise = Mathf.Clamp01(impactAge / riseTime);
+            bool changed = style == AreaStrikeStyle.Leaf || progress != drawnProgress || rise != drawnRise || fade != drawnFade || area.shape == AttackAreaShape.Ring;
+            if (changed)
+            {
+                drawnProgress = progress; drawnRise = rise; drawnFade = fade;
+                vertices.Clear(); triangles.Clear();
+                if (style == AreaStrikeStyle.Leaf) DrawLeaves(fade);
+                else DrawRoots(fade);
+                mesh.Clear(); mesh.SetVertices(vertices); mesh.SetTriangles(triangles, 0); mesh.RecalculateNormals(); mesh.RecalculateBounds();
+            }
             block.SetColor("_EmissionColor", tint * (0.4f * fade));
             surface.SetPropertyBlock(block);
         }
         void DrawVine(float fade)
         {
             const int points = 49;
-            vine.positionCount = points; vine.widthMultiplier = vineWidth * fade;
             Color c = tint; c.a = fade; vine.startColor = vine.endColor = c;
+            vine.widthMultiplier = vineWidth * fade;
             Vector3 f = area.forward.sqrMagnitude > 0f ? area.forward.normalized : Vector3.forward;
+            if (area.shape == AttackAreaShape.Sector)
+            {
+                // 從一側掃到另一側：弧從起點長到目前的角度，掃完留下整條掃痕再淡出
+                float swept = struck ? Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(impactAge / sweepTime)) : 0f;
+                int count = Mathf.Max(2, Mathf.CeilToInt(points * swept));
+                vine.positionCount = count;
+                float start = -area.angle * 0.5f * sweepSign;
+                float end = Mathf.Lerp(start, -start, swept);
+                for (int i = 0; i < count; i++)
+                {
+                    float t = count > 1 ? (float)i / (count - 1) : 0f;
+                    Vector3 p = area.center + Quaternion.Euler(0f, Mathf.Lerp(start, end, t), 0f) * f * area.radius;
+                    p.y = area.center.y + 0.25f + Mathf.Sin(t * Mathf.PI) * 0.3f * fade;
+                    vine.SetPosition(i, p);
+                }
+                return;
+            }
+            // 砸地：整條藤從高處落下
+            float drop = struck ? 1f - Mathf.Clamp01(impactAge / vineDropTime) : 1f;
+            vine.positionCount = points;
             for (int i = 0; i < points; i++)
             {
                 float t = (float)i / (points - 1);
-                Vector3 p;
-                if (area.shape == AttackAreaShape.Sector)
-                    p = area.center + Quaternion.Euler(0f, Mathf.Lerp(-area.angle * 0.5f, area.angle * 0.5f, t), 0f) * f * area.radius;
-                else p = area.center + f * area.length * t;
-                p.y = area.center.y + 0.25f + Mathf.Sin(t * Mathf.PI) * 0.3f * fade;
+                Vector3 p = area.center + f * area.length * t;
+                p.y = area.center.y + 0.25f + Mathf.Sin(t * Mathf.PI) * 0.3f * fade + vineDropHeight * drop * drop;
                 vine.SetPosition(i, p);
             }
         }

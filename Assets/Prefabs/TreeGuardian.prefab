@@ -90,6 +90,38 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &90589414593669088
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7430254090746650716}
+  m_Layer: 0
+  m_Name: Vine
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7430254090746650716
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 90589414593669088}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 1.6, y: 5.2, z: -0.3}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 7340554851462821209}
+  m_Father: {fileID: 6929710316360286316}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &401242218317791302
 GameObject:
   m_ObjectHideFlags: 0
@@ -142,6 +174,8 @@ Transform:
   - {fileID: 2949738819044333927}
   - {fileID: 7782231394760687574}
   - {fileID: 1227607983765532705}
+  - {fileID: 6462849519306321814}
+  - {fileID: 7430254090746650716}
   m_Father: {fileID: 7967515989670206858}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &523465893287967890
@@ -767,6 +801,7 @@ Transform:
   - {fileID: 6623549520017198039}
   - {fileID: 3379512115236035941}
   - {fileID: 7694675186203366210}
+  - {fileID: 5094302130624384167}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &5128496874360427991
@@ -779,7 +814,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 00974eccdfcaeaa4594a451a50110996, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Boss.BossHealth
   stats: {fileID: 11400000, guid: a1601c6c1465f80469972900380b8c36, type: 2}
 --- !u!114 &5185404385692086633
@@ -792,7 +827,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: dc42badfbd446fc4cbe751b3ff24b54c, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Boss.BossController
   stats: {fileID: 11400000, guid: a1601c6c1465f80469972900380b8c36, type: 2}
   arena: {fileID: 11400000, guid: e0be88b1f071b4143a47bb399f36c9f1, type: 2}
@@ -825,7 +860,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a956a60164060cd46b0e59fd7375459f, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Boss.BossStagger
   stats: {fileID: 11400000, guid: a1601c6c1465f80469972900380b8c36, type: 2}
 --- !u!114 &8254260354142291854
@@ -838,7 +873,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4011b4d47c04fe7459f47d86206c63f8, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Core.ExecutionTarget
 --- !u!114 &2748501368143415179
 MonoBehaviour:
@@ -850,10 +885,13 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 25ccd8b1a735afd4198706b35375c173, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Core.LockOnTarget
-  aimPoint: {fileID: 6623549520017198039}
-  framingRadius: 1
+  aimPoint: {fileID: 5094302130624384167}
+  markerPoint: {fileID: 6623549520017198039}
+  framingRadius: 3
+  lockOnPitch: 6
+  lockOnDistance: 8
 --- !u!136 &4249938867193471367
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -887,7 +925,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 990f8c1dd1229764880199fab65b45c8, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Boss.BossTelegraphFlash
   boss: {fileID: 5185404385692086633}
   renderers:
@@ -935,20 +973,16 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 34fc12f10048a304cb908c3b63a9a991, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Boss.BossHitFeedback
   boss: {fileID: 5185404385692086633}
-  sapling: {fileID: 0}
-  externalEvadeFeedback: 1
   sparkPrefab: {fileID: 4876250761671480826, guid: 64061b1410fa98f4893ff480c4eac183, type: 3}
   size: 1
   towardSource: 0.6
-  evadedHeight: 1
   hitColor: {r: 3, g: 0.35, b: 0.25, a: 1}
   blockedColor: {r: 0.6, g: 1.4, b: 3, a: 1}
   guardBreakColor: {r: 3, g: 1.3, b: 0.2, a: 1}
   parriedColor: {r: 3, g: 2.6, b: 0.6, a: 1}
-  evadedColor: {r: 0.6, g: 2.5, b: 0.8, a: 1}
 --- !u!114 &3708728849485944992
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -959,7 +993,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a9b299bf7882cc54db96fbc1679c66a7, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Boss.BossDamageFeedback
   health: {fileID: 5128496874360427991}
   flash: {fileID: 8290444378114372489}
@@ -1011,7 +1045,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 21ed0b263edc8ac4f9bbd21b3bc975e2, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Core.FeedbackEmitter
   data: {fileID: 11400000, guid: 5ce1160a8fc48e94385d90b94cdaa96b, type: 2}
   audioManager: {fileID: 0}
@@ -1026,7 +1060,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 180ecf9b41d478f468eb3e9083753217, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Unity.Cinemachine::Unity.Cinemachine.CinemachineImpulseSource
   ImpulseDefinition:
     ImpulseChannel: 1
@@ -1079,7 +1113,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: daa6b2e2dca43c34b90525362582b04c, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Boss.BossImpactFeedback
   bodyHeight: 1.2
 --- !u!114 &703503241283502385
@@ -1092,7 +1126,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: cb9007d957eab6645b2bc78e058ded9e, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Boss.GuardianPoser
   boss: {fileID: 5185404385692086633}
   stagger: {fileID: 2216785988422742014}
@@ -1100,6 +1134,8 @@ MonoBehaviour:
   vines:
   - {fileID: 4075915532278568621}
   - {fileID: 2949738819044333927}
+  - {fileID: 6462849519306321814}
+  - {fileID: 7430254090746650716}
   stars: {fileID: 1227607983765532705}
   settleTime: 0.35
   vineModelReach: 5.5
@@ -1113,7 +1149,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 70526d2056d1ddc40abe82ad4f679b2f, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Boss.GuardianFullPowerVisual
   boss: {fileID: 5185404385692086633}
   health: {fileID: 5128496874360427991}
@@ -1177,7 +1213,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b982952ad7428074cb66af44eb6a2329, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Boss.Moves.RootRingMove
   data: {fileID: 11400000, guid: 2c3b13af40e8e0141b6612affd83c397, type: 2}
   areaPrefab: {fileID: 9015672208944955865, guid: 7968d8fa47d57ba49be4734f142e5c40, type: 3}
@@ -1225,7 +1261,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: dce14ae26d0fcae41a048ee8eb94384e, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Boss.Moves.RootThrustMove
   data: {fileID: 11400000, guid: 19be9f60ca75d08468d665431f5282e2, type: 2}
   areaPrefab: {fileID: 9015672208944955865, guid: 7968d8fa47d57ba49be4734f142e5c40, type: 3}
@@ -1484,7 +1520,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5349f5893844d564683bbbadca06ccf2, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Boss.Moves.VineSlamMove
   data: {fileID: 11400000, guid: b74afcb6a962d8f4ea7afcf7dbfe8806, type: 2}
   areaPrefab: {fileID: 9015672208944955865, guid: 7968d8fa47d57ba49be4734f142e5c40, type: 3}
@@ -1532,7 +1568,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5349f5893844d564683bbbadca06ccf2, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Boss.Moves.VineSlamMove
   data: {fileID: 11400000, guid: 2f24f816c6cad0849ae621c16ec9f1cc, type: 2}
   areaPrefab: {fileID: 9015672208944955865, guid: 7968d8fa47d57ba49be4734f142e5c40, type: 3}
@@ -1580,7 +1616,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 10ea37314815c6945bca4b053c55fa19, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Boss.Moves.LeafScatterMove
   data: {fileID: 11400000, guid: 5844cdf102ce0874b8ee107b2d14a050, type: 2}
   areaPrefab: {fileID: 9015672208944955865, guid: 7968d8fa47d57ba49be4734f142e5c40, type: 3}
@@ -1660,7 +1696,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 041c0c722cda56d49827b452ffdc46ca, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Boss.Moves.VineSweepMove
   data: {fileID: 11400000, guid: b9cb18e10f658e947aa7003e3a7f515f, type: 2}
   areaPrefab: {fileID: 9015672208944955865, guid: 7968d8fa47d57ba49be4734f142e5c40, type: 3}
@@ -1708,7 +1744,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: dce14ae26d0fcae41a048ee8eb94384e, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Boss.Moves.RootThrustMove
   data: {fileID: 11400000, guid: 920cdd567ed7d4943b865ea605e24511, type: 2}
   areaPrefab: {fileID: 9015672208944955865, guid: 7968d8fa47d57ba49be4734f142e5c40, type: 3}
@@ -1780,7 +1816,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0eaa336ebb3386845aceba52f6abe4ab, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Core.Hurtbox
   owner: {fileID: 5128496874360427991}
 --- !u!1 &4006546009332899115
@@ -1817,6 +1853,96 @@ Transform:
   - {fileID: 8844694136129771525}
   m_Father: {fileID: 6929710316360286316}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &4093550223443841708
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 450462303623327829}
+  - component: {fileID: 6454665088924235807}
+  - component: {fileID: 4457977420742056878}
+  m_Layer: 0
+  m_Name: Branch
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &450462303623327829
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4093550223443841708}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0.7071068, y: 0, z: 0, w: 0.7071068}
+  m_LocalPosition: {x: 0, y: 0, z: 2.5}
+  m_LocalScale: {x: 0.35, y: 3, z: 0.35}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 6462849519306321814}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &6454665088924235807
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4093550223443841708}
+  m_Mesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!23 &4457977420742056878
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4093550223443841708}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: a1b49c8d518231c4a85d4c7402911ba7, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 1
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1 &4094547428800470766
 GameObject:
   m_ObjectHideFlags: 0
@@ -2085,7 +2211,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7a412efd79a3f4c4fb77460591ccacb9, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Boss.Moves.RootBarrageMove
   data: {fileID: 11400000, guid: dacc1e59539c73b4a81210c39db19f7a, type: 2}
   areaPrefab: {fileID: 9015672208944955865, guid: 7968d8fa47d57ba49be4734f142e5c40, type: 3}
@@ -2541,6 +2667,38 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &6062098314221896001
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6462849519306321814}
+  m_Layer: 0
+  m_Name: Vine
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6462849519306321814
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6062098314221896001}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -1.6, y: 5.2, z: -0.3}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 450462303623327829}
+  m_Father: {fileID: 6929710316360286316}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &6282781008752882121
 GameObject:
   m_ObjectHideFlags: 0
@@ -2901,6 +3059,37 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &6504305047500534647
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5094302130624384167}
+  m_Layer: 0
+  m_Name: LockAim
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5094302130624384167
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6504305047500534647}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 4, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 7967515989670206858}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &6584407195876859501
 GameObject:
   m_ObjectHideFlags: 0
@@ -3033,7 +3222,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 10ea37314815c6945bca4b053c55fa19, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Boss.Moves.LeafScatterMove
   data: {fileID: 11400000, guid: 97f3a1c77a23eb04ea48d4aca36e8fd8, type: 2}
   areaPrefab: {fileID: 9015672208944955865, guid: 7968d8fa47d57ba49be4734f142e5c40, type: 3}
@@ -3081,7 +3270,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b94a0b0e4b010234798bbb7048b7bb19, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Boss.Moves.CallChildrenMove
   data: {fileID: 11400000, guid: 2fa2d058c9bc3c64f8fbc00500ecbba3, type: 2}
   areaPrefab: {fileID: 9015672208944955865, guid: 7968d8fa47d57ba49be4734f142e5c40, type: 3}
@@ -3161,7 +3350,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 445dc2ab3bb1902428b4c6e748944cc5, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Boss.Moves.LeafStormMove
   data: {fileID: 11400000, guid: d434058550fd76e43921c7261c703cfe, type: 2}
   areaPrefab: {fileID: 9015672208944955865, guid: 7968d8fa47d57ba49be4734f142e5c40, type: 3}
@@ -3389,7 +3578,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 041c0c722cda56d49827b452ffdc46ca, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Boss.Moves.VineSweepMove
   data: {fileID: 11400000, guid: 4c5545f3fad784343a5482f5f97ec089, type: 2}
   areaPrefab: {fileID: 9015672208944955865, guid: 7968d8fa47d57ba49be4734f142e5c40, type: 3}
@@ -3527,7 +3716,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b982952ad7428074cb66af44eb6a2329, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Boss.Moves.RootRingMove
   data: {fileID: 11400000, guid: 12ae572e541e0b44d911a9e3c6978d7f, type: 2}
   areaPrefab: {fileID: 9015672208944955865, guid: 7968d8fa47d57ba49be4734f142e5c40, type: 3}
@@ -3665,7 +3854,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 414b7d92e3e2c9f4e9ec2976104c4288, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Boss.Moves.SeedBombMove
   data: {fileID: 11400000, guid: d5b1959100c714d4d964a81bfda3a471, type: 2}
   areaPrefab: {fileID: 9015672208944955865, guid: 7968d8fa47d57ba49be4734f142e5c40, type: 3}
@@ -3805,7 +3994,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 445dc2ab3bb1902428b4c6e748944cc5, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Boss.Moves.LeafStormMove
   data: {fileID: 11400000, guid: d9431a67c0ad8844f90d4cac3216826e, type: 2}
   areaPrefab: {fileID: 9015672208944955865, guid: 7968d8fa47d57ba49be4734f142e5c40, type: 3}
@@ -3859,6 +4048,96 @@ MeshRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8662790389783823916}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: a1b49c8d518231c4a85d4c7402911ba7, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 1
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &8800725397551261341
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7340554851462821209}
+  - component: {fileID: 4491531612041445549}
+  - component: {fileID: 3133053048142701550}
+  m_Layer: 0
+  m_Name: Branch
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7340554851462821209
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8800725397551261341}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0.7071068, y: 0, z: 0, w: 0.7071068}
+  m_LocalPosition: {x: 0, y: 0, z: 2.5}
+  m_LocalScale: {x: 0.35, y: 3, z: 0.35}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 7430254090746650716}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &4491531612041445549
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8800725397551261341}
+  m_Mesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!23 &3133053048142701550
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8800725397551261341}
   m_Enabled: 1
   m_CastShadows: 1
   m_ReceiveShadows: 1

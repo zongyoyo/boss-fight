@@ -19,7 +19,7 @@ namespace BossFight.Boss.Moves
                 var area = Area(AttackAreaShape.Circle, ClampPoint(target + offset, d.radius), Vector3.forward);
                 var strike = Spawn(area, delay, false);
                 var seed = Instantiate(seedPrefab, strike.transform);
-                seed.Launch(launchPoint.position, area.center, d.flightTime, d.arcHeight);
+                seed.Launch(launchPoint.position, area.center, d.flightTime, d.arcHeight, d.warning);
             }
         }
         public override bool TickActive(float dt) => AllResolved;

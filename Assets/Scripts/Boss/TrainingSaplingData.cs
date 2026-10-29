@@ -24,8 +24,15 @@ namespace BossFight.Boss
         [Tooltip("攻擊寬度 (m)")] [Min(0f)] public float width = 1.5f;
         [Tooltip("攻擊高度 (m)")] [Min(0f)] public float height = 1.2f;
         [Tooltip("待機與預兆的轉向速度（度/秒）")] [Min(0f)] public float turnSpeed = 180f;
+        [Tooltip("預兆開始後還會轉向追玩家的時間（秒）；之後鎖住方向，判定照鎖住的方向打。0 = 預兆一開始就鎖")] [Min(0f)] public float telegraphTrackTime = 0.5f;
         [Tooltip("可用盾擋下")] public bool canBlock = true;
         [Tooltip("可盾反")] public bool canParry = true;
+
+        [Header("鎖定鏡頭（純視覺，PrologueActorsBuilder 寫進小樹精的 LockOnTarget）")]
+        [Tooltip("鏡頭看的點的高度 (m)：身體中心")] [Min(0f)] public float lockAimHeight = 0.45f;
+        [Tooltip("鎖定鏡頭框住小樹精用的半徑 (m)")] [Min(0f)] public float lockFramingRadius = 0.6f;
+        [Tooltip("鎖定小樹精時的俯視角度（度）；T27 驗收的 32°")] [Range(-10f, 60f)] public float lockOnPitch = 32f;
+        [Tooltip("鎖定小樹精時鏡頭離玩家的距離 (m)；0 = 鎖定鏡頭原本的距離")] [Min(0f)] public float lockOnDistance;
 
         [Header("軀幹")]
         [Tooltip("軀幹上限；滿值進入永久頭暈")] [Min(1f)] public float staggerMax = 100f;

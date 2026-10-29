@@ -1,5 +1,36 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &299390658866125522
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5825240706187356417}
+  m_Layer: 0
+  m_Name: LockAim
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5825240706187356417
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 299390658866125522}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0.45, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 7983831753310730485}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &540945793752025600
 GameObject:
   m_ObjectHideFlags: 0
@@ -154,7 +185,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0eaa336ebb3386845aceba52f6abe4ab, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Core.Hurtbox
   owner: {fileID: 7497128519956118601}
 --- !u!1 &859517167598646262
@@ -770,6 +801,7 @@ Transform:
   - {fileID: 7195868243896897215}
   - {fileID: 6819367856797136754}
   - {fileID: 5380132875961579424}
+  - {fileID: 5825240706187356417}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &2641085298613080098
@@ -782,7 +814,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4011b4d47c04fe7459f47d86206c63f8, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Core.ExecutionTarget
 --- !u!114 &698925497527571098
 MonoBehaviour:
@@ -794,10 +826,13 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 25ccd8b1a735afd4198706b35375c173, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Core.LockOnTarget
-  aimPoint: {fileID: 8697503378122550157}
-  framingRadius: 1
+  aimPoint: {fileID: 5825240706187356417}
+  markerPoint: {fileID: 8697503378122550157}
+  framingRadius: 0.6
+  lockOnPitch: 32
+  lockOnDistance: 0
 --- !u!114 &7497128519956118601
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -808,7 +843,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 580d4d8da51f94546adedd14457cded2, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Boss.TrainingSapling
   data: {fileID: 11400000, guid: 3d26fa6599f7b1c4aa66f4be46dea793, type: 2}
   attackHitbox: {fileID: 5701924112864096146}
@@ -824,7 +859,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: ba8fe496406fca24db844185187eb037, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Boss.TrainingSaplingVisual
   sapling: {fileID: 7497128519956118601}
   model: {fileID: 932829556775025254}
@@ -860,19 +895,16 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 34fc12f10048a304cb908c3b63a9a991, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Boss.BossHitFeedback
-  boss: {fileID: 0}
-  sapling: {fileID: 7497128519956118601}
+  boss: {fileID: 7497128519956118601}
   sparkPrefab: {fileID: 4876250761671480826, guid: 64061b1410fa98f4893ff480c4eac183, type: 3}
   size: 1
   towardSource: 0.6
-  evadedHeight: 1
   hitColor: {r: 3, g: 0.35, b: 0.25, a: 1}
   blockedColor: {r: 0.6, g: 1.4, b: 3, a: 1}
   guardBreakColor: {r: 3, g: 1.3, b: 0.2, a: 1}
   parriedColor: {r: 3, g: 2.6, b: 0.6, a: 1}
-  evadedColor: {r: 0.6, g: 2.5, b: 0.8, a: 1}
 --- !u!114 &1877939217747589756
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -883,7 +915,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 21ed0b263edc8ac4f9bbd21b3bc975e2, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Core.FeedbackEmitter
   data: {fileID: 11400000, guid: 5ce1160a8fc48e94385d90b94cdaa96b, type: 2}
   audioManager: {fileID: 0}
@@ -898,7 +930,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 180ecf9b41d478f468eb3e9083753217, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Unity.Cinemachine::Unity.Cinemachine.CinemachineImpulseSource
   ImpulseDefinition:
     ImpulseChannel: 1
@@ -951,7 +983,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 205fafa6646c2a54bbc890e9f169d111, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Boss.TeachingActorFeedback
   sapling: {fileID: 7497128519956118601}
   mentor: {fileID: 0}
@@ -1002,7 +1034,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8122da464c8083c4aaf12d1db7473716, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Core.Hitbox
   targetMask:
     serializedVersion: 2

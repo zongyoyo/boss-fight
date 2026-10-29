@@ -97,8 +97,6 @@ namespace BossFight.EditorTools
 
             // 鏡頭震動的 ImpulseListener 與玩家的打擊回饋（DaoDunDogBuilder 重建角色後也會走到這裡）
             CombatFeedbackBuilder.Wire();
-            if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().path == PrologueBuilder.ScenePath)
-                TutorialBuilder.ApplyLockOnCamera();
 
             Undo.CollapseUndoOperations(undoGroup);
             EditorSceneManager.MarkSceneDirty(rig.scene);

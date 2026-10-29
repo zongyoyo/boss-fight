@@ -97,6 +97,7 @@ namespace BossFight.Battle
             player.Controller.OnPositionChanged += HandlePositionChanged;
             player.Controller.OnHealCompleted += HandleHealed;
             player.Controller.OnActionChanged += HandlePlayerAction;
+            player.Health.OnDodgeSucceeded += HandleDodged;
             actionBusy = player.Controller.Action != PlayerAction.None;
         }
         void UnsubscribePlayer()
@@ -106,6 +107,7 @@ namespace BossFight.Battle
             player.Controller.OnPositionChanged -= HandlePositionChanged;
             player.Controller.OnHealCompleted -= HandleHealed;
             player.Controller.OnActionChanged -= HandlePlayerAction;
+            player.Health.OnDodgeSucceeded -= HandleDodged;
         }
         void Start()
         {
@@ -139,6 +141,7 @@ namespace BossFight.Battle
             stage = Stage.Inviting;
             // 招呼只逐字顯示，不攔操作、不要求按鍵讀完；靠近後的互動才接正式劇情。
             dialogue.Begin(data.speaker, new[] { data.greeting }, false, false);
+            mentor.Talk();
             greetingLeft = data.greetingDuration;
             PublishState();
         }
@@ -168,6 +171,7 @@ namespace BossFight.Battle
             }
             waitingLine = true;
             dialogue.Begin(data.speaker, new[] { lines[lineIndex].text }, false);
+            mentor.Talk();
         }
         void HandleDialogueFinished(int id, bool completed)
         {
@@ -265,15 +269,18 @@ namespace BossFight.Battle
         { if (Step != null && Step.condition == TutorialCondition.Move) AddProgress(distance); }
         void HandleHealed(float current, float max)
         { if (Step != null && Step.condition == TutorialCondition.Heal && current >= max) AddProgress(1f); }
+        // 成功閃避只由 PlayerHealth 結算（同一次翻滾只送一次）；這裡只算小樹精的攻擊
+        void HandleDodged(DamageInfo info)
+        {
+            if (stage != Stage.Operating || sideDialogue || Step == null || Step.condition != TutorialCondition.Dodge) return;
+            if (info.source == null || !info.source.transform.IsChildOf(sapling.transform)) return;
+            AddProgress(1f);
+        }
         void HandleAttackResolved(SaplingAttackReport report)
         {
             if (stage != Stage.Operating || sideDialogue || report.cancelled || !report.hadWindow || report.id == lastAttackId) return;
             lastAttackId = report.id;
-            if (Step.condition == TutorialCondition.Dodge)
-            {
-                if (IsSuccessfulDodge(report, player.Health.ForcedInvulnerable)) AddProgress(1f);
-            }
-            else if (Step.condition == TutorialCondition.Block && report.hasHit)
+            if (Step.condition == TutorialCondition.Block && report.hasHit)
             {
                 if (report.hit.result != DamageResult.Blocked && report.hit.result != DamageResult.Parried) return;
                 if (report.hit.result == DamageResult.Parried && !parrySaid) parryPending = true;
@@ -324,6 +331,7 @@ namespace BossFight.Battle
             session.SetInputLocked(this, true);
             sapling.SetMode(SaplingMode.Idle);
             dialogue.Begin(data.speaker, new[] { text }, false);
+            mentor.Talk();
         }
         void BeginEndingPause() { stage = Stage.EndingPause; delayLeft = data.endingPause; }
         void HandleBurrowed()
@@ -373,10 +381,6 @@ namespace BossFight.Battle
             dialogue.Hide(); sapling.SetMode(SaplingMode.Idle); sapling.Despawn(SaplingDespawnReason.Cleared);
             mentor.CancelActions(); PublishState(); session.SetInputLocked(this, false); enabled = false;
         }
-        /// <summary>只接受有威脅、完整結束的翻滾閃避；零傷害命中與強制無敵都不計。</summary>
-        public static bool IsSuccessfulDodge(in SaplingAttackReport report, bool forcedInvulnerable) =>
-            !forcedInvulnerable && !report.cancelled && report.hadWindow && report.rollEvaded &&
-            (!report.hasHit || report.hit.result == DamageResult.Evaded);
         public void PublishState() => OnViewChanged?.Invoke(new TutorialView(Step, progress,
             stage == Stage.Operating || stage == Stage.Completing || (stage == Stage.Inviting && inInteractionRange),
             stage == Stage.Completing, stage == Stage.Inviting && inInteractionRange ? data.interactionHint : null));

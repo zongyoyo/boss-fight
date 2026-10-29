@@ -28,7 +28,7 @@ namespace BossFight.Boss
                 sapling.OnStunned += Stunned;
                 sapling.OnDefeated += Defeated;
             }
-            if (mentor != null) { mentor.OnActionChanged += Action; mentor.OnPrankRequested += Prank; }
+            if (mentor != null) { mentor.OnActionChanged += Action; mentor.OnPrankRequested += Prank; mentor.OnTalked += Talked; }
         }
         void OnDisable()
         {
@@ -40,7 +40,7 @@ namespace BossFight.Boss
                 sapling.OnStunned -= Stunned;
                 sapling.OnDefeated -= Defeated;
             }
-            if (mentor != null) { mentor.OnActionChanged -= Action; mentor.OnPrankRequested -= Prank; }
+            if (mentor != null) { mentor.OnActionChanged -= Action; mentor.OnPrankRequested -= Prank; mentor.OnTalked -= Talked; }
         }
         void Warning(SaplingTelegraph warning)
         { if (emitter.Data != null) emitter.Play(warning.canBlock ? emitter.Data.telegraphBlockable : emitter.Data.telegraphUnblockable, Position); }
@@ -49,7 +49,8 @@ namespace BossFight.Boss
         {
             if (report.result != DamageResult.Hit && report.result != DamageResult.Evaded) return;
             TimedFx.Spawn(sparkPrefab, Position, Quaternion.identity, report.result == DamageResult.Hit ? hitColor : deflectColor, sparkSize);
-            // 玩家命中音效已由 PlayerFeedback 分級播放，避免一刀雙響。
+            // 刀的命中聲由 PlayerFeedback 分級播放；這裡疊一層木頭聲（不同的音效，FeedbackEmitter 不會去重）
+            if (report.result == DamageResult.Hit && emitter.Data != null) emitter.Play(emitter.Data.saplingHurt, Position);
         }
         void Stunned()
         {
@@ -63,6 +64,7 @@ namespace BossFight.Boss
             if (emitter.Data == null) return;
             if (action == DaisyAction.Whip || action == DaisyAction.Slap) emitter.Play(emitter.Data.heavySwing, Position);
         }
+        void Talked() { if (emitter.Data != null) emitter.Play(emitter.Data.daisyChatter, Position); }
         void Prank() => TimedFx.Spawn(sparkPrefab, Position, Quaternion.identity, deflectColor, sparkSize);
     }
 }

@@ -13838,6 +13838,7 @@ MonoBehaviour:
   lockOnGroup: {fileID: 412884964}
   lockOnYawSmoothTime: 0.12
   playerFramingRadius: 0.5
+  lockOnFramingSmoothTime: 0.25
   lockCursor: 1
 --- !u!4 &496032335
 Transform:
@@ -19814,17 +19815,6 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 693597598}
   m_Mesh: {fileID: 10206, guid: 0000000000000000e000000000000000, type: 0}
---- !u!114 &696569306 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 3501062887969608000, guid: 4c15100426f79114fa94acd23c4d0607, type: 3}
-  m_PrefabInstance: {fileID: 1655074140}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 34fc12f10048a304cb908c3b63a9a991, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::BossFight.Boss.BossHitFeedback
 --- !u!1 &700746762
 GameObject:
   m_ObjectHideFlags: 0
@@ -21213,7 +21203,6 @@ MonoBehaviour:
   health: {fileID: 1314909565}
   stagger: {fileID: 1314909554}
   barrage: {fileID: 1314909562}
-  hitFeedback: {fileID: 1314909556}
   session: {fileID: 1330037804}
   tutorial: {fileID: 1869413669}
   guidancePrefab: {fileID: 9015672208944955865, guid: 7968d8fa47d57ba49be4734f142e5c40, type: 3}
@@ -45148,6 +45137,22 @@ PrefabInstance:
       propertyPath: 'obstacles.Array.data[228]'
       value: 
       objectReference: {fileID: 1314909557}
+    - target: {fileID: 1353092694186091266, guid: c1d21fb8e9fa7124982db3a603595b1f, type: 3}
+      propertyPath: ImpulseDefinition.ImpulseType
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1353092694186091266, guid: c1d21fb8e9fa7124982db3a603595b1f, type: 3}
+      propertyPath: ImpulseDefinition.DissipationRate
+      value: 0.6
+      objectReference: {fileID: 0}
+    - target: {fileID: 1353092694186091266, guid: c1d21fb8e9fa7124982db3a603595b1f, type: 3}
+      propertyPath: ImpulseDefinition.ImpulseDuration
+      value: 0.25
+      objectReference: {fileID: 0}
+    - target: {fileID: 1353092694186091266, guid: c1d21fb8e9fa7124982db3a603595b1f, type: 3}
+      propertyPath: ImpulseDefinition.DissipationDistance
+      value: 30
+      objectReference: {fileID: 0}
     - target: {fileID: 1418090644775094024, guid: c1d21fb8e9fa7124982db3a603595b1f, type: 3}
       propertyPath: obstacles.Array.size
       value: 229
@@ -58101,17 +58106,6 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 401242218317791302, guid: c1d21fb8e9fa7124982db3a603595b1f, type: 3}
   m_PrefabInstance: {fileID: 1314909553}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &1314909556 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 6284071534624763900, guid: c1d21fb8e9fa7124982db3a603595b1f, type: 3}
-  m_PrefabInstance: {fileID: 1314909553}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 34fc12f10048a304cb908c3b63a9a991, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::BossFight.Boss.BossHitFeedback
 --- !u!136 &1314909557 stripped
 CapsuleCollider:
   m_CorrespondingSourceObject: {fileID: 4249938867193471367, guid: c1d21fb8e9fa7124982db3a603595b1f, type: 3}
@@ -69413,7 +69407,6 @@ MonoBehaviour:
   - {fileID: 2036938092}
   - {fileID: 718994297}
   - {fileID: 1869413669}
-  - {fileID: 1869413668}
 --- !u!1 &1557574240
 GameObject:
   m_ObjectHideFlags: 0
@@ -80099,7 +80092,6 @@ GameObject:
   - component: {fileID: 1869413671}
   - component: {fileID: 1869413670}
   - component: {fileID: 1869413669}
-  - component: {fileID: 1869413668}
   m_Layer: 0
   m_Name: Tutorial
   m_TagString: Untagged
@@ -80107,25 +80099,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1869413668
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1869413667}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2b4b121c7fc3e854caded5112076b197, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::BossFight.Battle.TutorialPlayerVisual
-  slashPrefab: {fileID: 2481025170783460172, guid: b34091498cf68614cacf084c665c5745, type: 3}
-  ringPrefab: {fileID: 4528881397876832156, guid: 82eeebd7c15af1040a6b882ca6079094, type: 3}
-  sparkPrefab: {fileID: 4876250761671480826, guid: 64061b1410fa98f4893ff480c4eac183, type: 3}
-  bodyHeight: 1
-  slashSize: 0.7
-  rollSize: 0.5
-  hitSize: 0.8
 --- !u!114 &1869413669
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -85198,7 +85171,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Battle.PrologueActorBinding
   mentor: {fileID: 740441314}
   sapling: {fileID: 1655074141}
-  saplingFeedback: {fileID: 696569306}
   session: {fileID: 1330037804}
 --- !u!1 &2043887725
 GameObject:
@@ -87564,8 +87536,8 @@ MonoBehaviour:
       Time: 2
     Restrictions: 0
   VerticalAxis:
-    Value: 32
-    Center: 32
+    Value: 12
+    Center: 12
     Range: {x: -10, y: 60}
     Wrap: 0
     Recentering:

@@ -6614,6 +6614,23 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Player.PlayerFeedback
   bodyHeight: 1
+  slashPrefab: {fileID: 1428035065409790690, guid: ecf99e0c80d452041b3a541383326512, type: 3}
+  heavySlashPrefab: {fileID: 6388128792053451691, guid: 310efd3f6a2826f4e9f120bb122dc084, type: 3}
+  slashForward: 0.5
+  comboSlashTilt:
+  - 28
+  - -28
+  - 0
+  comboSlashSize:
+  - 1
+  - 1
+  - 1.3
+  heavySlashTilt: 90
+  heavySlashSize: 1.4
+  slashColor: {r: 1.8, g: 2, b: 2.4, a: 1}
+  evadeSparkPrefab: {fileID: 4876250761671480826, guid: 64061b1410fa98f4893ff480c4eac183, type: 3}
+  evadeColor: {r: 0.6, g: 2.5, b: 0.8, a: 1}
+  evadeSparkSize: 1
 --- !u!1 &8198196101880076762
 GameObject:
   m_ObjectHideFlags: 0

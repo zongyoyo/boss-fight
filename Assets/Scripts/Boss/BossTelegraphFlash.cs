@@ -66,7 +66,17 @@ namespace BossFight.Boss
             telegraphTime = telegraph.duration;
             SetGlow(Glow.Blink);
         }
-        void AttackWindow(bool canBlock) => FlashHit((canBlock ? blockableColor : unblockableColor) * peakIntensity, fadeTime);
+        // 同一幀同一種分類只閃一次（葉刃一波 5–9 道同時開判定）
+        int windowFrame = -1;
+        bool windowBlockable;
+
+        void AttackWindow(bool canBlock)
+        {
+            if (Time.frameCount == windowFrame && canBlock == windowBlockable) return;
+            windowFrame = Time.frameCount;
+            windowBlockable = canBlock;
+            FlashHit((canBlock ? blockableColor : unblockableColor) * peakIntensity, fadeTime);
+        }
 
         void HandleStateChanged(BossState next)
         {

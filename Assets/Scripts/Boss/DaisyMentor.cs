@@ -9,7 +9,7 @@ namespace BossFight.Boss
     /// <summary>菊花的命令與事件；劇情流程由上層指揮，傷害仍經 Hitbox。</summary>
     [DefaultExecutionOrder(100)]
     [DisallowMultipleComponent]
-    public class DaisyMentor : MonoBehaviour, IDamageable
+    public class DaisyMentor : MonoBehaviour, IDamageable, IHitReportSource
     {
         [SerializeField] DaisyMentorData data;
         [SerializeField] Hitbox whipHitbox;
@@ -27,7 +27,11 @@ namespace BossFight.Boss
         public event Action<Vector3> OnSlapTarget;
         public event Action<DaisyAction> OnActionCancelled;
         public event Action<HitReport> OnWhipHit;
+        /// <summary>同 OnWhipHit（IHitReportSource：命中火花用）。</summary>
+        public event Action<HitReport> OnHitReported;
         public event Action OnPrankRequested;
+        /// <summary>菊花開始說一句話（說話聲用）；台詞由上層的對話流程播，這裡只轉成事件。</summary>
+        public event Action OnTalked;
         public event Action OnPrankFinished;
         public DaisyAction Action { get; private set; } = DaisyAction.Hidden;
         public DaisyMentorData Data => data;
@@ -62,7 +66,14 @@ namespace BossFight.Boss
         /// <summary>首次 Bind 可能早於 Awake；這裡只存引用。</summary>
         public void SetTarget(Transform value) => target = value;
         bool OnlyTarget(Collider collider) => target != null && collider.transform.IsChildOf(target);
-        void HandleWhipHit(HitReport report) => OnWhipHit?.Invoke(report);
+        /// <summary>上層播菊花的一句台詞時呼叫。</summary>
+        public void Talk() => OnTalked?.Invoke();
+
+        void HandleWhipHit(HitReport report)
+        {
+            OnWhipHit?.Invoke(report);
+            OnHitReported?.Invoke(report);
+        }
 
         public bool Emerge()
         {

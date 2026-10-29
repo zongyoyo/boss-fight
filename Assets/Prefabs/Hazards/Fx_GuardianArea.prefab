@@ -45,7 +45,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f5c46dc4a0621d246bc24772b5a6512e, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Hazards.AttackAreaFx
   filter: {fileID: 5676661494149199570}
   surface: {fileID: 2079134113594041181}
@@ -55,6 +55,9 @@ MonoBehaviour:
   fadeTime: 0.35
   riseTime: 0.08
   fallHeight: 4
+  vineDropHeight: 3
+  vineDropTime: 0.08
+  minSweepTime: 0.12
   rootWidth: 0.2
   vineWidth: 0.45
   ringSegments: 48

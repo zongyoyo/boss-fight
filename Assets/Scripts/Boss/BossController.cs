@@ -101,6 +101,16 @@ namespace BossFight.Boss
         Tornado,
         /// <summary>大迴旋落地。</summary>
         GrandSpinLanding,
+        /// <summary>大樹守衛：藤蔓橫掃、砸地的一段開判定。</summary>
+        VineStrike,
+        /// <summary>大樹守衛：葉刃、落葉的一波出手。</summary>
+        LeafBlade,
+        /// <summary>大樹守衛：樹根破土（突刺、環波、萬根齊發）。</summary>
+        RootBurst,
+        /// <summary>大樹守衛：種子炸彈爆炸。</summary>
+        SeedBlast,
+        /// <summary>大樹守衛：呼喚孩子。</summary>
+        Summon,
     }
 
     /// <summary>一次招式的衝擊，OnMoveImpact 送出。</summary>
@@ -137,7 +147,7 @@ namespace BossFight.Boss
     /// </summary>
     [RequireComponent(typeof(BossHealth))]
     [DisallowMultipleComponent]
-    public class BossController : MonoBehaviour
+    public class BossController : MonoBehaviour, IHitReportSource
     {
         [SerializeField] BossStats stats;
         [Tooltip("場地半徑：走位不會走出場地")]
@@ -164,6 +174,8 @@ namespace BossFight.Boss
         public event Action<BossPhaseData> OnPhaseChanged;
         /// <summary>招式的攻擊判定打到目標並結算完（命中火花、Debug 面板）。盾反的失衡值走 PlayerHealth.OnParry，不在這裡加。</summary>
         public event Action<BossMove, HitReport> OnMoveHit;
+        /// <summary>同 OnMoveHit，不帶招式（IHitReportSource：BossHitFeedback 用）。</summary>
+        public event Action<HitReport> OnHitReported;
         /// <summary>招式的衝擊時刻：拍下去、撞牆、落地、放出衝擊波、落雷劈下（BossImpactFeedback 的音效與鏡頭震動）。打不打到人都會送。</summary>
         public event Action<BossImpact> OnMoveImpact;
         /// <summary>正常完成整招（包含破綻）；中斷不發送。</summary>
@@ -171,17 +183,12 @@ namespace BossFight.Boss
         /// <summary>外部流程接管階段條件；預設維持既有血量門檻。</summary>
         public bool AutomaticPhaseTransitions { get; set; } = true;
         public bool CombatSuspended { get; private set; }
-        /// <summary>上層提供受擊範圍與翻滾狀態，Boss 不引用 Player。</summary>
+        /// <summary>上層提供受擊範圍與身體半徑，Boss 不引用 Player；翻滾閃避經 Hurtbox.Dodger 回報給被打方結算。</summary>
         public Collider TargetHurtbox { get; set; }
         public float TargetBodyRadius { get; set; }
-        public bool TargetRolling { get; set; }
-        /// <summary>上層提供的閃避回饋資格；只影響回饋紀錄，不介入傷害判定。</summary>
-        public Func<bool> TargetDodgeEligible { get; set; }
-        public event Action<Vector3> OnAttackAvoided;
         /// <summary>每段範圍攻擊實際開窗的分類，供模型閃光對齊重疊的多段預警。</summary>
         public event Action<bool> OnAttackWindowOpened;
         public void NotifyAttackWindowOpened(bool canBlock) => OnAttackWindowOpened?.Invoke(canBlock);
-        public void NotifyAttackAvoided(Vector3 position) => OnAttackAvoided?.Invoke(position);
         /// <summary>清場並停住戰鬥，供演出與外部結局使用。</summary>
         public void SuspendCombat()
         {
@@ -526,7 +533,11 @@ namespace BossFight.Boss
             ForcedNextMove = move != null && moves.Contains(move) ? move : null;
         }
 
-        internal void NotifyMoveHit(BossMove move, in HitReport report) => OnMoveHit?.Invoke(move, report);
+        internal void NotifyMoveHit(BossMove move, in HitReport report)
+        {
+            OnMoveHit?.Invoke(move, report);
+            OnHitReported?.Invoke(report);
+        }
 
         // 不限目前這一招：已經結束的招放出的落雷照樣會劈下來
         internal void NotifyImpact(BossImpactKind kind, Vector3 position) => OnMoveImpact?.Invoke(new BossImpact(kind, position));

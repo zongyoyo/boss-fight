@@ -36,6 +36,8 @@ namespace BossFight.Cameras
         [Min(0f)] [SerializeField] float lockOnYawSmoothTime = 0.12f;
         [Tooltip("玩家在鎖定鏡頭群組裡的框取半徑 (m)")]
         [Min(0f)] [SerializeField] float playerFramingRadius = 0.5f;
+        [Tooltip("鎖定時鏡頭的俯視角度與距離轉到目標設定（LockOnTarget）的平滑時間（秒）")]
+        [Min(0f)] [SerializeField] float lockOnFramingSmoothTime = 0.25f;
 
         [Header("游標")]
         [SerializeField] bool lockCursor = true;
@@ -49,6 +51,9 @@ namespace BossFight.Cameras
 
         InputAction lookAction;
         float lockYaw, lockYawVelocity;
+        float lockPitchVelocity, lockDistanceVelocity;
+        float defaultLockDistance = -1f; // 鎖定鏡頭原本的距離（目標沒指定距離時用）
+        float freePitchBeforeLock;       // 鎖定前自由視角的俯仰，解除時還原
         Transform leavingMember; // 已解除鎖定、但鎖定鏡頭還在混出，暫時留在群組裡的目標
         int skipPointerFrames;
         PlayerController player; // 鏡頭跟隨的玩家（PlayerSpawner 交給 BindPlayer）；鎖定目標從它的 OnLockTargetChanged 來
@@ -111,6 +116,7 @@ namespace BossFight.Cameras
                 return;
             }
             lookAction = actions.FindAction("Player/Look", true);
+            defaultLockDistance = lockOnOrbit.Radius;
             SetLockOnCameraLive(false);
         }
 
@@ -142,7 +148,11 @@ namespace BossFight.Cameras
                 lockOnGroup.RemoveMember(leavingMember);
                 leavingMember = null;
             }
-            if (CurrentTarget != null) UpdateLockOnYaw();
+            if (CurrentTarget != null)
+            {
+                UpdateLockOnYaw();
+                UpdateLockOnFraming();
+            }
             else if (!InputLocked) ApplyLook();
         }
 
@@ -184,17 +194,19 @@ namespace BossFight.Cameras
                 if (!stillMember) lockOnGroup.AddMember(target.AimPoint, 1f, target.FramingRadius);
                 if (CurrentTarget == null)
                 {
-                    // 從自由視角目前的方向開始轉向目標，兩台鏡頭起點一致，混合時不會跳
+                    // 從自由視角目前的方向與俯仰開始轉向目標，兩台鏡頭起點一致，混合時不會跳；俯仰與距離再平滑轉到目標的設定
                     lockYaw = freeLookOrbit.HorizontalAxis.Value;
-                    lockYawVelocity = 0f;
+                    lockYawVelocity = lockPitchVelocity = lockDistanceVelocity = 0f;
                     lockOnOrbit.HorizontalAxis.Value = lockYaw;
+                    freePitchBeforeLock = freeLookOrbit.VerticalAxis.Value;
+                    lockOnOrbit.VerticalAxis.Value = lockOnOrbit.VerticalAxis.ClampValue(freePitchBeforeLock);
                 }
             }
             else
             {
-                // 解除時自由視角從鎖定鏡頭目前的角度接手，不會跳回鎖定前的方向
+                // 解除時水平方向從鎖定鏡頭目前的角度接手（不會跳回鎖定前的方向），俯仰回到鎖定前的角度，不帶走目標的鎖定仰角
                 freeLookOrbit.HorizontalAxis.Value = lockOnOrbit.HorizontalAxis.Value;
-                freeLookOrbit.VerticalAxis.Value = freeLookOrbit.VerticalAxis.ClampValue(lockOnOrbit.VerticalAxis.Value);
+                freeLookOrbit.VerticalAxis.Value = freeLookOrbit.VerticalAxis.ClampValue(freePitchBeforeLock);
             }
 
             CurrentTarget = target;
@@ -214,6 +226,17 @@ namespace BossFight.Cameras
             float desired = Mathf.Atan2(to.x, to.z) * Mathf.Rad2Deg;
             lockYaw = Mathf.SmoothDampAngle(lockYaw, desired, ref lockYawVelocity, lockOnYawSmoothTime);
             lockOnOrbit.HorizontalAxis.Value = lockOnOrbit.HorizontalAxis.ClampValue(lockYaw);
+        }
+
+        // 鎖定鏡頭的俯仰與距離轉到目標的構圖設定（LockOnTarget），換目標時也平滑過去
+        void UpdateLockOnFraming()
+        {
+            ref var pitch = ref lockOnOrbit.VerticalAxis;
+            float targetPitch = pitch.ClampValue(CurrentTarget.LockOnPitch);
+            pitch.Value = Mathf.SmoothDamp(pitch.Value, targetPitch, ref lockPitchVelocity, lockOnFramingSmoothTime);
+            float targetDistance = CurrentTarget.LockOnDistance > 0f ? CurrentTarget.LockOnDistance : defaultLockDistance;
+            if (targetDistance > 0f)
+                lockOnOrbit.Radius = Mathf.SmoothDamp(lockOnOrbit.Radius, targetDistance, ref lockDistanceVelocity, lockOnFramingSmoothTime);
         }
 
         // 滑鼠以像素位移計（度/像素），搖桿以角速度計（度/秒）

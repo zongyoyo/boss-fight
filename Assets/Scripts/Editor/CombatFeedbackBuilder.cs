@@ -16,6 +16,7 @@ namespace BossFight.EditorTools
     ///    資產已經存在時數值不動，音效只填空的或還是佔位音效（Assets/Audio/Placeholder）的欄位，換成正式音效後重建不會蓋掉。
     /// 2. 玩家（Characters/DaoDunDog.prefab）與 Boss（OiiaCat.prefab）加上 CinemachineImpulseSource、FeedbackEmitter 與 PlayerFeedback／BossImpactFeedback；
     ///    Boss 的場景實例另外接 AudioManager（場景物件，prefab 不能引用）；玩家是執行時生成的，AudioManager 由 PlayerSpawner 填（這裡最後跑 PlayerSpawnerBuilder.Wire）。
+    ///    玩家的 PlayerFeedback 另外接刀光（HazardBuilder.BuildExtraFx）與成功閃避的火花；序章的大樹守衛、小樹精、菊花的佔位音由 PrologueAudioBuilder 合成，一起填進同一份資產。
     /// 3. 自由視角與鎖定視角兩台 CinemachineCamera 加上 CinemachineImpulseListener（鏡頭震動）。
     /// CameraRigBuilder（DaoDunDogBuilder 也會跑）、BossBuilder、IntroCutsceneBuilder（重建 AudioManager）結束時呼叫 Wire 重接，
     /// 重建角色、Boss、鏡頭或 AudioManager 後引用不會斷。
@@ -47,6 +48,7 @@ namespace BossFight.EditorTools
         public static CombatFeedbackData BuildData()
         {
             var clips = PlaceholderAudioBuilder.BuildCombat();
+            foreach (var pair in PrologueAudioBuilder.BuildCombatCues()) clips[pair.Key] = pair.Value; // 序章：大樹守衛招式、小樹精、菊花
 
             var data = AssetDatabase.LoadAssetAtPath<CombatFeedbackData>(DataPath);
             if (data == null)
@@ -118,6 +120,8 @@ namespace BossFight.EditorTools
             try
             {
                 Setup<TFeedback>(root, data, false);
+                var playerFeedback = root.GetComponent<PlayerFeedback>();
+                if (playerFeedback != null) WirePlayerVisuals(playerFeedback);
                 if (root.GetComponent<PlayerController>() != null) DaoDunDogBuilder.WireRig(root); // PlayerRig 也接上剛加的回饋元件
                 PrefabUtility.SaveAsPrefabAsset(root, path);
             }
@@ -125,6 +129,18 @@ namespace BossFight.EditorTools
             {
                 PrefabUtility.UnloadPrefabContents(root);
             }
+        }
+
+        // 玩家的可見回饋（序章修正 A1–A5）：刀光、成功閃避的火花；其他數值留在元件上，重建不會蓋掉
+        static void WirePlayerVisuals(PlayerFeedback feedback)
+        {
+            var fx = HazardBuilder.BuildExtraFx();
+            var spark = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Hazards/Fx_HitSpark.prefab");
+            var so = new SerializedObject(feedback);
+            so.FindProperty("slashPrefab").objectReferenceValue = fx.dogSlash;
+            so.FindProperty("heavySlashPrefab").objectReferenceValue = fx.dogSlashHeavy;
+            so.FindProperty("evadeSparkPrefab").objectReferenceValue = spark != null ? spark.GetComponent<BossFight.Hazards.TimedFx>() : null;
+            so.ApplyModifiedPropertiesWithoutUndo();
         }
 
         // 場景實例：prefab 已經有的元件直接沿用；不是 prefab 實例時就地加上。AudioManager 是場景物件，只能接在實例上

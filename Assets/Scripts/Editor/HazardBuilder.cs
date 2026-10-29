@@ -13,7 +13,8 @@ namespace BossFight.EditorTools
     /// 2. 材質（只在不存在時建立）：TelegraphDecal（Shaders/TelegraphDecal.shadergraph）、Fx_Additive（Particles/Unlit 加算、雙面）。
     /// 3. 特效網格（每次重建覆寫）：環牆、地面衝擊環、爪痕、閃電柱。
     /// 4. Prefab（每次重建覆寫）：GroundTelegraph、ShockwaveRing、LightningStrike、Fx_ClawSlash、Fx_ImpactRing、Fx_Bolt、Fx_HitSpark、
-    ///    Fx_DamageNumber（Boss 受擊跳的數字，TextMesh + 內建字型）；T8 加上 TornadoVortex（龍捲風）、SafeZone 與 GrandSpinField（大迴旋）。
+    ///    Fx_DamageNumber（Boss 受擊跳的數字，TextMesh + 內建字型）；T8 加上 TornadoVortex（龍捲風）、SafeZone 與 GrandSpinField（大迴旋）；
+    ///    序章修正加上刀盾狗的刀光 Fx_DogSlash／Fx_DogSlashHeavy 與種子爆炸 Fx_SeedBlast（BuildExtraFx 可單獨建）。
     /// 選單 Tools > Boss > Build Hazards；BossBuilder 建 Boss 時也會先呼叫這裡。尺寸、顏色、時間都是純視覺參數。
     /// </summary>
     public static class HazardBuilder
@@ -38,6 +39,32 @@ namespace BossFight.EditorTools
             public DamageNumber damageNumber;
             public TornadoVortex tornado;
             public GrandSpinField grandSpin;
+        }
+
+        /// <summary>序章修正（A1、C8）加的特效：刀盾狗的刀光（輕攻擊、重擊）、種子炸彈的爆炸。</summary>
+        public struct ExtraFx
+        {
+            public TimedFx dogSlash;
+            public TimedFx dogSlashHeavy;
+            public TimedFx seedBlast;
+        }
+
+        /// <summary>只建 ExtraFx 那幾個（CombatFeedbackBuilder、GuardianBuilder 用），不重建其他 Hazard。網格與 prefab 每次覆寫。</summary>
+        public static ExtraFx BuildExtraFx()
+        {
+            var result = new ExtraFx();
+            var fxMat = GetFxMaterial();
+            if (fxMat == null) return result;
+            DaoDunDogBuilder.EnsureFolder(MeshDir);
+            DaoDunDogBuilder.EnsureFolder(PrefabDir);
+            var fade = new AnimationCurve(new Keyframe(0f, 1f), new Keyframe(0.35f, 0.9f), new Keyframe(1f, 0f));
+            result.dogSlash = BuildFx("Fx_DogSlash", BuildSlashMesh("Fx_DogSlash", 150f, 1.05f, 0.26f), fxMat, 0.18f,
+                                      new Vector3(0.75f, 1f, 0.75f), new Vector3(1.1f, 1f, 1.1f), fade, 0f);
+            result.dogSlashHeavy = BuildFx("Fx_DogSlashHeavy", BuildSlashMesh("Fx_DogSlashHeavy", 200f, 1.2f, 0.42f), fxMat, 0.26f,
+                                           new Vector3(0.7f, 1f, 0.7f), new Vector3(1.15f, 1f, 1.15f), fade, 0f);
+            result.seedBlast = BuildFx("Fx_SeedBlast", GetBuiltinSphere(), fxMat, 0.4f, Vector3.one * 0.5f, Vector3.one * 2f,
+                                       new AnimationCurve(new Keyframe(0f, 1.4f), new Keyframe(0.3f, 0.8f), new Keyframe(1f, 0f)), 6f);
+            return result;
         }
 
         [MenuItem("Tools/Boss/Build Hazards")]
@@ -78,6 +105,7 @@ namespace BossFight.EditorTools
                                   new AnimationCurve(new Keyframe(0f, 1f), new Keyframe(0.25f, 0.35f), new Keyframe(0.4f, 1f), new Keyframe(1f, 0f)),
                                   10f);
             result.shockwave = BuildShockwave(result.telegraph, ringWall, fxMat, hurtLayer);
+            BuildExtraFx();
             result.lightning = BuildLightning(result.telegraph, result.bolt, result.impactRing, hurtLayer);
             result.damageNumber = BuildDamageNumber();
             result.tornado = BuildTornado(result.telegraph, ringWall, fxMat, hurtLayer);
@@ -502,6 +530,31 @@ namespace BossFight.EditorTools
         }
 
         /// 三道微彎的爪痕，立在 XY 平面（面向 ±Z），兩端尖、中間粗；高約 1.8 m。
+        /// 水平的新月形刀光：在 XZ 平面、往 +Z 張開 arc 度、外半徑 radius，中間最寬 thickness、兩端收尖；外緣不透明、往內淡出。
+        static Mesh BuildSlashMesh(string assetName, float arc, float radius, float thickness)
+        {
+            const int steps = 24;
+            var verts = new List<Vector3>();
+            var colors = new List<Color>();
+            var tris = new List<int>();
+            for (int i = 0; i <= steps; i++)
+            {
+                float t = (float)i / steps;
+                float angle = Mathf.Lerp(-arc * 0.5f, arc * 0.5f, t) * Mathf.Deg2Rad;
+                float width = thickness * Mathf.Sin(t * Mathf.PI) + 0.01f;
+                var dir = new Vector3(Mathf.Sin(angle), 0f, Mathf.Cos(angle));
+                verts.Add(dir * radius);
+                verts.Add(dir * (radius - width));
+                float a = Mathf.Sin(t * Mathf.PI);
+                colors.Add(new Color(1f, 1f, 1f, a));
+                colors.Add(new Color(1f, 1f, 1f, 0f));
+                if (i == steps) continue;
+                int b = i * 2;
+                tris.AddRange(new[] { b, b + 2, b + 1, b + 1, b + 2, b + 3 });
+            }
+            return SaveMesh(assetName, verts, colors, tris);
+        }
+
         static Mesh BuildClawMesh()
         {
             const int steps = 12;

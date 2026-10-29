@@ -85,7 +85,7 @@ namespace BossFight.EditorTools
             var session = Object.FindAnyObjectByType<PrologueSession>();
             Set(controller, "data", battle); Set(controller, "boss", boss); Set(controller, "health", actor.GetComponent<BossHealth>());
             Set(controller, "stagger", actor.GetComponent<BossStagger>()); Set(controller, "barrage", actor.GetComponentInChildren<RootBarrageMove>());
-            Set(controller, "hitFeedback", actor.GetComponent<BossHitFeedback>()); Set(controller, "session", session);
+            Set(controller, "session", session);
             Set(controller, "tutorial", Object.FindAnyObjectByType<TutorialDirector>()); Set(controller, "guidancePrefab", areaPrefab);
             Set(controller, "options", Object.FindAnyObjectByType<GameOptions>());
             Set(controller, "difficulty", AssetDatabase.LoadAssetAtPath<DifficultyData>("Assets/ScriptableObjects/Options/Difficulty.asset"));
@@ -135,21 +135,13 @@ namespace BossFight.EditorTools
         static AreaStrike BuildArea()
         {
             var areaFx = BuildAreaFx();
-            string meshPath = Model + "/AreaQuad.asset";
-            var mesh = AssetDatabase.LoadAssetAtPath<Mesh>(meshPath);
-            if (mesh == null)
-            {
-                mesh = new Mesh { name = "AreaQuad", vertices = new[] { new Vector3(-0.5f,0,-0.5f), new Vector3(-0.5f,0,0.5f), new Vector3(0.5f,0,0.5f), new Vector3(0.5f,0,-0.5f) }, triangles = new[] { 0,1,2,0,2,3 } };
-                mesh.RecalculateNormals(); AssetDatabase.CreateAsset(mesh, meshPath);
-            }
-            string materialPath = Model + "/Materials/AreaTelegraph.mat";
-            var mat = AssetDatabase.LoadAssetAtPath<Material>(materialPath);
-            if (mat == null) { mat = new Material(Shader.Find("BossFight/AreaTelegraph")); AssetDatabase.CreateAsset(mat, materialPath); }
+            var extra = HazardBuilder.BuildExtraFx();
+            var telegraph = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Hazards/GroundTelegraph.prefab");
+            if (telegraph == null) throw new InvalidOperationException("缺少 GroundTelegraph prefab，先跑 Tools > Boss > Build Hazards。");
             var root = new GameObject("GuardianAreaStrike"); var strike = root.AddComponent<AreaStrike>();
-            var warning = Node("Warning", root.transform, Vector3.zero).gameObject;
-            warning.AddComponent<MeshFilter>().sharedMesh = mesh; var renderer = warning.AddComponent<MeshRenderer>(); renderer.sharedMaterial = mat;
             var hitbox = Node("Hitbox", root.transform, Vector3.zero).gameObject.AddComponent<Hitbox>(); SetInt(hitbox, "targetMask", 1 << LayerMask.NameToLayer("Hurtbox"));
-            Set(strike, "hitbox", hitbox); Set(strike, "warningRenderer", renderer); Set(strike, "impactPrefab", Fx("Fx_ImpactRing"));
+            Set(strike, "hitbox", hitbox); Set(strike, "telegraphPrefab", telegraph.GetComponent<GroundTelegraph>());
+            Set(strike, "impactPrefab", Fx("Fx_ImpactRing")); Set(strike, "seedBlastPrefab", extra.seedBlast);
             Set(strike, "areaFxPrefab", areaFx);
             string leafMeshPath = Model + "/LeafBlade.asset";
             var leafMesh = AssetDatabase.LoadAssetAtPath<Mesh>(leafMeshPath);
@@ -163,8 +155,9 @@ namespace BossFight.EditorTools
             var leafMaterial = Mat("LeafBlade",new Color(0.7f,1f,0.4f)); leafMaterial.SetFloat("_Cull",0f);
             leafMaterial.SetColor("_EmissionColor",new Color(0.7f,1f,0.4f)*1.5f); EditorUtility.SetDirty(leafMaterial);
             blade.GetComponent<MeshRenderer>().sharedMaterial = leafMaterial;
-            var trail = blade.AddComponent<TrailRenderer>(); trail.sharedMaterial = TrailMaterial(); trail.time = 0.22f;
-            trail.startWidth = 0.4f; trail.endWidth = 0f; trail.minVertexDistance = 0.1f;
+            // 葉刃拖尾（序章修正 C5 加長加寬，飛行中看得出方向）
+            var trail = blade.AddComponent<TrailRenderer>(); trail.sharedMaterial = TrailMaterial(); trail.time = 0.4f;
+            trail.startWidth = 0.6f; trail.endWidth = 0f; trail.minVertexDistance = 0.1f;
             trail.startColor = new Color(0.6f,1f,0.3f,0.8f); trail.endColor = new Color(0.4f,0.8f,0.2f,0f);
             blade.SetActive(false); Set(strike, "projectileVisual", blade.transform);
             var prefab = PrefabUtility.SaveAsPrefabAsset(root, AreaPath); Object.DestroyImmediate(root); return prefab.GetComponent<AreaStrike>();
@@ -263,17 +256,14 @@ namespace BossFight.EditorTools
             var green = Mat("LeafGreen", new Color(0.08f,0.22f,0.035f)); var leafRed = Mat("LeafRed", new Color(0.4f,0.025f,0.01f));
             Prim("CrownCenter", crown, PrimitiveType.Sphere, Vector3.zero, new Vector3(5f,5f,5f), green);
             foreach (float side in new[] { -1f,1f }) Prim("CrownSide", crown, PrimitiveType.Sphere, new Vector3(side * 1.8f,-0.4f,0f), new Vector3(3.5f,3.5f,3.5f), side < 0f ? leafRed : green);
-            var vines = new List<Transform>();
             foreach (float side in new[] { -1f,1f })
-            {
-                var vine = Node("Vine", model, new Vector3(side,4f,0f)); vines.Add(vine);
-                Prim("Branch", vine, PrimitiveType.Capsule, new Vector3(0f,0f,2.5f), new Vector3(0.35f,3f,0.35f), bark).transform.localRotation = Quaternion.Euler(90f,0f,0f);
                 Prim("Eye", model, PrimitiveType.Sphere, new Vector3(side * 0.32f,1.5f,1.08f), new Vector3(0.25f,0.15f,0.15f), red);
-            }
+            var vines = EnsureVines(model, bark);
             var stars = Node("Stars", model, Vector3.up * 2.6f);
             for (int i = 0; i < 5; i++) Prim("Star", stars, PrimitiveType.Sphere, Quaternion.Euler(0,i*72f,0)*Vector3.forward*0.7f, Vector3.one*0.18f, Mat("StunGold", new Color(1f,0.8f,0.1f)));
             stars.gameObject.SetActive(false);
-            var aim = Node("AimPoint", root.transform, new Vector3(0f,1.4f,0.8f)); Set(lockOn,"aimPoint",aim);
+            Node("AimPoint", root.transform, battle.markerOffset);
+            WireLockFraming(lockOn, battle);
             var hurt = Node("Hurtbox",root.transform,Vector3.zero).gameObject; hurt.layer=LayerMask.NameToLayer("Hurtbox");
             var collider = hurt.AddComponent<CapsuleCollider>(); collider.isTrigger=true; collider.radius=battle.bodyRadius; collider.height=battle.hurtHeight; collider.center=Vector3.up*battle.hurtHeight*0.5f;
             Set(hurt.AddComponent<Hurtbox>(),"owner",health);
@@ -288,7 +278,7 @@ namespace BossFight.EditorTools
             Move<RootThrustMove>("RootThrust",Root+"/Moves/Phase1/RootThrust.asset"); Move<RootRingMove>("RootRing",Root+"/Moves/Phase1/RootRing.asset");
             Move<RootBarrageMove>("RootBarrage",Root+"/Moves/RootBarrage.asset"); SetArray(boss,"moves",moves.ToArray());
             var flash=root.AddComponent<BossTelegraphFlash>(); Set(flash,"boss",boss); SetArray(flash,"renderers",model.GetComponentsInChildren<Renderer>(true));
-            var hit=root.AddComponent<BossHitFeedback>(); Set(hit,"boss",boss); Set(hit,"sparkPrefab",Fx("Fx_HitSpark")); SetBool(hit,"externalEvadeFeedback",true);
+            var hit=root.AddComponent<BossHitFeedback>(); Set(hit,"boss",boss); Set(hit,"sparkPrefab",Fx("Fx_HitSpark"));
             var damage=root.AddComponent<BossDamageFeedback>(); Set(damage,"health",health); Set(damage,"flash",flash); Set(damage,"sparkPrefab",Fx("Fx_HitSpark"));
             Set(damage,"numberPrefab",AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Hazards/Fx_DamageNumber.prefab").GetComponent<DamageNumber>());
             var emitter=root.AddComponent<FeedbackEmitter>(); Set(emitter,"data",AssetDatabase.LoadAssetAtPath<CombatFeedbackData>(FeedbackPath)); Set(emitter,"impulse",root.AddComponent<CinemachineImpulseSource>());
@@ -316,7 +306,7 @@ namespace BossFight.EditorTools
             var marker=new GameObject("Marker",typeof(RectTransform),typeof(Image)); marker.transform.SetParent(executionRoot.transform,false);
             var image=marker.GetComponent<Image>(); image.sprite=AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Models/UI/Ui_Ring.png"); image.color=data.executionMarkerColor; image.raycastTarget=false;
             var r=(RectTransform)marker.transform; r.anchorMin=r.anchorMax=new Vector2(0.5f,0.5f); r.sizeDelta=new Vector2(64f,64f);
-            var execution=executionRoot.AddComponent<ExecutionMarkerUI>(); Set(execution,"data",data); Set(execution,"target",boss.GetComponent<ExecutionTarget>()); Set(execution,"aimPoint",boss.GetComponent<LockOnTarget>().AimPoint); Set(execution,"viewCamera",UnityEngine.Camera.main); Set(execution,"marker",r); SetArray(execution,"tinted",new[] { image });
+            var execution=executionRoot.AddComponent<ExecutionMarkerUI>(); Set(execution,"data",data); Set(execution,"target",boss.GetComponent<ExecutionTarget>()); Set(execution,"aimPoint",boss.GetComponent<LockOnTarget>().MarkerPoint); Set(execution,"viewCamera",UnityEngine.Camera.main); Set(execution,"marker",r); SetArray(execution,"tinted",new[] { image });
         }
         public static void EnsureDebugActions()
         {
@@ -338,7 +328,7 @@ namespace BossFight.EditorTools
             if(missing!=0) throw new InvalidOperationException("Missing Script: "+missing);
             if(Object.FindAnyObjectByType<BattleManager>()!=null) throw new InvalidOperationException("序章不能掛一般 BattleManager。");
             var controller=Object.FindAnyObjectByType<GuardianPhaseController>(); var boss=controller.Boss;
-            Require(controller,"data","boss","health","stagger","barrage","session","tutorial","guidancePrefab","hurtCollider","lockTarget","model","hitFeedback","options","difficulty");
+            Require(controller,"data","boss","health","stagger","barrage","session","tutorial","guidancePrefab","hurtCollider","lockTarget","model","options","difficulty");
             Require(Object.FindAnyObjectByType<PrologueOutcome>(),"guardian","session");
             if(boss.GetComponentsInChildren<GuardianMove>().Count(m=>m.Data.phase==1)!=7) throw new InvalidOperationException("一階段招式數量不符。");
             foreach(var m in boss.GetComponentsInChildren<GuardianMove>()) { Require(m,"data","areaPrefab"); if(new SerializedObject(m).FindProperty("obstacles").arraySize==0) throw new InvalidOperationException("未接場地障礙。"); }
@@ -381,8 +371,8 @@ namespace BossFight.EditorTools
                 Require(actor.Boss.GetComponent<BossDamageFeedback>(),"health","flash","sparkPrefab","numberPrefab","viewCamera");
                 Require(actor.Boss.GetComponent<BossHitFeedback>(),"boss","sparkPrefab");
             }
-            var shader=AssetDatabase.LoadAssetAtPath<Shader>("Assets/Shaders/GuardianTelegraph.shader");
-            if(shader==null || ShaderUtil.GetShaderMessages(shader).Length>0)throw new InvalidOperationException("預警 Shader 有編譯訊息。");
+            var shader=AssetDatabase.LoadAssetAtPath<Shader>("Assets/Shaders/TelegraphDecal.shadergraph");
+            if(shader==null || ShaderUtil.ShaderHasError(shader))throw new InvalidOperationException("地面預兆 Shader（TelegraphDecal）有錯誤。");
             var oiia=AssetDatabase.LoadAssetAtPath<BossPhaseData>("Assets/ScriptableObjects/Boss/Phases/Phase1.asset");
             var cat=AssetDatabase.LoadAssetAtPath<BossDefinition>("Assets/ScriptableObjects/Progression/Bosses/OiiaCat.asset");
             if(oiia.stationary || oiia.chainChance!=0f || oiia.turnSpeedOverride!=0f || !cat.showInPortal)throw new InvalidOperationException("OIIA 預設路徑被改動。");
@@ -392,7 +382,7 @@ namespace BossFight.EditorTools
         {
             var area=AssetDatabase.LoadAssetAtPath<GameObject>(AreaPath);
             var fx=AssetDatabase.LoadAssetAtPath<GameObject>(AreaFxPath);
-            Require(area.GetComponent<AreaStrike>(),"areaFxPrefab","projectileVisual","warningRenderer");
+            Require(area.GetComponent<AreaStrike>(),"areaFxPrefab","projectileVisual","telegraphPrefab","impactPrefab","seedBlastPrefab");
             Require(fx.GetComponent<AttackAreaFx>(),"filter","surface","vine","rootMaterial","leafMaterial");
             if(area.transform.Find("Leaf").GetComponent<TrailRenderer>()==null)throw new InvalidOperationException("葉刃缺少拖尾。");
             foreach(var n in new[]{"VineSweep","VineSlam","LeafScatter","LeafStorm","RootThrust","RootRing"})
@@ -408,6 +398,64 @@ namespace BossFight.EditorTools
         static TimedFx Fx(string name)=>AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Hazards/"+name+".prefab").GetComponent<TimedFx>();
         static Material Mat(string name,Color color)
         { string path=Model+"/Materials/"+name+".mat"; var m=AssetDatabase.LoadAssetAtPath<Material>(path); if(m!=null)return m; m=new Material(Shader.Find("Universal Render Pipeline/Lit"));m.SetColor("_BaseColor",color);m.EnableKeyword("_EMISSION");m.SetColor("_EmissionColor",color*0.3f);AssetDatabase.CreateAsset(m,path);return m; }
+        /// <summary>
+        /// 守衛的鎖定構圖（B1）：鏡頭看樹幹中段（LockAim），鎖定菱形與處決標記在樹洞（AimPoint）；半徑、俯視角度、距離照 GuardianBattleData。
+        /// 可對已存在的守衛 prefab 單獨重跑。
+        /// </summary>
+        public static void WireLockFraming(LockOnTarget lockOn, GuardianBattleData battle)
+        {
+            var root = lockOn.transform;
+            var aim = root.Find("LockAim");
+            if (aim == null) aim = Node("LockAim", root, Vector3.zero);
+            aim.localPosition = new Vector3(0f, battle.lockAimHeight, 0f);
+            var marker = root.Find("AimPoint");
+            if (marker == null) marker = Node("AimPoint", root, battle.markerOffset);
+            marker.localPosition = battle.markerOffset;
+            var so = new SerializedObject(lockOn);
+            so.FindProperty("aimPoint").objectReferenceValue = aim;
+            so.FindProperty("markerPoint").objectReferenceValue = marker;
+            so.FindProperty("framingRadius").floatValue = battle.lockFramingRadius;
+            so.FindProperty("lockOnPitch").floatValue = battle.lockOnPitch;
+            so.FindProperty("lockOnDistance").floatValue = battle.lockOnDistance;
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+        // 藤蔓模型的位置：前兩條是一階段的左右藤，後兩條給二階段四條連砸（序章修正 C9）
+        static readonly Vector3[] VinePositions = { new Vector3(-1f, 4f, 0f), new Vector3(1f, 4f, 0f), new Vector3(-1.6f, 5.2f, -0.3f), new Vector3(1.6f, 5.2f, -0.3f) };
+
+        /// <summary>補齊守衛模型的四條藤（已經有的不動），回傳照順序的藤節點；可對已存在的守衛 prefab 單獨重跑，再接到 GuardianPoser.vines。</summary>
+        public static List<Transform> EnsureVines(Transform model, Material bark)
+        {
+            var vines = new List<Transform>();
+            foreach (Transform child in model) if (child.name == "Vine") vines.Add(child);
+            for (int i = vines.Count; i < VinePositions.Length; i++)
+            {
+                var vine = Node("Vine", model, VinePositions[i]); vines.Add(vine);
+                Prim("Branch", vine, PrimitiveType.Capsule, new Vector3(0f,0f,2.5f), new Vector3(0.35f,3f,0.35f), bark).transform.localRotation = Quaternion.Euler(90f,0f,0f);
+            }
+            return vines;
+        }
+
+        /// <summary>
+        /// 序章修正 A–C 的守衛 prefab 補接（不重建整個守衛、不動開戰流程）：重建範圍攻擊 prefab（GroundTelegraph 預兆、種子爆炸、葉刃拖尾），
+        /// 守衛補到四條藤並接到 GuardianPoser、鎖定構圖照 GuardianBattleData、命中火花照 OIIA 的方式掛。
+        /// </summary>
+        public static void UpgradePrefab()
+        {
+            BuildArea();
+            var battle = AssetDatabase.LoadAssetAtPath<GuardianBattleData>(BattlePath);
+            var root = PrefabUtility.LoadPrefabContents(PrefabPath);
+            try
+            {
+                var model = root.transform.Find("Model");
+                var vines = EnsureVines(model, Mat("Bark", new Color(0.12f, 0.07f, 0.035f)));
+                SetArray(root.GetComponent<GuardianPoser>(), "vines", vines.ToArray());
+                WireLockFraming(root.GetComponent<LockOnTarget>(), battle);
+                var hit = root.GetComponent<BossHitFeedback>();
+                Set(hit, "boss", root.GetComponent<BossController>());
+                PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
+            }
+            finally { PrefabUtility.UnloadPrefabContents(root); }
+        }
         static Transform Node(string name,Transform parent,Vector3 position) { var t=new GameObject(name).transform;t.SetParent(parent,false);t.localPosition=position;return t; }
         static GameObject Prim(string name,Transform parent,PrimitiveType type,Vector3 pos,Vector3 scale,Material mat) { var g=GameObject.CreatePrimitive(type);g.name=name;g.transform.SetParent(parent,false);g.transform.localPosition=pos;g.transform.localScale=scale;g.GetComponent<Renderer>().sharedMaterial=mat;Object.DestroyImmediate(g.GetComponent<Collider>());return g; }
         static void Set(Object o,string field,Object value) { var s=new SerializedObject(o);var p=s.FindProperty(field);if(p==null)throw new InvalidOperationException(o.name+":"+field);p.objectReferenceValue=value;s.ApplyModifiedPropertiesWithoutUndo(); }

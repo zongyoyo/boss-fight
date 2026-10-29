@@ -79,6 +79,11 @@ namespace BossFight.Boss
                 case BossImpactKind.Lightning: return Data.lightning;
                 case BossImpactKind.Tornado: return Data.tornado;
                 case BossImpactKind.GrandSpinLanding: return Data.grandSpinLanding;
+                case BossImpactKind.VineStrike: return Data.vineStrike;
+                case BossImpactKind.LeafBlade: return Data.leafBlade;
+                case BossImpactKind.RootBurst: return Data.rootBurst;
+                case BossImpactKind.SeedBlast: return Data.seedBlast;
+                case BossImpactKind.Summon: return Data.summon;
                 default: return default;
             }
         }

@@ -37,9 +37,11 @@ namespace BossFight.Player
     /// 骨頭：開場 boneCount 根，也是上限。刀命中（PlayerAttack.OnAttackHit 結果是 Hit）累積 boneGainPerHit、處決命中 boneGainPerExecution，
     /// 被打中、格擋、破防累積 boneGainWhenHurt；湊滿 1 根就加一根骨頭（OnBoneEarned），滿上限時多的丟掉，倒下後不再累積。
     /// 事件順序：OnHealthChanged → OnDamageTaken → 骨頭（OnBoneProgressChanged／OnBonesChanged／OnBoneEarned）→ OnParry／OnGuardBreak → OnDied。
+    /// 成功閃避（IDodgeable）也在這裡結算，是唯一的來源：翻滾無敵中被打到（Evaded），或攻擊方回報翻滾時在範圍裡、判定窗結束沒打中（NotifyNearMiss）；
+    /// 強制無敵、受擊後無敵、倒下時不算，同一次翻滾只送一次 OnDodgeSucceeded（教學計次、綠色回饋都訂閱它）。
     /// </summary>
     [DisallowMultipleComponent]
-    public class PlayerHealth : MonoBehaviour, IDamageable
+    public class PlayerHealth : MonoBehaviour, IDamageable, IDodgeable
     {
         [SerializeField] PlayerStats stats;
 
@@ -57,6 +59,8 @@ namespace BossFight.Player
         public event Action<float> OnBoneProgressChanged;
         /// <summary>累積湊滿、多了一根骨頭（音效用；啃掉不會送）。</summary>
         public event Action OnBoneEarned;
+        /// <summary>真正的成功閃避（同一次翻滾只送一次）；參數是被閃過的攻擊。</summary>
+        public event Action<DamageInfo> OnDodgeSucceeded;
 
         public float Current { get; private set; }
         public float Max => stats.maxHealth;
@@ -70,6 +74,8 @@ namespace BossFight.Player
         public float HitInvulnerableRemaining => Mathf.Max(0f, hitInvulnerableUntil - Time.time);
         /// <summary>強制無敵（Debug F2，之後的演出也可以用）：所有攻擊都當成閃過。</summary>
         public bool ForcedInvulnerable { get; set; }
+        /// <summary>正在翻滾，而且這次翻滾還能算成功閃避。</summary>
+        public bool IsDodging => controller != null && controller.IsRolling && !ForcedInvulnerable && !IsHitInvulnerable && !IsDead;
 
         PlayerController controller;
         PlayerStamina stamina;
@@ -77,6 +83,8 @@ namespace BossFight.Player
         HitStop hitStop;
         float hitInvulnerableUntil = float.NegativeInfinity;
         bool boneGainEnabled = true;
+        // 第幾次翻滾、哪一次已經算過成功閃避：翻滾結束後才收到的回報仍算在最後一次翻滾上
+        int rollCount, creditedRoll;
 
         /// <summary>設定暫時持有量；教學與開戰補給共用，不改 SO 或存檔。</summary>
         public void SetBones(int count, bool clearProgress = true)
@@ -106,11 +114,28 @@ namespace BossFight.Player
         void OnEnable()
         {
             if (attack != null) attack.OnAttackHit += HandleAttackHit;
+            if (controller != null) controller.OnRollStarted += HandleRollStarted;
         }
 
         void OnDisable()
         {
             if (attack != null) attack.OnAttackHit -= HandleAttackHit;
+            if (controller != null) controller.OnRollStarted -= HandleRollStarted;
+        }
+
+        void HandleRollStarted(Vector3 direction) => rollCount++;
+
+        public void NotifyNearMiss(in DamageInfo info)
+        {
+            if (ForcedInvulnerable || IsHitInvulnerable || IsDead) return;
+            CreditDodge(info);
+        }
+
+        void CreditDodge(in DamageInfo info)
+        {
+            if (rollCount == 0 || creditedRoll == rollCount) return;
+            creditedRoll = rollCount;
+            OnDodgeSucceeded?.Invoke(info);
         }
 
         void Start()
@@ -158,6 +183,8 @@ namespace BossFight.Player
             if (!info.ignoreInvulnerability && (ForcedInvulnerable || controller.IsInvulnerable || IsHitInvulnerable))
             {
                 result = DamageResult.Evaded;
+                // 翻滾無敵閃過才算成功閃避；強制無敵、受擊後無敵不算
+                if (controller.IsRolling && !ForcedInvulnerable && !IsHitInvulnerable) CreditDodge(info);
             }
             else if (guarded && info.canParry && held <= stats.parryWindow + ParryWindowBonus)
             {

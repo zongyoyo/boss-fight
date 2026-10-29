@@ -5,8 +5,8 @@ using UnityEngine;
 namespace BossFight.UI
 {
     /// <summary>
-    /// 鎖定標記：鎖定時在目標的 LockOnTarget.AimPoint 上顯示一個小菱形，出現時從大縮回、之後輕輕呼吸。
-    /// 鎖定哪個目標只訂閱 PlayerController.OnLockTargetChanged（玩家由 PlayerSpawner 交給 BindPlayer）；位置每幀用 viewCamera 把 AimPoint 投到畫面上（目標在鏡頭後方時隱藏）。
+    /// 鎖定標記：鎖定時在目標的 LockOnTarget.MarkerPoint（沒設時是 AimPoint）上顯示一個小菱形，出現時從大縮回、之後輕輕呼吸。
+    /// 鎖定哪個目標只訂閱 PlayerController.OnLockTargetChanged（玩家由 PlayerSpawner 交給 BindPlayer）；位置每幀用 viewCamera 把 MarkerPoint 投到畫面上（目標在鏡頭後方時隱藏）。
     /// 處決標記（ExecutionMarkerUI.OnShownChanged）出現時先藏起來，兩個標記不疊在一起。
     /// </summary>
     [DisallowMultipleComponent]
@@ -74,7 +74,7 @@ namespace BossFight.UI
             Vector3 screen = Vector3.zero;
             if (visible)
             {
-                screen = viewCamera.WorldToScreenPoint(target.AimPoint.position);
+                screen = viewCamera.WorldToScreenPoint(target.MarkerPoint.position);
                 visible = screen.z > 0f;
             }
             if (marker.gameObject.activeSelf != visible) marker.gameObject.SetActive(visible);

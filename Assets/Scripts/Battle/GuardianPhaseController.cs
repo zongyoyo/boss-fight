@@ -18,7 +18,6 @@ namespace BossFight.Battle
         [SerializeField] BossHealth health;
         [SerializeField] BossStagger stagger;
         [SerializeField] RootBarrageMove barrage;
-        [SerializeField] BossHitFeedback hitFeedback;
         [SerializeField] PrologueSession session;
         [SerializeField] TutorialDirector tutorial;
         [SerializeField] AreaStrike guidancePrefab;
@@ -37,7 +36,7 @@ namespace BossFight.Battle
         public GuardianBattleData Data => data;
         PlayerRig player;
         AreaStrike guidance;
-        bool subscribed, requested, finishedPending, warned, rollFeedback;
+        bool requested, finishedPending, warned;
         int requestedFrame = -1;
         int finishedFrame = -1;
         void Awake()
@@ -51,36 +50,20 @@ namespace BossFight.Battle
         }
         public void BindPlayer(PlayerRig rig)
         {
-            if (subscribed) Unsubscribe();
             player = rig;
             if (boss != null) boss.TargetHurtbox = rig != null ? rig.GetComponentInChildren<Hurtbox>().GetComponent<Collider>() : null;
             if (boss != null) boss.TargetBodyRadius = rig != null ? rig.GetComponent<CharacterController>().radius : 0f;
-            if (subscribed) Subscribe();
-        }
-        void Subscribe()
-        {
-            if (player == null) return;
-            player.Controller.OnRollStarted += RollStarted; player.Controller.OnRollEnded += RollEnded;
-        }
-        void Unsubscribe()
-        {
-            if (player == null) return;
-            player.Controller.OnRollStarted -= RollStarted; player.Controller.OnRollEnded -= RollEnded;
         }
         void OnEnable()
         {
-            subscribed = true; Subscribe();
-            boss.TargetDodgeEligible = CanReportDodge;
             health.OnBossHealthChanged += HealthChanged;
-            boss.OnMoveFinished += MoveFinished; boss.OnMoveHit += MoveHit; boss.OnAttackAvoided += Avoided;
+            boss.OnMoveFinished += MoveFinished;
             if (tutorial != null) tutorial.OnTutorialCompleted += TutorialCompleted;
         }
         void OnDisable()
         {
-            Unsubscribe(); subscribed = false;
-            boss.TargetDodgeEligible = null;
             health.OnBossHealthChanged -= HealthChanged;
-            boss.OnMoveFinished -= MoveFinished; boss.OnMoveHit -= MoveHit; boss.OnAttackAvoided -= Avoided;
+            boss.OnMoveFinished -= MoveFinished;
             if (tutorial != null) tutorial.OnTutorialCompleted -= TutorialCompleted;
             ClearGuidance(); session.SetInputLocked(this, false);
         }
@@ -127,7 +110,7 @@ namespace BossFight.Battle
                 var a = new AttackArea { shape = AttackAreaShape.Circle, center = boss.transform.position, forward = Vector3.forward,
                     fieldCenter = boss.ArenaCenter, fieldRadius = boss.Arena.radius, radius = data.guidanceRadius };
                 guidance = Instantiate(guidancePrefab); guidance.SafetyGuidance = true;
-                guidance.Begin(a, new DamageInfo(0f, true, false, 0f), 0f, 0f, null, null, true);
+                guidance.Begin(a, new DamageInfo(0f, true, false, 0f), 0f, 0f, null, true);
                 guidance.SetGuidanceProgress(1f);
             }
             if (Elapsed >= data.phaseDuration) RequestRootBarrage();
@@ -169,20 +152,5 @@ namespace BossFight.Battle
         public void PreparePhase2() { ClearGuidance(); SetStage(GuardianStage.AwaitingPhase2); }
         void SetStage(GuardianStage value) { Stage = value; OnStageChanged?.Invoke(value); }
         void ClearGuidance() { if (guidance != null) guidance.Despawn(); guidance = null; }
-        void RollStarted(Vector3 _) { rollFeedback = false; boss.TargetRolling = true; }
-        void RollEnded() => boss.TargetRolling = false;
-        bool CanReportDodge() => player != null && player.Controller.IsRolling && !player.Health.ForcedInvulnerable && !player.Health.IsHitInvulnerable;
-        void MoveHit(BossMove move, HitReport report)
-        {
-            if (report.result == DamageResult.Evaded && player != null && player.Controller.IsRolling && player.Controller.IsInvulnerable && !player.Health.IsHitInvulnerable)
-                Avoided(player.transform.position);
-        }
-        void Avoided(Vector3 point)
-        { ReportSuccessfulDodge(point, hitFeedback); }
-        public void ReportSuccessfulDodge(Vector3 point, BossHitFeedback source)
-        {
-            if (player == null || player.Health.ForcedInvulnerable || player.Health.IsDead || rollFeedback) return;
-            rollFeedback = true; if (source != null) source.PlaySaplingEvade(point); player.Feedback.PlayEvadeFeedback();
-        }
     }
 }

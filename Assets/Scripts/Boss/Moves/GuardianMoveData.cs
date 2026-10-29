@@ -20,11 +20,14 @@ namespace BossFight.Boss.Moves
         [Min(0f), Tooltip("左右線偏移 (m)")] public float sideOffset;
         [Min(1), Tooltip("段數／數量")] public int count = 1;
         [Min(0f), Tooltip("各段開始間隔 (s)")] public float interval;
-        [Min(0f), Tooltip("中途每段地面預兆 (s)")] public float warning;
+        [Min(0f), Tooltip("中途每段地面預兆 (s)：每段開預兆時才鎖玩家位置或重新瞄準的那幾段用，不得低於該階段的預兆下限（一階段 0.4、二階段 0.3）")] public float warning;
         [Min(0f), Tooltip("飛行／擴散速度 (m/s)")] public float speed;
         [Min(0f), Tooltip("玩家附近的取樣半徑 (m)")] public float scatter;
         [Min(0), Tooltip("玩家附近的數量")] public int nearCount;
         [Min(0f), Tooltip("葉刃中心高度 (m)")] public float centerHeight;
+        [Header("預兆表現（純視覺）")]
+        [Min(0f), Tooltip("葉刃預兆的方向箭頭長度 (m)")] public float previewLength = 3.5f;
+        [Min(0f), Tooltip("環波前方預警帶的寬度 (m)")] public float leadWidth = 1.2f;
         [Header("二階段強化")]
         [Min(1), Tooltip("波數；第一階段維持一波")] public int waves = 1;
         [Range(0f, 360f), Tooltip("第二次橫掃角度；0 沿用第一掃")] public float secondAngle;

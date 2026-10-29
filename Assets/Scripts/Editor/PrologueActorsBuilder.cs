@@ -52,7 +52,7 @@ namespace BossFight.EditorTools
             Require(sapling, "data", "attackHitbox", "hurtCollider");
             Require(mentor.GetComponent<DaisyMentorVisual>(), "mentor", "model", "flower", "petalHand", "vine");
             Require(sapling.GetComponent<TrainingSaplingVisual>(), "sapling", "model", "branch", "stars", "leavesPrefab", "telegraphPrefab");
-            Require(sapling.GetComponent<BossHitFeedback>(), "sapling", "sparkPrefab");
+            Require(sapling.GetComponent<BossHitFeedback>(), "boss", "sparkPrefab");
             Require(binding, "mentor", "sapling", "session");
             Require(hud, "sapling", "viewCamera", "anchor", "panel", "health", "stagger", "title");
             Require(Object.FindAnyObjectByType<ExecutionMarkerUI>(FindObjectsInactive.Include), "data", "target", "aimPoint", "viewCamera", "marker");
@@ -126,7 +126,6 @@ namespace BossFight.EditorTools
             sapling.transform.SetPositionAndRotation(anchors.transform.Find("Sapling").position, Quaternion.Euler(0f, 180f, 0f));
             var binding = root.AddComponent<PrologueActorBinding>();
             Set(binding, "mentor", mentor); Set(binding, "sapling", sapling);
-            Set(binding, "saplingFeedback", sapling.GetComponent<BossHitFeedback>());
             Set(binding, "session", Object.FindAnyObjectByType<PrologueSession>());
             BuildUI(sapling);
             BuildDebug(binding, mentor, sapling);
@@ -207,9 +206,9 @@ namespace BossFight.EditorTools
                 star.GetComponent<MeshRenderer>().sharedMaterial = gold;
             }
             stars.gameObject.SetActive(false);
-            var aim = Node("AimPoint", root.transform, new Vector3(0f, 0.9f, 0f));
+            Node("AimPoint", root.transform, new Vector3(0f, 0.9f, 0f));
             Node("HudAnchor", root.transform, new Vector3(0f, 2.5f, 0f));
-            Set(root.GetComponent<LockOnTarget>(), "aimPoint", aim);
+            WireLockFraming(root.GetComponent<LockOnTarget>(), data);
             var hitbox = Node("BranchHitbox", root.transform, Vector3.zero).gameObject.AddComponent<Hitbox>();
             SetHitbox(hitbox, root.transform);
             var hurt = Hurt(root.transform, actor, new Vector3(0f, 0.45f, 0f), new Vector3(0.45f, 0.9f, 0.45f));
@@ -217,22 +216,40 @@ namespace BossFight.EditorTools
             Set(visual, "sapling", actor); Set(visual, "model", model); Set(visual, "branch", branch); Set(visual, "stars", stars); Set(visual, "leavesPrefab", leaves);
             Set(visual, "telegraphPrefab", AssetDatabase.LoadAssetAtPath<GroundTelegraph>("Assets/Prefabs/Hazards/GroundTelegraph.prefab"));
             SetArray(visual, "renderers", model.GetComponentsInChildren<Renderer>(true));
-            WireSaplingFeedback(actor);
+            WireHitFeedback(actor);
             var prefab = PrefabUtility.SaveAsPrefabAsset(root, SaplingPrefabPath);
             Object.DestroyImmediate(root);
             return prefab;
         }
 
-        /// <summary>直接重用 OIIA 的火花 prefab、HDR 顏色與大小；可單獨補接既有樹精 prefab。</summary>
-        public static void WireSaplingFeedback(TrainingSapling actor)
+        /// <summary>
+        /// 小樹精的鎖定構圖（B3）：鏡頭看身體中心（LockAim，高度照 TrainingSaplingData），鎖定菱形照舊在頭頂的 AimPoint；
+        /// 半徑、俯視角度、距離也照資料。可對已存在的 prefab 單獨重跑（GuardianPhaseTwoBuilder 的戰鬥池也用）。
+        /// </summary>
+        public static void WireLockFraming(LockOnTarget lockOn, TrainingSaplingData data)
+        {
+            var root = lockOn.transform;
+            var aim = root.Find("LockAim");
+            if (aim == null) aim = Node("LockAim", root, Vector3.zero);
+            aim.localPosition = new Vector3(0f, data.lockAimHeight, 0f);
+            var so = new SerializedObject(lockOn);
+            so.FindProperty("aimPoint").objectReferenceValue = aim;
+            so.FindProperty("markerPoint").objectReferenceValue = root.Find("AimPoint");
+            so.FindProperty("framingRadius").floatValue = data.lockFramingRadius;
+            so.FindProperty("lockOnPitch").floatValue = data.lockOnPitch;
+            so.FindProperty("lockOnDistance").floatValue = data.lockOnDistance;
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// <summary>命中火花照 OIIA 的方式掛：複製 OIIA 的 BossHitFeedback（火花 prefab、HDR 顏色與大小），攻擊方換成這個角色（IHitReportSource）。</summary>
+        public static void WireHitFeedback(MonoBehaviour actor)
         {
             var oiia = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/OiiaCat.prefab");
             var source = oiia != null ? oiia.GetComponent<BossHitFeedback>() : null;
             if (source == null) throw new InvalidOperationException("缺少 OIIA 的 BossHitFeedback，無法接用既有特效。");
             var feedback = DaoDunDogBuilder.GetOrAdd<BossHitFeedback>(actor.gameObject);
             EditorUtility.CopySerialized(source, feedback);
-            Set(feedback, "boss", null);
-            Set(feedback, "sapling", actor);
+            Set(feedback, "boss", actor);
         }
 
         static ParticleSystem BuildLeaves()

@@ -155,6 +155,41 @@ MonoBehaviour:
     - {fileID: 8300000, guid: 48fee8670043dab439b826060d5c8fbc, type: 3}
     volume: 1
     shake: 1
+  vineStrike:
+    clips:
+    - {fileID: 8300000, guid: d81ed7086fb2ccf479eb984c4e1bca9e, type: 3}
+    volume: 0.75
+    shake: 0.15
+  leafBlade:
+    clips:
+    - {fileID: 8300000, guid: 12ff7826d43df2b46a9ff6d95af86fe1, type: 3}
+    volume: 0.55
+    shake: 0
+  rootBurst:
+    clips:
+    - {fileID: 8300000, guid: 661d69e0203eb9544a7400474ece5e25, type: 3}
+    volume: 0.85
+    shake: 0.3
+  seedBlast:
+    clips:
+    - {fileID: 8300000, guid: d31ce06774738514886df2598013285e, type: 3}
+    volume: 0.8
+    shake: 0.25
+  summon:
+    clips:
+    - {fileID: 8300000, guid: 4c9d04cc30140c345b1411c47b29148a, type: 3}
+    volume: 0.8
+    shake: 0.2
+  saplingHurt:
+    clips:
+    - {fileID: 8300000, guid: 7fe9c5f063fe8354390f2ec28350155a, type: 3}
+    volume: 0.7
+    shake: 0
+  daisyChatter:
+    clips:
+    - {fileID: 8300000, guid: 0c8fc311d139eea448d368d48fa3cce6, type: 3}
+    volume: 0.5
+    shake: 0
   stunned:
     clips:
     - {fileID: 8300000, guid: 8a07af6525d38ba4fa98648a48016e42, type: 3}

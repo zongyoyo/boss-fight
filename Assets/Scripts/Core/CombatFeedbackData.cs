@@ -100,6 +100,24 @@ namespace BossFight.Core
         [Tooltip("大迴旋落地")]
         public FeedbackCue grandSpinLanding = new FeedbackCue(1f, 1f);
 
+        [Header("大樹守衛招式（序章）")]
+        [Tooltip("藤蔓橫掃、砸地每一段開判定")]
+        public FeedbackCue vineStrike = new FeedbackCue(0.75f, 0.15f);
+        [Tooltip("葉刃、落葉每一波出手")]
+        public FeedbackCue leafBlade = new FeedbackCue(0.55f, 0f);
+        [Tooltip("樹根破土（突刺、環波、萬根齊發每一段）")]
+        public FeedbackCue rootBurst = new FeedbackCue(0.85f, 0.3f);
+        [Tooltip("種子炸彈爆炸")]
+        public FeedbackCue seedBlast = new FeedbackCue(0.8f, 0.25f);
+        [Tooltip("呼喚孩子（守衛怒吼）")]
+        public FeedbackCue summon = new FeedbackCue(0.8f, 0.2f);
+
+        [Header("序章角色")]
+        [Tooltip("小樹精被砍中（木頭聲）")]
+        public FeedbackCue saplingHurt = new FeedbackCue(0.7f, 0f);
+        [Tooltip("菊花說一句話（嘰嘰的咕噥，不配音）")]
+        public FeedbackCue daisyChatter = new FeedbackCue(0.5f, 0f);
+
         [Header("Boss 狀態")]
         [Tooltip("失衡滿、頭暈（大迴旋落地的頭暈也算）")]
         public FeedbackCue stunned = new FeedbackCue(0.8f, 0f);

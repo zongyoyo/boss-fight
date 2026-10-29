@@ -52,22 +52,21 @@ namespace BossFight.Boss
         public readonly TrainingSapling source;
         public readonly int id;
         public readonly bool hadWindow, hasHit, cancelled;
-        /// <summary>在威脅範圍內翻滾、與判定窗重疊且沒被打到；走遠處空滾不算。</summary>
-        public readonly bool rollEvaded;
-        public readonly Vector3 targetPosition;
+        /// <summary>目標在範圍裡翻滾、判定窗結束沒被打中（已回報給目標的 IDodgeable；算不算成功閃避由目標決定）。</summary>
+        public readonly bool nearMiss;
         public readonly HitReport hit;
         public SaplingAttackReport(TrainingSapling source, int id, bool hadWindow, bool hasHit, in HitReport hit, bool cancelled,
-                                   bool rollEvaded, Vector3 targetPosition)
+                                   bool nearMiss)
         {
             this.source = source; this.id = id; this.hadWindow = hadWindow; this.hasHit = hasHit; this.hit = hit; this.cancelled = cancelled;
-            this.rollEvaded = rollEvaded; this.targetPosition = targetPosition;
+            this.nearMiss = nearMiss;
         }
     }
 
     /// <summary>可重用的小樹精；只認 Core 的目標與傷害，不引用玩家或教學流程。</summary>
     [RequireComponent(typeof(ExecutionTarget), typeof(LockOnTarget))]
     [DisallowMultipleComponent]
-    public class TrainingSapling : MonoBehaviour, IDamageable
+    public class TrainingSapling : MonoBehaviour, IDamageable, IHitReportSource
     {
         [SerializeField] TrainingSaplingData data;
         [SerializeField] Hitbox attackHitbox;
@@ -79,6 +78,8 @@ namespace BossFight.Boss
         public event Action<SaplingTelegraph> OnAttackWarning;
         public event Action<int> OnAttackWindowOpened;
         public event Action<int, HitReport> OnAttackHit;
+        /// <summary>同 OnAttackHit，不帶攻擊編號（IHitReportSource：命中火花用）。</summary>
+        public event Action<HitReport> OnHitReported;
         public event Action<SaplingAttackReport> OnAttackResolved;
         public event Action<SaplingDamageReport> OnDamaged;
         public event Action<float, float> OnHealthChanged;
@@ -110,7 +111,11 @@ namespace BossFight.Boss
         bool attackPending, hadWindow, hasHit, executionHit, shuttingDown;
         HitReport lastHit;
         SaplingTelegraph currentWarning;
-        bool targetRolling, rollOverlapped, rollThreatened;
+        // 目標在範圍裡翻滾過（預兆或判定窗）、判定窗內翻滾過：兩者都成立又沒被打中，就向目標回報閃過
+        bool rollOverlapped, rollThreatened;
+        DamageInfo currentDamage;
+        IDodgeable dodger;
+        Transform dodgerOf;
 
         void Awake()
         {
@@ -140,15 +145,6 @@ namespace BossFight.Boss
 
         /// <summary>只記引用；可在上層 IPlayerBinding 第一次（早於本元件 Awake）呼叫。</summary>
         public void SetTarget(Transform value) => target = value;
-
-        /// <summary>上層由玩家翻滾事件傳入；不引用 Player，也不影響 Hitbox 或無敵結算。</summary>
-        public void SetTargetRolling(bool value)
-        {
-            targetRolling = value;
-            if (!attackPending || !value) return;
-            rollThreatened |= TargetInAttackRange();
-            if (phase == AttackPhase.Active) rollOverlapped = true;
-        }
 
         /// <summary>T29 生成後設定戰鬥資料，再呼叫 Appear；不修改任何 SO。</summary>
         public void Configure(TrainingSaplingData value, Transform targetTransform)
@@ -212,7 +208,13 @@ namespace BossFight.Boss
                 PublishState();
             }
             if ((Mode != SaplingMode.Attack && Mode != SaplingMode.DodgeAttack) || target == null) return;
-            if (phase != AttackPhase.Active) FaceTarget(dt);
+            // 預兆開始後 telegraphTrackTime 秒內照樣轉向，之後鎖住方向，判定照鎖住的方向打
+            if (phase == AttackPhase.Waiting || (phase == AttackPhase.Telegraph && phaseTime < data.telegraphTrackTime)) FaceTarget(dt);
+            if (phase != AttackPhase.Waiting && TargetDodging)
+            {
+                rollThreatened |= TargetInAttackRange();
+                if (phase == AttackPhase.Active) rollOverlapped = true;
+            }
             cycleTime += dt;
             phaseTime += dt;
             switch (phase)
@@ -224,7 +226,6 @@ namespace BossFight.Boss
                     if (phaseTime >= data.telegraphTime) OpenWindow();
                     break;
                 case AttackPhase.Active:
-                    if (targetRolling) { rollOverlapped = true; rollThreatened |= TargetInAttackRange(); }
                     // 至少讓 Hitbox 的 LateUpdate 掃過一次，低幀率也不能漏掉整個判定窗。
                     if (phaseTime >= data.activeTime && Time.frameCount > openedFrame) ResolveAttack(false);
                     break;
@@ -237,6 +238,22 @@ namespace BossFight.Boss
             if (to.sqrMagnitude > 1e-6f)
                 transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(to), data.turnSpeed * dt);
         }
+
+        // 目標（玩家根物件）上的 IDodgeable；換目標時重新取
+        IDodgeable Dodger
+        {
+            get
+            {
+                if (dodgerOf != target)
+                {
+                    dodgerOf = target;
+                    dodger = target != null ? target.GetComponentInParent<IDodgeable>() : null;
+                }
+                return dodger;
+            }
+        }
+
+        bool TargetDodging => target != null && Dodger != null && Dodger.IsDodging;
 
         bool OnlyTarget(Collider collider) => target != null && collider.transform.IsChildOf(target);
 
@@ -254,8 +271,7 @@ namespace BossFight.Boss
             attackId++;
             attackPending = true;
             hadWindow = hasHit = false;
-            rollOverlapped = false;
-            rollThreatened = targetRolling && TargetInAttackRange();
+            rollOverlapped = rollThreatened = false;
             lastHit = default;
             currentWarning = new SaplingTelegraph(attackId, data, Mode);
             OnAttackWarning?.Invoke(currentWarning);
@@ -268,10 +284,9 @@ namespace BossFight.Boss
             phaseTime = 0f;
             openedFrame = Time.frameCount;
             hadWindow = true;
-            rollOverlapped = targetRolling;
-            rollThreatened |= targetRolling && TargetInAttackRange();
             attackHitbox.SetBox(new Vector3(0f, data.height * 0.5f, data.reach * 0.5f), new Vector3(data.width, data.height, data.reach));
-            attackHitbox.Activate(new DamageInfo(data.damage, currentWarning.canBlock, currentWarning.canParry, 0f));
+            currentDamage = new DamageInfo(data.damage, currentWarning.canBlock, currentWarning.canParry, 0f);
+            attackHitbox.Activate(currentDamage);
             OnAttackWindowOpened?.Invoke(attackId);
         }
 
@@ -280,6 +295,7 @@ namespace BossFight.Boss
             hasHit = true;
             lastHit = report;
             OnAttackHit?.Invoke(attackId, report);
+            OnHitReported?.Invoke(report);
             if (report.result == DamageResult.Parried) AddStagger(report.counterImbalance);
         }
 
@@ -289,9 +305,10 @@ namespace BossFight.Boss
             phase = AttackPhase.Waiting;
             if (!attackPending) return;
             attackPending = false;
-            bool evaded = !cancelled && hadWindow && rollOverlapped && rollThreatened && (!hasHit || lastHit.result == DamageResult.Evaded);
-            OnAttackResolved?.Invoke(new SaplingAttackReport(this, attackId, hadWindow, hasHit, lastHit, cancelled, evaded,
-                                                          target != null ? target.position : Vector3.zero));
+            // 翻滾無敵中被打到（Evaded）由被打方自己算；這裡只回報沒打到的那種閃過
+            bool nearMiss = !cancelled && hadWindow && rollOverlapped && rollThreatened && !hasHit;
+            if (nearMiss && Dodger != null) Dodger.NotifyNearMiss(currentDamage.WithSource(transform.position, gameObject));
+            OnAttackResolved?.Invoke(new SaplingAttackReport(this, attackId, hadWindow, hasHit, lastHit, cancelled, nearMiss));
         }
 
         public DamageOutcome TakeDamage(in DamageInfo info)

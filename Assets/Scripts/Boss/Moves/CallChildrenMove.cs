@@ -7,7 +7,7 @@ namespace BossFight.Boss.Moves
         public event Action OnSummonRequested;
         public int AvailableSlots { get; set; }
         public override bool CanChoose => AvailableSlots > 0;
-        public override void BeginActive() { OnSummonRequested?.Invoke(); Impact(BossImpactKind.PawSwipe, Origin); }
+        public override void BeginActive() { OnSummonRequested?.Invoke(); Impact(BossImpactKind.Summon, Origin); }
         public override bool TickActive(float dt) => true;
     }
 }

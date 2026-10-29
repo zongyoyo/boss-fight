@@ -16,7 +16,7 @@ namespace BossFight.UI
         [SerializeField] BattleUIData data;
         [Tooltip("可以被處決的目標（Boss）")]
         [SerializeField] ExecutionTarget target;
-        [Tooltip("標記的位置（Boss 的 LockOnTarget.AimPoint，胸口）")]
+        [Tooltip("標記的位置（Boss 的 LockOnTarget.MarkerPoint：OIIA 貓是胸口，大樹守衛是樹洞）")]
         [SerializeField] Transform aimPoint;
         [Tooltip("投影用的鏡頭（Main Camera）")]
         [SerializeField] Camera viewCamera;

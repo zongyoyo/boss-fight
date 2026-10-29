@@ -14,6 +14,18 @@
         },
         {
             "m_Id": "10000000000000000000000000000004"
+        },
+        {
+            "m_Id": "10000000000000000000000000000005"
+        },
+        {
+            "m_Id": "10000000000000000000000000000006"
+        },
+        {
+            "m_Id": "10000000000000000000000000000007"
+        },
+        {
+            "m_Id": "10000000000000000000000000000008"
         }
     ],
     "m_Keywords": [],
@@ -175,6 +187,62 @@
                 },
                 "m_SlotId": 0
             }
+        },
+        {
+            "m_OutputSlot": {
+                "m_Node": {
+                    "m_Id": "30000000000000000000000000000010"
+                },
+                "m_SlotId": 0
+            },
+            "m_InputSlot": {
+                "m_Node": {
+                    "m_Id": "3000000000000000000000000000000c"
+                },
+                "m_SlotId": 8
+            }
+        },
+        {
+            "m_OutputSlot": {
+                "m_Node": {
+                    "m_Id": "30000000000000000000000000000011"
+                },
+                "m_SlotId": 0
+            },
+            "m_InputSlot": {
+                "m_Node": {
+                    "m_Id": "3000000000000000000000000000000c"
+                },
+                "m_SlotId": 9
+            }
+        },
+        {
+            "m_OutputSlot": {
+                "m_Node": {
+                    "m_Id": "30000000000000000000000000000012"
+                },
+                "m_SlotId": 0
+            },
+            "m_InputSlot": {
+                "m_Node": {
+                    "m_Id": "3000000000000000000000000000000c"
+                },
+                "m_SlotId": 10
+            }
+        },
+        {
+            "m_OutputSlot": {
+                "m_Node": {
+                    "m_Id": "30000000000000000000000000000013"
+                },
+                "m_SlotId": 0
+            },
+            "m_InputSlot": {
+                "m_Node": {
+                    "m_Id": "3000000000000000000000000000000c"
+                },
+                "m_SlotId": 11
+            }
         }
     ],
     "m_VertexContext": {
@@ -256,7 +324,7 @@
     "m_customAttributes": [],
     "m_Value": {
         "r": 1.0,
-        "g": 0.15000000596046449,
+        "g": 0.15000000596046448,
         "b": 0.10000000149011612,
         "a": 1.0
     },
@@ -371,6 +439,18 @@
         },
         {
             "m_Id": "10000000000000000000000000000004"
+        },
+        {
+            "m_Id": "10000000000000000000000000000005"
+        },
+        {
+            "m_Id": "10000000000000000000000000000006"
+        },
+        {
+            "m_Id": "10000000000000000000000000000007"
+        },
+        {
+            "m_Id": "10000000000000000000000000000008"
         }
     ]
 }
@@ -1075,6 +1155,18 @@
         },
         {
             "m_Id": "41000000000000000000000000000007"
+        },
+        {
+            "m_Id": "41000000000000000000000000000008"
+        },
+        {
+            "m_Id": "41000000000000000000000000000009"
+        },
+        {
+            "m_Id": "410000000000000000000000000000010"
+        },
+        {
+            "m_Id": "410000000000000000000000000000011"
         }
     ],
     "synonyms": [
@@ -1092,7 +1184,7 @@
     "m_FunctionName": "TelegraphShape",
     "m_FunctionSource": "",
     "m_FunctionSourceUsePragmas": true,
-    "m_FunctionBody": "// Params: x 形狀（0 圓／環、1 長方形）、y 填色進度 0..1、z 環的內半徑比例、w 閃光 0..1\n// Style: x 外框寬 (m)、y 填色透明度、z 範圍底色透明度、w 發光強度\n// Size: xy 投影範圍 (m)；圓形以 x 為直徑。長方形的填色沿 V（投影器的 +Y）長出去\nfloat shape = Params.x;\nfloat fill = saturate(Params.y);\nfloat inner = saturate(Params.z);\nfloat flash = saturate(Params.w);\nfloat edge = max(Style.x, 0.001);\nfloat2 size = max(Size.xy, float2(0.001, 0.001));\nfloat aa = 0.04;\nfloat inside;\nfloat edgeMask;\nfloat filled;\nfloat front;\nif (shape < 0.5)\n{\n    float radius = size.x * 0.5;\n    float r = length(UV - 0.5) * size.x;\n    float innerR = inner * radius;\n    inside = (1.0 - smoothstep(radius - aa, radius, r)) * (innerR > 0.0 ? smoothstep(innerR - aa, innerR, r) : 1.0);\n    float outerEdge = smoothstep(radius - edge - aa, radius - edge, r);\n    float innerEdge = innerR > 0.0 ? 1.0 - smoothstep(innerR + edge, innerR + edge + aa, r) : 0.0;\n    edgeMask = saturate(outerEdge + innerEdge) * inside;\n    float fillR = lerp(innerR, radius, fill);\n    filled = (1.0 - smoothstep(fillR - aa, fillR, r)) * inside * step(0.001, fill);\n    front = smoothstep(fillR - edge - aa, fillR - edge, r) * filled;\n}\nelse\n{\n    float2 p = UV * size;\n    float dx = min(p.x, size.x - p.x);\n    float dy = min(p.y, size.y - p.y);\n    inside = smoothstep(0.0, aa, dx) * smoothstep(0.0, aa, dy);\n    edgeMask = (1.0 - smoothstep(edge, edge + aa, min(dx, dy))) * inside;\n    float fy = fill * size.y;\n    filled = (1.0 - smoothstep(fy - aa, fy, p.y)) * inside * step(0.001, fill);\n    front = smoothstep(fy - edge - aa, fy - edge, p.y) * filled;\n}\nfloat a = max(max(edgeMask, front), max(filled * Style.y, inside * Style.z));\na = lerp(a, inside, flash);\nAlpha = saturate(a * Tint.a);\nfloat3 col = lerp(Tint.rgb, float3(1.0, 1.0, 1.0), flash * 0.6);\nBaseColor = saturate(col);\nEmission = col * Style.w * (1.0 + flash * 2.0) * Alpha;"
+    "m_FunctionBody": "// Params: x 形狀（0 圓／環、1 長方形、2 扇形、3 十字、4 全場）、y 填色進度 0..1、z 環的內半徑比例、w 閃光 0..1\n// Style: x 外框寬 (m)、y 填色透明度、z 範圍底色透明度、w 發光強度\n// Size: xy 投影範圍 (m)；圓形以 x 為直徑。z：扇形的角度（度）、十字的臂寬 (m)；全場時 zw 是填色起點（相對投影中心，m）\n// Field: xy 場地中心（相對投影中心，m）、z 場地半徑；z > 0 時裁切到場地內，場地邊緣也畫外框\n// Hole0..2: xy 挖掉的安全圈中心（相對投影中心，m）、z 半徑（0 = 沒有）；圈邊畫外框\n// 投影座標 pc = (UV - 0.5) * Size.xy：x 向右、y 沿 direction。填色一律由攻擊源往外推：\n// 圓、扇形、十字由中心往外，環由內往外，長方形由起點往前，全場由填色起點往外\nfloat shape = Params.x;\nfloat fill = saturate(Params.y);\nfloat inner = saturate(Params.z);\nfloat flash = saturate(Params.w);\nfloat edge = max(Style.x, 0.001);\nfloat2 size = max(Size.xy, float2(0.001, 0.001));\nfloat2 pc = (UV - 0.5) * size;\nfloat aa = 0.04;\nfloat inside;\nfloat edgeMask;\nfloat filled;\nfloat front;\nfloat hasFill = step(0.001, fill);\nif (shape < 0.5)\n{\n    float radius = size.x * 0.5;\n    float r = length(pc);\n    float innerR = inner * radius;\n    inside = (1.0 - smoothstep(radius - aa, radius, r)) * (innerR > 0.0 ? smoothstep(innerR - aa, innerR, r) : 1.0);\n    float outerEdge = smoothstep(radius - edge - aa, radius - edge, r);\n    float innerEdge = innerR > 0.0 ? 1.0 - smoothstep(innerR + edge, innerR + edge + aa, r) : 0.0;\n    edgeMask = saturate(outerEdge + innerEdge) * inside;\n    float fillR = lerp(innerR, radius, fill);\n    filled = (1.0 - smoothstep(fillR - aa, fillR, r)) * inside * hasFill;\n    front = smoothstep(fillR - edge - aa, fillR - edge, r) * filled;\n}\nelse if (shape < 1.5)\n{\n    float2 p = UV * size;\n    float dx = min(p.x, size.x - p.x);\n    float dy = min(p.y, size.y - p.y);\n    inside = smoothstep(0.0, aa, dx) * smoothstep(0.0, aa, dy);\n    edgeMask = (1.0 - smoothstep(edge, edge + aa, min(dx, dy))) * inside;\n    float fy = fill * size.y;\n    filled = (1.0 - smoothstep(fy - aa, fy, p.y)) * inside * hasFill;\n    front = smoothstep(fy - edge - aa, fy - edge, p.y) * filled;\n}\nelse if (shape < 2.5)\n{\n    float radius = size.x * 0.5;\n    float r = length(pc);\n    float halfAngle = radians(Size.z * 0.5);\n    float side = (halfAngle - abs(atan2(pc.x, pc.y))) * max(r, 0.001);\n    inside = (1.0 - smoothstep(radius - aa, radius, r)) * smoothstep(0.0, aa, side);\n    float arcEdge = smoothstep(radius - edge - aa, radius - edge, r);\n    float sideEdge = 1.0 - smoothstep(edge, edge + aa, side);\n    edgeMask = saturate(arcEdge + sideEdge) * inside;\n    float fillR = fill * radius;\n    filled = (1.0 - smoothstep(fillR - aa, fillR, r)) * inside * hasFill;\n    front = smoothstep(fillR - edge - aa, fillR - edge, r) * filled;\n}\nelse if (shape < 3.5)\n{\n    float halfWidth = Size.z * 0.5;\n    float reach = size.x * 0.5;\n    float dx = halfWidth - abs(pc.x);\n    float dy = halfWidth - abs(pc.y);\n    float sideDist = max(dx, dy);\n    inside = smoothstep(0.0, aa, sideDist);\n    edgeMask = (1.0 - smoothstep(edge, edge + aa, sideDist)) * inside;\n    float along = 1e6;\n    if (dx > -aa) along = min(along, abs(pc.y));\n    if (dy > -aa) along = min(along, abs(pc.x));\n    float fillD = fill * reach;\n    filled = (1.0 - smoothstep(fillD - aa, fillD, along)) * inside * hasFill;\n    front = smoothstep(fillD - edge - aa, fillD - edge, along) * filled;\n}\nelse\n{\n    float2 source = Size.zw;\n    float r = length(pc - source);\n    float maxR = length(Field.xy - source) + max(Field.z, length(size) * 0.5);\n    inside = 1.0;\n    edgeMask = 0.0;\n    float fillR = fill * maxR;\n    filled = (1.0 - smoothstep(fillR - aa, fillR, r)) * hasFill;\n    front = smoothstep(fillR - edge - aa, fillR - edge, r) * filled;\n}\nif (Field.z > 0.0)\n{\n    float fd = length(pc - Field.xy);\n    float inField = 1.0 - smoothstep(Field.z - aa, Field.z, fd);\n    float fieldEdge = smoothstep(Field.z - edge - aa, Field.z - edge, fd);\n    inside *= inField;\n    filled *= inField;\n    front *= inField;\n    edgeMask = max(edgeMask * inField, fieldEdge * inside);\n}\nfloat4 holes[3] = { Hole0, Hole1, Hole2 };\nfor (int i = 0; i < 3; i++)\n{\n    if (holes[i].z <= 0.0) continue;\n    float hd = length(pc - holes[i].xy);\n    float keep = smoothstep(holes[i].z, holes[i].z + aa, hd);\n    float holeEdge = 1.0 - smoothstep(holes[i].z + edge, holes[i].z + edge + aa, hd);\n    inside *= keep;\n    filled *= keep;\n    front *= keep;\n    edgeMask = max(edgeMask * keep, holeEdge * inside);\n}\nfloat a = max(max(edgeMask, front), max(filled * Style.y, inside * Style.z));\na = lerp(a, inside, flash);\nAlpha = saturate(a * Tint.a);\nfloat3 col = lerp(Tint.rgb, float3(1.0, 1.0, 1.0), flash * 0.6);\nBaseColor = saturate(col);\nEmission = col * Style.w * (1.0 + flash * 2.0) * Alpha;\n"
 }
 
 {
@@ -1316,4 +1408,468 @@
         "supportLodCrossFade": false,
         "angleFade": true
     }
+}
+
+{
+    "m_SGVersion": 1,
+    "m_Type": "UnityEditor.ShaderGraph.Internal.Vector4ShaderProperty",
+    "m_ObjectId": "10000000000000000000000000000005",
+    "m_Guid": {
+        "m_GuidSerialized": "f174a7fa-ed2d-4949-89a2-065ee7e5a69f"
+    },
+    "m_Name": "Field",
+    "m_DefaultRefNameVersion": 1,
+    "m_RefNameGeneratedByDisplayName": "Field",
+    "m_DefaultReferenceName": "_Field",
+    "m_OverrideReferenceName": "",
+    "m_GeneratePropertyBlock": true,
+    "m_UseCustomSlotLabel": false,
+    "m_CustomSlotLabel": "",
+    "m_DismissedVersion": 0,
+    "m_Precision": 0,
+    "overrideHLSLDeclaration": false,
+    "hlslDeclarationOverride": 0,
+    "m_Hidden": false,
+    "m_PerRendererData": false,
+    "m_customAttributes": [],
+    "m_Value": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0,
+        "w": 0.0
+    }
+}
+
+{
+    "m_SGVersion": 0,
+    "m_Type": "UnityEditor.ShaderGraph.PropertyNode",
+    "m_ObjectId": "30000000000000000000000000000010",
+    "m_Group": {
+        "m_Id": ""
+    },
+    "m_Name": "Property",
+    "m_DrawState": {
+        "m_Expanded": true,
+        "m_Position": {
+            "serializedVersion": "2",
+            "x": -700.0,
+            "y": 520.0,
+            "width": 120.0,
+            "height": 36.0
+        }
+    },
+    "m_Slots": [
+        {
+            "m_Id": "40000000000000000000000000000010"
+        }
+    ],
+    "synonyms": [],
+    "m_Precision": 0,
+    "m_PreviewExpanded": true,
+    "m_DismissedVersion": 0,
+    "m_PreviewMode": 0,
+    "m_CustomColors": {
+        "m_SerializableColors": []
+    },
+    "m_Property": {
+        "m_Id": "10000000000000000000000000000005"
+    }
+}
+
+{
+    "m_SGVersion": 0,
+    "m_Type": "UnityEditor.ShaderGraph.Vector4MaterialSlot",
+    "m_ObjectId": "40000000000000000000000000000010",
+    "m_Id": 0,
+    "m_DisplayName": "Field",
+    "m_SlotType": 1,
+    "m_Hidden": false,
+    "m_ShaderOutputName": "Out",
+    "m_StageCapability": 3,
+    "m_Value": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0,
+        "w": 0.0
+    },
+    "m_DefaultValue": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0,
+        "w": 0.0
+    },
+    "m_Labels": []
+}
+
+{
+    "m_SGVersion": 0,
+    "m_Type": "UnityEditor.ShaderGraph.Vector4MaterialSlot",
+    "m_ObjectId": "41000000000000000000000000000008",
+    "m_Id": 8,
+    "m_DisplayName": "Field",
+    "m_SlotType": 0,
+    "m_Hidden": false,
+    "m_ShaderOutputName": "Field",
+    "m_StageCapability": 3,
+    "m_Value": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0,
+        "w": 0.0
+    },
+    "m_DefaultValue": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0,
+        "w": 0.0
+    },
+    "m_Labels": []
+}
+
+{
+    "m_SGVersion": 1,
+    "m_Type": "UnityEditor.ShaderGraph.Internal.Vector4ShaderProperty",
+    "m_ObjectId": "10000000000000000000000000000006",
+    "m_Guid": {
+        "m_GuidSerialized": "4374cee3-2ef3-47ce-9b58-b6ba5b2ac2f1"
+    },
+    "m_Name": "Hole0",
+    "m_DefaultRefNameVersion": 1,
+    "m_RefNameGeneratedByDisplayName": "Hole0",
+    "m_DefaultReferenceName": "_Hole0",
+    "m_OverrideReferenceName": "",
+    "m_GeneratePropertyBlock": true,
+    "m_UseCustomSlotLabel": false,
+    "m_CustomSlotLabel": "",
+    "m_DismissedVersion": 0,
+    "m_Precision": 0,
+    "overrideHLSLDeclaration": false,
+    "hlslDeclarationOverride": 0,
+    "m_Hidden": false,
+    "m_PerRendererData": false,
+    "m_customAttributes": [],
+    "m_Value": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0,
+        "w": 0.0
+    }
+}
+
+{
+    "m_SGVersion": 0,
+    "m_Type": "UnityEditor.ShaderGraph.PropertyNode",
+    "m_ObjectId": "30000000000000000000000000000011",
+    "m_Group": {
+        "m_Id": ""
+    },
+    "m_Name": "Property",
+    "m_DrawState": {
+        "m_Expanded": true,
+        "m_Position": {
+            "serializedVersion": "2",
+            "x": -700.0,
+            "y": 590.0,
+            "width": 120.0,
+            "height": 36.0
+        }
+    },
+    "m_Slots": [
+        {
+            "m_Id": "40000000000000000000000000000011"
+        }
+    ],
+    "synonyms": [],
+    "m_Precision": 0,
+    "m_PreviewExpanded": true,
+    "m_DismissedVersion": 0,
+    "m_PreviewMode": 0,
+    "m_CustomColors": {
+        "m_SerializableColors": []
+    },
+    "m_Property": {
+        "m_Id": "10000000000000000000000000000006"
+    }
+}
+
+{
+    "m_SGVersion": 0,
+    "m_Type": "UnityEditor.ShaderGraph.Vector4MaterialSlot",
+    "m_ObjectId": "40000000000000000000000000000011",
+    "m_Id": 0,
+    "m_DisplayName": "Hole0",
+    "m_SlotType": 1,
+    "m_Hidden": false,
+    "m_ShaderOutputName": "Out",
+    "m_StageCapability": 3,
+    "m_Value": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0,
+        "w": 0.0
+    },
+    "m_DefaultValue": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0,
+        "w": 0.0
+    },
+    "m_Labels": []
+}
+
+{
+    "m_SGVersion": 0,
+    "m_Type": "UnityEditor.ShaderGraph.Vector4MaterialSlot",
+    "m_ObjectId": "41000000000000000000000000000009",
+    "m_Id": 9,
+    "m_DisplayName": "Hole0",
+    "m_SlotType": 0,
+    "m_Hidden": false,
+    "m_ShaderOutputName": "Hole0",
+    "m_StageCapability": 3,
+    "m_Value": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0,
+        "w": 0.0
+    },
+    "m_DefaultValue": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0,
+        "w": 0.0
+    },
+    "m_Labels": []
+}
+
+{
+    "m_SGVersion": 1,
+    "m_Type": "UnityEditor.ShaderGraph.Internal.Vector4ShaderProperty",
+    "m_ObjectId": "10000000000000000000000000000007",
+    "m_Guid": {
+        "m_GuidSerialized": "e768a90a-88ca-4d4a-a8ff-323812b187a6"
+    },
+    "m_Name": "Hole1",
+    "m_DefaultRefNameVersion": 1,
+    "m_RefNameGeneratedByDisplayName": "Hole1",
+    "m_DefaultReferenceName": "_Hole1",
+    "m_OverrideReferenceName": "",
+    "m_GeneratePropertyBlock": true,
+    "m_UseCustomSlotLabel": false,
+    "m_CustomSlotLabel": "",
+    "m_DismissedVersion": 0,
+    "m_Precision": 0,
+    "overrideHLSLDeclaration": false,
+    "hlslDeclarationOverride": 0,
+    "m_Hidden": false,
+    "m_PerRendererData": false,
+    "m_customAttributes": [],
+    "m_Value": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0,
+        "w": 0.0
+    }
+}
+
+{
+    "m_SGVersion": 0,
+    "m_Type": "UnityEditor.ShaderGraph.PropertyNode",
+    "m_ObjectId": "30000000000000000000000000000012",
+    "m_Group": {
+        "m_Id": ""
+    },
+    "m_Name": "Property",
+    "m_DrawState": {
+        "m_Expanded": true,
+        "m_Position": {
+            "serializedVersion": "2",
+            "x": -700.0,
+            "y": 660.0,
+            "width": 120.0,
+            "height": 36.0
+        }
+    },
+    "m_Slots": [
+        {
+            "m_Id": "40000000000000000000000000000012"
+        }
+    ],
+    "synonyms": [],
+    "m_Precision": 0,
+    "m_PreviewExpanded": true,
+    "m_DismissedVersion": 0,
+    "m_PreviewMode": 0,
+    "m_CustomColors": {
+        "m_SerializableColors": []
+    },
+    "m_Property": {
+        "m_Id": "10000000000000000000000000000007"
+    }
+}
+
+{
+    "m_SGVersion": 0,
+    "m_Type": "UnityEditor.ShaderGraph.Vector4MaterialSlot",
+    "m_ObjectId": "40000000000000000000000000000012",
+    "m_Id": 0,
+    "m_DisplayName": "Hole1",
+    "m_SlotType": 1,
+    "m_Hidden": false,
+    "m_ShaderOutputName": "Out",
+    "m_StageCapability": 3,
+    "m_Value": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0,
+        "w": 0.0
+    },
+    "m_DefaultValue": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0,
+        "w": 0.0
+    },
+    "m_Labels": []
+}
+
+{
+    "m_SGVersion": 0,
+    "m_Type": "UnityEditor.ShaderGraph.Vector4MaterialSlot",
+    "m_ObjectId": "410000000000000000000000000000010",
+    "m_Id": 10,
+    "m_DisplayName": "Hole1",
+    "m_SlotType": 0,
+    "m_Hidden": false,
+    "m_ShaderOutputName": "Hole1",
+    "m_StageCapability": 3,
+    "m_Value": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0,
+        "w": 0.0
+    },
+    "m_DefaultValue": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0,
+        "w": 0.0
+    },
+    "m_Labels": []
+}
+
+{
+    "m_SGVersion": 1,
+    "m_Type": "UnityEditor.ShaderGraph.Internal.Vector4ShaderProperty",
+    "m_ObjectId": "10000000000000000000000000000008",
+    "m_Guid": {
+        "m_GuidSerialized": "dc6c0b03-a152-4022-b7ef-0ba1e636c595"
+    },
+    "m_Name": "Hole2",
+    "m_DefaultRefNameVersion": 1,
+    "m_RefNameGeneratedByDisplayName": "Hole2",
+    "m_DefaultReferenceName": "_Hole2",
+    "m_OverrideReferenceName": "",
+    "m_GeneratePropertyBlock": true,
+    "m_UseCustomSlotLabel": false,
+    "m_CustomSlotLabel": "",
+    "m_DismissedVersion": 0,
+    "m_Precision": 0,
+    "overrideHLSLDeclaration": false,
+    "hlslDeclarationOverride": 0,
+    "m_Hidden": false,
+    "m_PerRendererData": false,
+    "m_customAttributes": [],
+    "m_Value": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0,
+        "w": 0.0
+    }
+}
+
+{
+    "m_SGVersion": 0,
+    "m_Type": "UnityEditor.ShaderGraph.PropertyNode",
+    "m_ObjectId": "30000000000000000000000000000013",
+    "m_Group": {
+        "m_Id": ""
+    },
+    "m_Name": "Property",
+    "m_DrawState": {
+        "m_Expanded": true,
+        "m_Position": {
+            "serializedVersion": "2",
+            "x": -700.0,
+            "y": 730.0,
+            "width": 120.0,
+            "height": 36.0
+        }
+    },
+    "m_Slots": [
+        {
+            "m_Id": "40000000000000000000000000000013"
+        }
+    ],
+    "synonyms": [],
+    "m_Precision": 0,
+    "m_PreviewExpanded": true,
+    "m_DismissedVersion": 0,
+    "m_PreviewMode": 0,
+    "m_CustomColors": {
+        "m_SerializableColors": []
+    },
+    "m_Property": {
+        "m_Id": "10000000000000000000000000000008"
+    }
+}
+
+{
+    "m_SGVersion": 0,
+    "m_Type": "UnityEditor.ShaderGraph.Vector4MaterialSlot",
+    "m_ObjectId": "40000000000000000000000000000013",
+    "m_Id": 0,
+    "m_DisplayName": "Hole2",
+    "m_SlotType": 1,
+    "m_Hidden": false,
+    "m_ShaderOutputName": "Out",
+    "m_StageCapability": 3,
+    "m_Value": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0,
+        "w": 0.0
+    },
+    "m_DefaultValue": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0,
+        "w": 0.0
+    },
+    "m_Labels": []
+}
+
+{
+    "m_SGVersion": 0,
+    "m_Type": "UnityEditor.ShaderGraph.Vector4MaterialSlot",
+    "m_ObjectId": "410000000000000000000000000000011",
+    "m_Id": 11,
+    "m_DisplayName": "Hole2",
+    "m_SlotType": 0,
+    "m_Hidden": false,
+    "m_ShaderOutputName": "Hole2",
+    "m_StageCapability": 3,
+    "m_Value": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0,
+        "w": 0.0
+    },
+    "m_DefaultValue": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0,
+        "w": 0.0
+    },
+    "m_Labels": []
 }

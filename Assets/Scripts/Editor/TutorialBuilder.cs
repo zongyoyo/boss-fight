@@ -39,7 +39,6 @@ namespace BossFight.EditorTools
             var sapling = actorBinding != null ? new SerializedObject(actorBinding).FindProperty("sapling").objectReferenceValue as TrainingSapling : null;
             if (mentor == null || sapling == null) throw new InvalidOperationException("先完成 T26 角色。");
             EnsureData();
-            ApplyLockOnCamera();
             var anchors = GameObject.Find("ActorAnchors").transform;
             var layout = AssetDatabase.LoadAssetAtPath<PrologueLayoutData>(PrologueBuilder.LayoutPath);
             var saplingAnchor = anchors.Find("Sapling");
@@ -50,7 +49,6 @@ namespace BossFight.EditorTools
             WireActorPrefab(PrologueActorsBuilder.SaplingPrefabPath, false);
             WireActor(mentor.gameObject, true, Object.FindAnyObjectByType<AudioManager>());
             WireActor(sapling.gameObject, false, Object.FindAnyObjectByType<AudioManager>());
-            Set(Object.FindAnyObjectByType<PrologueActorBinding>(), "saplingFeedback", sapling.GetComponent<BossHitFeedback>());
             SetBool(mentor, "emergeOnStart", false);
             SetBool(sapling, "appearOnStart", false);
             var previous = GameObject.Find("Tutorial");
@@ -62,10 +60,6 @@ namespace BossFight.EditorTools
             Set(director, "session", Object.FindAnyObjectByType<PrologueSession>());
             Set(director, "dialogue", dialogue); Set(director, "mentor", mentor); Set(director, "sapling", sapling);
             Set(director, "startCenter", anchors.Find("Daisy"));
-            var visuals = root.AddComponent<TutorialPlayerVisual>();
-            Set(visuals, "slashPrefab", Fx("Fx_ClawSlash"));
-            Set(visuals, "ringPrefab", Fx("Fx_ImpactRing"));
-            Set(visuals, "sparkPrefab", Fx("Fx_HitSpark"));
             BuildUI(root.transform, director, dialogue);
             GuardianBuilder.WireTutorial();
             PlayerSpawnerBuilder.Wire();
@@ -158,7 +152,7 @@ namespace BossFight.EditorTools
             Set(feedback, "sapling", isMentor ? null : root.GetComponent<TrainingSapling>());
             Set(feedback, "sparkPrefab", Fx("Fx_HitSpark"));
             Set(feedback, "impactAnchor", root.transform.Find(isMentor ? "Model/Flower" : "AimPoint"));
-            if (!isMentor) PrologueActorsBuilder.WireSaplingFeedback(root.GetComponent<TrainingSapling>());
+            PrologueActorsBuilder.WireHitFeedback(isMentor ? root.GetComponent<DaisyMentor>() : root.GetComponent<TrainingSapling>());
         }
         static void BuildUI(Transform parent, TutorialDirector director, DialogueSession session)
         {
@@ -207,19 +201,6 @@ namespace BossFight.EditorTools
             rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0f, 1f);
             rect.anchoredPosition = position;
         }
-        /// <summary>只調序章的鎖定鏡頭；可在重建鏡頭後單獨重接。</summary>
-        public static void ApplyLockOnCamera()
-        {
-            var controller = Object.FindAnyObjectByType<BossFight.Cameras.CameraController>();
-            if (controller == null) throw new InvalidOperationException("缺少序章鏡頭。");
-            var layout = AssetDatabase.LoadAssetAtPath<PrologueLayoutData>(PrologueBuilder.LayoutPath);
-            var orbit = new SerializedObject(controller).FindProperty("lockOnOrbit").objectReferenceValue as CinemachineOrbitalFollow;
-            if (orbit == null || layout == null) throw new InvalidOperationException("缺少鎖定鏡頭或序章版面資料。");
-            Undo.RecordObject(orbit, "Set Prologue Lock On Pitch");
-            orbit.VerticalAxis.Value = orbit.VerticalAxis.ClampValue(layout.lockOnPitch);
-            orbit.VerticalAxis.Center = orbit.VerticalAxis.Value;
-            EditorUtility.SetDirty(orbit);
-        }
         static RectTransform Rect(string name, Transform parent, Vector2 anchor, Vector2 position, Vector2 size)
         {
             var root = new GameObject(name, typeof(RectTransform));
@@ -262,10 +243,9 @@ namespace BossFight.EditorTools
             if (scene.path != PrologueBuilder.ScenePath) throw new InvalidOperationException("請開啟序章或休息區。");
             var director = Object.FindAnyObjectByType<TutorialDirector>();
             Require(director, "data", "session", "dialogue", "mentor", "sapling", "startCenter");
-            Require(Object.FindAnyObjectByType<PrologueActorBinding>(), "mentor", "sapling", "session", "saplingFeedback");
+            Require(Object.FindAnyObjectByType<PrologueActorBinding>(), "mentor", "sapling", "session");
             Require(Object.FindAnyObjectByType<TutorialHudUI>(), "director", "data", "hintDevice", "inputNames", "group", "label");
             Require(Object.FindAnyObjectByType<DialogueUI>(), "data", "session", "pause", "group", "speakerText", "bodyText", "continueMark");
-            Require(Object.FindAnyObjectByType<TutorialPlayerVisual>(), "slashPrefab", "ringPrefab", "sparkPrefab");
             Require(Object.FindAnyObjectByType<LockOnMarkerUI>(), "data", "viewCamera", "marker", "executionMarker");
             foreach (var feedback in Object.FindObjectsByType<TeachingActorFeedback>(FindObjectsSortMode.None))
             {
@@ -288,7 +268,7 @@ namespace BossFight.EditorTools
                 if (cue.clips == null || cue.clips.Length == 0 || cue.clips.Any(c => c == null)) throw new InvalidOperationException("回饋音效有空引用。");
             var spawner = Object.FindAnyObjectByType<PlayerSpawner>();
             var receivers = new SerializedObject(spawner).FindProperty("receivers");
-            foreach (var expected in new MonoBehaviour[] { director, Object.FindAnyObjectByType<TutorialPlayerVisual>(), Object.FindAnyObjectByType<PlayerHudUI>(), Object.FindAnyObjectByType<LockOnMarkerUI>() })
+            foreach (var expected in new MonoBehaviour[] { director, Object.FindAnyObjectByType<PlayerHudUI>(), Object.FindAnyObjectByType<LockOnMarkerUI>() })
             {
                 bool found = false;
                 for (int i = 0; i < receivers.arraySize; i++) found |= receivers.GetArrayElementAtIndex(i).objectReferenceValue == expected;
@@ -296,20 +276,10 @@ namespace BossFight.EditorTools
             }
             return "T27 Prologue PASS: MissingScript=0; 6 steps; red/white modes; dialogue/HUD/spawner refs; 2 actor emitters + VFX; 14 SFX cues OK";
         }
-        /// <summary>非 Play 的事件管道與閃避邊界檢查；不生成玩家、不讀存檔。</summary>
+        /// <summary>非 Play 的事件管道檢查；不生成玩家、不讀存檔。</summary>
         public static string ValidateRules()
         {
-            var evaded = new HitReport(null, null, default, new DamageOutcome(DamageResult.Evaded));
-            var hit = new HitReport(null, null, default, new DamageOutcome(DamageResult.Hit));
-            var rollOutside = new SaplingAttackReport(null, 1, true, false, default, false, false, default);
-            var rolledClear = new SaplingAttackReport(null, 2, true, false, default, false, true, default);
-            var rolledIFrame = new SaplingAttackReport(null, 3, true, true, evaded, false, true, default);
-            var rolledButHit = new SaplingAttackReport(null, 4, true, true, hit, false, true, default);
-            var cancelled = new SaplingAttackReport(null, 5, true, false, default, true, true, default);
-            if (TutorialDirector.IsSuccessfulDodge(rollOutside, false) || !TutorialDirector.IsSuccessfulDodge(rolledClear, false) ||
-                !TutorialDirector.IsSuccessfulDodge(rolledIFrame, false) || TutorialDirector.IsSuccessfulDodge(rolledButHit, false) ||
-                TutorialDirector.IsSuccessfulDodge(cancelled, false) || TutorialDirector.IsSuccessfulDodge(rolledIFrame, true))
-                throw new InvalidOperationException("閃避結算邊界失敗。");
+            // 成功閃避改由 PlayerHealth（IDodgeable）結算，需要玩家實例，留給 Play 驗收
             var root = new GameObject("T27_DialogueValidation") { hideFlags = HideFlags.HideAndDontSave };
             try
             {
@@ -336,7 +306,7 @@ namespace BossFight.EditorTools
                 if (finished != 2) throw new InvalidOperationException("被動招呼後正式對話無法推進。");
             }
             finally { Object.DestroyImmediate(root); }
-            return "T27 rules PASS: 6 dodge cases; mandatory dialogue/stale id/replay/exactly-once completion";
+            return "T27 rules PASS: mandatory dialogue/stale id/replay/exactly-once completion";
         }
         static void Require(Object target, params string[] fields)
         {

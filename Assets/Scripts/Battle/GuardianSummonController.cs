@@ -14,43 +14,20 @@ namespace BossFight.Battle
         [Tooltip("生成點避障的效能取樣密度")]
         [Min(8), SerializeField] int searchDirections = 128;
         PlayerRig player;
-        bool subscribed;
         CallChildrenData Spec => (CallChildrenData)move.Data;
         public void BindPlayer(PlayerRig rig)
         {
-            if (subscribed) UnsubscribePlayer();
             player = rig;
             foreach (var child in children) if (child != null) child.SetTarget(rig != null ? rig.transform : null);
-            if (subscribed) SubscribePlayer();
         }
         void OnEnable()
         {
-            subscribed = true; SubscribePlayer();
             move.OnSummonRequested += Summon; guardian.OnStageChanged += Stage;
-            foreach (var child in children) child.OnAttackResolved += Resolved;
         }
         void OnDisable()
         {
             move.OnSummonRequested -= Summon; guardian.OnStageChanged -= Stage;
-            foreach (var child in children) if (child != null) child.OnAttackResolved -= Resolved;
-            UnsubscribePlayer(); subscribed = false; Clear();
-        }
-        void SubscribePlayer()
-        {
-            if (player == null) return;
-            player.Controller.OnRollStarted += RollStarted; player.Controller.OnRollEnded += RollEnded;
-        }
-        void UnsubscribePlayer()
-        {
-            if (player != null) { player.Controller.OnRollStarted -= RollStarted; player.Controller.OnRollEnded -= RollEnded; }
-            RollEnded();
-        }
-        void RollStarted(Vector3 _) { foreach (var c in children) c.SetTargetRolling(player != null && !player.Health.ForcedInvulnerable && !player.Health.IsHitInvulnerable); }
-        void RollEnded() { foreach (var c in children) if (c != null) c.SetTargetRolling(false); }
-        void Resolved(SaplingAttackReport report)
-        {
-            if (player == null || player.Health.IsHitInvulnerable || !TutorialDirector.IsSuccessfulDodge(report, player.Health.ForcedInvulnerable)) return;
-            guardian.ReportSuccessfulDodge(report.targetPosition, report.source.GetComponent<BossHitFeedback>());
+            Clear();
         }
         void Stage(GuardianStage value) { if (value == GuardianStage.Stopped) Clear(); }
         void Update() => RefreshSlots();

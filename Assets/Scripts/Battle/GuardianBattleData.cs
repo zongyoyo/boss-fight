@@ -16,6 +16,12 @@ namespace BossFight.Battle
         [Header("守衛實體")]
         [Min(0f), Tooltip("樹幹的實體／受擊半徑 (m)")] public float bodyRadius = 1.1f;
         [Min(0f), Tooltip("樹洞受擊區高度 (m)")] public float hurtHeight = 2f;
+        [Header("鎖定鏡頭（純視覺，GuardianBuilder 寫進守衛的 LockOnTarget）")]
+        [Min(0f), Tooltip("鏡頭看的點的高度 (m)：樹幹中段")] public float lockAimHeight = 4f;
+        [Min(0f), Tooltip("鎖定鏡頭框住守衛用的半徑 (m)")] public float lockFramingRadius = 3f;
+        [Range(-10f, 60f), Tooltip("鎖定守衛時的俯視角度（度）；低一點才看得到樹冠")] public float lockOnPitch = 6f;
+        [Min(0f), Tooltip("鎖定守衛時鏡頭離玩家的距離 (m)；0 = 鎖定鏡頭原本的距離")] public float lockOnDistance = 8f;
+        [Tooltip("鎖定菱形與處決標記的位置（樹洞，相對守衛根物件）")] public Vector3 markerOffset = new Vector3(0f, 1.4f, 0.8f);
         [Header("二階段與暫代演出")]
         [Range(0f, 1f), Tooltip("每個二階段招式開始消耗當前血量比例")] public float selfCostRatio = 0.05f;
         [Min(0f), Tooltip("轉階段鏡頭起始停留秒數")] public float transitionLeadTime = 1f;

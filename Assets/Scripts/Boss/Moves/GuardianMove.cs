@@ -35,14 +35,28 @@ namespace BossFight.Boss.Moves
             var strike = SpawnHazard(areaPrefab, Boss.ArenaCenter, Quaternion.identity);
             live.Add(strike);
             strike.OnStrike += ImpactArea;
-            strike.OnAvoided += Avoided;
-            strike.Begin(a, CreateDamage(), warning, Spec.hitWindow, Boss.TargetHurtbox,
-                () => Boss.TargetDodgeEligible != null ? Boss.TargetDodgeEligible() : Boss.TargetRolling, preview, Spec.visualStyle);
+            strike.Begin(a, CreateDamage(), warning, Spec.hitWindow, Boss.TargetHurtbox, preview, Spec.visualStyle);
             return strike;
         }
         void ImpactArea(AreaStrike strike)
-        { Boss.NotifyAttackWindowOpened(Data.canBlock); Impact(BossImpactKind.PawSwipe, strike.Area.center); }
-        void Avoided(Vector3 position) => Boss.NotifyAttackAvoided(position);
+        {
+            Boss.NotifyAttackWindowOpened(Data.canBlock);
+            Impact(ImpactKind, strike.Area.center);
+        }
+        /// <summary>開判定那一刻的音效與震動種類，照招式的表現樣式（藤蔓、葉片、樹根、種子）。</summary>
+        protected virtual BossImpactKind ImpactKind
+        {
+            get
+            {
+                switch (Spec.visualStyle)
+                {
+                    case AreaStrikeStyle.Vine: return BossImpactKind.VineStrike;
+                    case AreaStrikeStyle.Leaf: return BossImpactKind.LeafBlade;
+                    case AreaStrikeStyle.Seed: return BossImpactKind.SeedBlast;
+                    default: return BossImpactKind.RootBurst;
+                }
+            }
+        }
         protected bool AllResolved
         {
             get { foreach (var a in live) if (a != null && !a.Resolved) return false; return true; }
@@ -83,16 +97,26 @@ namespace BossFight.Boss.Moves
             }
             return true;
         }
-        protected bool PickReachable(float radius, float distance, out Vector3 result)
+        /// <summary>
+        /// 由近到遠找玩家 distance 內、整圈在場內且不碰障礙的安全圈；requirePath 時還要能直線走到（CapsuleCast）。
+        /// 搜尋先粗後細（序章修正 C13）：每一圈的取樣數照周長，取樣間距約半個安全圈半徑，最多 searchDirections 個。
+        /// </summary>
+        protected bool PickReachable(float radius, float distance, out Vector3 result, bool requirePath = true)
         {
+            const int rings = 16;
             Vector3 from = PlayerPoint;
-            float walkerRadius = Boss.TargetBodyRadius;
-            for (int ring = 0; ring <= 16; ring++)
-                for (int i = 0; i < searchDirections; i++)
+            float walkerRadius = requirePath ? Boss.TargetBodyRadius : 0f;
+            float spacing = Mathf.Max(radius * 0.5f, 0.1f);
+            for (int ring = 0; ring <= rings; ring++)
+            {
+                float r = distance * ring / rings;
+                int samples = ring == 0 ? 1 : Mathf.Clamp(Mathf.CeilToInt(2f * Mathf.PI * r / spacing), 8, searchDirections);
+                for (int i = 0; i < samples; i++)
                 {
-                    Vector3 p = from + Quaternion.Euler(0f, i * 360f / searchDirections, 0f) * Vector3.forward * (distance * ring / 16f);
+                    Vector3 p = from + Quaternion.Euler(0f, i * 360f / samples, 0f) * Vector3.forward * r;
                     if (ValidCircle(p, radius, from, walkerRadius)) { result = p; return true; }
                 }
+            }
             result = from; return false;
         }
         protected Vector3 RandomFieldPoint(float margin)

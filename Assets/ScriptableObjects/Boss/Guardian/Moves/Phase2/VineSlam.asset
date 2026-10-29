@@ -38,7 +38,7 @@ MonoBehaviour:
   sideOffset: 1.5
   count: 4
   interval: 0.25
-  warning: 0
+  warning: 0.3
   speed: 0
   scatter: 0
   nearCount: 0

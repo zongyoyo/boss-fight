@@ -90,7 +90,7 @@ namespace BossFight.Battle
                     fullPower.SetFullPower(); audioManager.PlayMusic(data.phase2Music); break;
                 case "Farewell": dialogue.Begin(data.guardianSpeaker, new[] { data.farewellLine }, false, false); break;
                 case "FlowerEmerge": mentor.Emerge(); break;
-                case "Surprise": dialogue.Begin(data.mentorSpeaker, new[] { data.surpriseLine }, false, false); break;
+                case "Surprise": dialogue.Begin(data.mentorSpeaker, new[] { data.surpriseLine }, false, false); mentor.Talk(); break;
                 case "FlowerBurrow": dialogue.Hide(); mentor.Burrow(); break;
             }
         }

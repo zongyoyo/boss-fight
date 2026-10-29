@@ -101,7 +101,7 @@ namespace BossFight.EditorTools
                 Set(emitter,"audioManager",audio); Set(emitter,"impulse",DaoDunDogBuilder.GetOrAdd<CinemachineImpulseSource>(child.gameObject));
                 var feedback=DaoDunDogBuilder.GetOrAdd<TeachingActorFeedback>(child.gameObject);
                 Set(feedback,"sapling",child); Set(feedback,"sparkPrefab",Fx("Fx_HitSpark")); Set(feedback,"impactAnchor",t.Find("AimPoint"));
-                PrologueActorsBuilder.WireSaplingFeedback(child);
+                PrologueActorsBuilder.WireHitFeedback(child);
                 var m=t.Find("Model"); m.gameObject.SetActive(false);
             }
             SetArray(summons,"children",children);
