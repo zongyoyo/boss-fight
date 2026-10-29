@@ -152,7 +152,7 @@ CharacterDefinition.baseStats
 - **不存、只活在這次執行**：這次要在哪個出生點出現（啟動／從戰鬥回來）。
 - **格式**：`Application.persistentDataPath/save.json`（JsonUtility）。有變動就存、離開遊戲再存一次；讀檔失敗時把壞檔改名成 `save.bak.json`，開新檔並在 Console 警告。玩家設定照舊存 PlayerPrefs，兩者分開。
 - 進 Play 模式時重新從檔案讀（跟 BattleSession 一樣處理 Domain Reload 關閉的情況）。
-- **開發者模式**：ESC 選單「開發者模式」下面加「重置存檔」（確認後清空、回到休息區）；Debug 面板加「給 10 技能點」「解鎖全部裝備」。
+- **開發者模式**：ESC 選單「開發者模式」下面加「重置存檔」（確認後清空、從序章重新開始）；Debug 面板加「給 10 技能點」「解鎖全部裝備」。
 - **`GameDatabase`**（SO）：角色名冊、全部裝備、全部 Boss、全部任務；Editor 工具檢查 id 不重複、沒有空 id。
 
 ## 程式架構

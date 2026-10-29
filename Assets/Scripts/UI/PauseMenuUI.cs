@@ -32,7 +32,7 @@ namespace BossFight.UI
     /// 頁面：主選單（繼續、設定、難度、重新挑戰、返回休息區、退出遊戲）→ 設定（按鍵設定、音量設定、開發者模式、重置存檔）→ 按鍵設定（鍵鼠、控制器，KeyBindingPageUI）／音量設定（主音量、音樂、音效）；
     /// 難度（困難、簡單，標出目前的難度；選另一個先確認，確定後存進 GameOptions 並重新挑戰，新的難度在重新載入的場景才套用）。
     /// 返回：Esc、Start、手把 B（UI/Cancel）回上一層，在主選單就關閉；改鍵等待按鍵時不算。重新挑戰、返回休息區、退出遊戲、換難度、重置存檔先問一次。
-    /// 返回休息區（BattleManager.ReturnToHub）與重置存檔（SceneFlow.ResetProfile：清空存檔、回到休息區的啟動出生點）確定後藏起選單、維持暫停，黑幕淡出完由 SceneFlow 解除暫停再換場景。
+    /// 返回休息區（BattleManager.ReturnToHub）與重置存檔（SceneFlow.ResetProfile：清空存檔、從序章重新開始）確定後藏起選單、維持暫停，黑幕淡出完由 SceneFlow 解除暫停再換場景。
     /// 重置存檔只在開發者模式開著時顯示（開關下面），沒顯示時「返回」補到它的位置。
     /// 設定值都在 GameOptions：訂閱它的事件更新滑桿與開關，改的時候呼叫它的 Set。
     /// 開發者模式開關：只在有 Debug 程式的 build（Editor、Development Build 或定義了 BOSSFIGHT_DEV_TOOLS）才可能出現，而且要開發者模式已經開著，

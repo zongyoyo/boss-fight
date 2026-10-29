@@ -165,7 +165,7 @@ ScriptableObject 的「類別」寫在 `Scripts/` 對應的系統資料夾，「
   - 休息區 `Hub.unity` 由 HubBuilder（Tools > Hub > Build Hub）整個重建（T20 起的內容見下方「休息區場景」），也把 Build Settings 設成 Boot 0、Hub 1、BossArena 2、Prologue 3（`HubBuilder.SetBuildScenes`；Boot 場景是 Tools > Progression > Build Boot Scene）。
   - SceneFlow（SceneFlowBuilder，Tools > Progression > Build Scene Flow；PauseMenuBuilder.Wire 最後也會跑）：黑幕淡出 0.2 秒、淡入 0.2 秒（SceneFlowData），一幀最多推進 1/30 秒（載入後頭幾幀會卡約 0.45 秒，不夾的話淡入整段被吃掉）。ESC 選單的返回休息區與重置存檔在淡出期間維持暫停，全黑時 SceneFlow 才解除暫停、換場景。直接按 Play 與重試不淡入。換場景進來時由 PlayerSpawner 直接把玩家生成在出生點（T18），SceneFlow 只負責淡入。
   - 擊敗紀錄：Boss 一倒下 BattleManager 就記進存檔（F6 也算）；T24 起改成 `ProgressRecorder.RecordBossDefeat(BattleSettings.boss)`（BossDefinition，id `oiia_cat`）並發首通獎勵。
-  - 勝敗畫面：重試與「返回休息區」左右並排（x ±200、y −170），返回休息區不先確認；ESC 主選單在重新挑戰下面加「返回休息區」（先確認）；設定頁的「重置存檔」只在開發者模式開著時顯示（開關下面），確定後清空存檔、回休息區的 `Start`。
+  - 勝敗畫面：重試與「返回休息區」左右並排（x ±200、y −170），返回休息區不先確認；ESC 主選單在重新挑戰下面加「返回休息區」（先確認）；設定頁的「重置存檔」只在開發者模式開著時顯示（開關下面），確定後清空存檔、從序章重新開始（`SceneFlow.ResetProfile` 載入 `SceneFlowData.prologueScene`，不看「略過序章」）。
   - 背景驗收：傳送門是 `InputSystem.QueueStateEvent` 模擬 E 鍵後反射呼叫 `Portal.Update`；選單、勝敗按鈕用反射呼叫 onClick；黑幕用 `Application.onBeforeRender` 每幀記 alpha。實際按 E、Esc 要在前景手動試。
 - 角色 prefab 化與生成接線（T18）：
   - 刀盾狗 prefab 在 `Assets/Prefabs/Characters/DaoDunDog.prefab`（DaoDunDogBuilder 第一次跑時用 `AssetDatabase.MoveAsset` 從 `Assets/Prefabs` 搬過來，GUID 不變），根物件掛 PlayerRig；DaoDunDogBuilder 不再把角色放進場景，改建 PlayerSpawner 與預覽模型（`PlayerSpawnerBuilder.Build`，沿用舊 spawner 的位置與出生點清單）再建鏡頭。

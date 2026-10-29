@@ -163,7 +163,7 @@ namespace BossFight.UI
         public string retryConfirm = "重新挑戰？\n這場戰鬥的進度會消失。";
         public string quitConfirm = "退出遊戲？";
         public string returnToHubConfirm = "返回休息區？\n這場戰鬥的進度會消失。";
-        public string resetSaveConfirm = "重置存檔？\n擊敗紀錄等所有進度都會清空，並回到休息區。";
+        public string resetSaveConfirm = "重置存檔？\n擊敗紀錄等所有進度都會清空，並從序章重新開始。";
         public string confirmYes = "確定";
         public string confirmNo = "取消";
 
