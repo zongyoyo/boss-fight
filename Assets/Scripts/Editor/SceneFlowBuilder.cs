@@ -15,7 +15,7 @@ namespace BossFight.EditorTools
     /// Tools > Progression > Build Scene Flow：在目前的場景建立換場景用的 SceneFlow（T17）。
     /// 1. 資產（沒有才建）：ScriptableObjects/Progression/SceneFlowData.asset（場景名稱、出生點 id、黑幕時間）。
     /// 2. SceneFlow 物件（有就沿用）：黑幕 Canvas（sortingOrder 1000，全螢幕黑色 Image＋CanvasGroup）每次重建。
-    /// 3. 接線：SceneFlow 的 GamePause；BattleManager、PauseMenuUI、傳送門（Portal）的 sceneFlow。
+    /// 3. 接線：SceneFlow 的 GamePause、GameOptions（序章打開 prologueSkippable）；BattleManager、PauseMenuUI、傳送門（Portal）、InputLockArbiter 的 sceneFlow。
     /// 出生點清單在 PlayerSpawner（T18，PlayerSpawnerBuilder），換場景進來時由它把玩家生成在出生點。
     /// PauseMenuBuilder.Wire 最後會呼叫這裡（HubBuilder 建休息區時也會走到）。
     /// </summary>
@@ -74,45 +74,14 @@ namespace BossFight.EditorTools
             so.FindProperty("pause").objectReferenceValue = Object.FindAnyObjectByType<GamePause>();
             var options = Object.FindAnyObjectByType<GameOptions>();
             so.FindProperty("options").objectReferenceValue = options;
-            bool hubScene = flow.gameObject.scene.path == HubBuilder.ScenePath || Object.FindAnyObjectByType<HubManager>() != null;
-            so.FindProperty("routePrologueOnLaunch").boolValue = hubScene;
-            if (hubScene)
-            {
-                var startup = flow.transform.Find("StartupCamera");
-                if (startup == null)
-                {
-                    startup = new GameObject("StartupCamera").transform;
-                    startup.SetParent(flow.transform, false);
-                }
-                var startupCamera = DaoDunDogBuilder.GetOrAdd<UnityEngine.Camera>(startup.gameObject);
-                startupCamera.enabled = false;
-                startupCamera.clearFlags = CameraClearFlags.SolidColor;
-                startupCamera.backgroundColor = Color.black;
-                startupCamera.cullingMask = 0;
-                startupCamera.depth = -100f; // 純視覺：只作開機黑幕底圖
-                so.FindProperty("startupCamera").objectReferenceValue = startupCamera;
-            }
-            else so.FindProperty("startupCamera").objectReferenceValue = null;
-            var contents = so.FindProperty("startupContents");
-            contents.arraySize = 0;
-            if (hubScene && options != null)
-            {
-                // 所有接線完成後才分組；保留設定與黑幕在外面，開機分流才不會先生成 Hub 玩家。
-                GameObject content = null;
-                var roots = flow.gameObject.scene.GetRootGameObjects();
-                foreach (var root in roots) if (root.name == "HubContent") content = root;
-                if (content == null) content = new GameObject("HubContent");
-                foreach (var root in roots)
-                {
-                    if (root == content || root == flow.gameObject || root == options.gameObject) continue;
-                    root.transform.SetParent(content.transform, true);
-                }
-                contents.arraySize = 1;
-                contents.GetArrayElementAtIndex(0).objectReferenceValue = content;
-            }
+            // 序章：開發者模式勾「略過序章」時直接回休息區（開機分流在 Boot 場景的 BootRouter）
+            so.FindProperty("prologueSkippable").boolValue = flow.gameObject.scene.path == PrologueBuilder.ScenePath;
             so.ApplyModifiedPropertiesWithoutUndo();
-            var prologue = Object.FindAnyObjectByType<PrologueSession>();
-            if (prologue != null) DaoDunDogBuilder.SetReference(prologue, "sceneFlow", flow);
+            // 舊版 Hub 的開機黑幕相機（Boot 場景接手後不用了）
+            var startup = flow.transform.Find("StartupCamera");
+            if (startup != null) Undo.DestroyObjectImmediate(startup.gameObject);
+            var arbiter = Object.FindAnyObjectByType<InputLockArbiter>();
+            if (arbiter != null) DaoDunDogBuilder.SetReference(arbiter, "sceneFlow", flow);
 
             var wired = new List<string>();
             var battle = Object.FindAnyObjectByType<BattleManager>();

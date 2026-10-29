@@ -1,3 +1,4 @@
+using BossFight.Core;
 using UnityEngine;
 
 namespace BossFight.Boss
@@ -15,8 +16,8 @@ namespace BossFight.Boss
         [SerializeField] BossController boss;
         [Tooltip("發光的 Renderer（材質要開 Emission）")]
         [SerializeField] Renderer[] renderers;
-        [SerializeField] Color blockableColor = Color.white;
-        [SerializeField] Color unblockableColor = new Color(1f, 0.15f, 0.1f);
+        [Tooltip("白（可格擋）、紅（不可格擋）的分類色（所有攻擊共用一份）")]
+        [SerializeField] TelegraphPaletteData palette;
         [Tooltip("出招那一刻的亮度")]
         [Min(0f)] [SerializeField] float peakIntensity = 2.5f;
         [Tooltip("預兆期間每秒閃幾下")]
@@ -62,7 +63,7 @@ namespace BossFight.Boss
 
         void HandleMoveTelegraph(MoveTelegraph telegraph)
         {
-            color = telegraph.canBlock ? blockableColor : unblockableColor;
+            color = TelegraphPaletteData.Resolve(palette, this).Flash(telegraph.canBlock);
             telegraphTime = telegraph.duration;
             SetGlow(Glow.Blink);
         }
@@ -75,7 +76,7 @@ namespace BossFight.Boss
             if (Time.frameCount == windowFrame && canBlock == windowBlockable) return;
             windowFrame = Time.frameCount;
             windowBlockable = canBlock;
-            FlashHit((canBlock ? blockableColor : unblockableColor) * peakIntensity, fadeTime);
+            FlashHit(TelegraphPaletteData.Resolve(palette, this).Flash(canBlock) * peakIntensity, fadeTime);
         }
 
         void HandleStateChanged(BossState next)

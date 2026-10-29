@@ -17,8 +17,8 @@ namespace BossFight.Boss
         [SerializeField] GroundTelegraph telegraphPrefab;
         [SerializeField] float emergeTime = 0.4f;
         [SerializeField] float hurtTime = 0.25f;
-        [SerializeField] [ColorUsage(true, true)] Color blockableGlow = Color.white;
-        [SerializeField] [ColorUsage(true, true)] Color unblockableGlow = new Color(1f, 0.12f, 0.08f, 1f);
+        [Tooltip("白（可格擋）、紅（不可格擋）的分類色（所有攻擊共用一份，模型閃光那一組）")]
+        [SerializeField] TelegraphPaletteData palette;
         Vector3 rest;
         Quaternion branchRest;
         MaterialPropertyBlock block;
@@ -85,7 +85,7 @@ namespace BossFight.Boss
         {
             telegraphLeft = info.duration;
             telegraphStartedAt = Time.time;
-            attackGlow = info.canBlock ? blockableGlow : unblockableGlow;
+            attackGlow = TelegraphPaletteData.Resolve(palette, this).Flash(info.canBlock);
             warning = true;
             if (telegraph != null)
                 telegraph.ShowRect(GroundPosition, transform.forward, info.reach, info.width, info.canBlock);

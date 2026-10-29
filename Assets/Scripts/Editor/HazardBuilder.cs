@@ -207,6 +207,7 @@ namespace BossFight.EditorTools
             projector.endAngleFade = 70f;
             var telegraph = go.AddComponent<GroundTelegraph>();
             DaoDunDogBuilder.SetReference(telegraph, "projector", projector);
+            DaoDunDogBuilder.SetReference(telegraph, "palette", CombatFeedbackBuilder.EnsureTelegraphPalette());
             return SavePrefab(go, "GroundTelegraph").GetComponent<GroundTelegraph>();
         }
 

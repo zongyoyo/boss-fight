@@ -8,9 +8,12 @@ using UnityEngine.UI;
 
 namespace BossFight.Cutscene
 {
-    /// <summary>Timeline 的通用表現接收者。只改模型、音訊與獨立後處理複本，不參與戰鬥與存檔。</summary>
+    /// <summary>
+    /// 序章演出（守衛登場、轉階段、擊倒、勝利、休息區醒來）的 Timeline 表現接收者（CinematicValueTrack 綁這裡）：守衛模型的升起與樹冠枯萎、裂縫亮度、
+    /// 天色、全螢幕閃光與黑幕、後處理（獨立的 Volume 複本）、低通、粒子、玩家躺姿與推開。只改表現，不參與戰鬥與存檔；數值都在 PrologueCutsceneData。
+    /// </summary>
     [DefaultExecutionOrder(950)]
-    public class CinematicStage : MonoBehaviour, IPlayerBinding
+    public class PrologueCinematicStage : MonoBehaviour, IPlayerBinding
     {
         [SerializeField] PrologueCutsceneData data;
         [SerializeField] Transform guardianModel;
@@ -80,7 +83,7 @@ namespace BossFight.Cutscene
                     if (sun != null) { sun.color = Color.Lerp(sunColor, data.darkLightColor, t); sun.intensity = Mathf.Lerp(sunIntensity, data.darkLightIntensity, t); }
                     RenderSettings.fogColor = Color.Lerp(fogColor, data.darkFog, t);
                     RenderSettings.fogDensity = Mathf.Lerp(fogDensity, data.darkFogDensity, t);
-                    if (colors != null) { colors.saturation.Override(-45f * t); colors.colorFilter.Override(Color.Lerp(Color.white, new Color(1f, 0.45f, 0.38f), t)); }
+                    if (colors != null) { colors.saturation.Override(data.darkSaturation * t); colors.colorFilter.Override(Color.Lerp(Color.white, data.darkColorFilter, t)); }
                     break;
                 case CinematicValue.Rise: rise = t; if (guardianModel != null) guardianModel.gameObject.SetActive(t > 0f); break;
                 case CinematicValue.GroundCrack: if (groundCracks != null) groundCracks.SetActive(t > 0f); break;
@@ -91,7 +94,7 @@ namespace BossFight.Cutscene
                 case CinematicValue.Black: Set(black, t); break;
                 case CinematicValue.Title: Set(title, t); break;
                 case CinematicValue.Blur:
-                    if (dof != null) { dof.active = t > 0f; dof.mode.Override(DepthOfFieldMode.Bokeh); dof.focusDistance.Override(Mathf.Lerp(10f, data.blurFocus, t)); dof.aperture.Override(data.blurAperture); dof.focalLength.Override(70f); }
+                    if (dof != null) { dof.active = t > 0f; dof.mode.Override(DepthOfFieldMode.Bokeh); dof.focusDistance.Override(Mathf.Lerp(data.blurStartFocus, data.blurFocus, t)); dof.aperture.Override(data.blurAperture); dof.focalLength.Override(data.blurFocalLength); }
                     break;
                 case CinematicValue.Vignette: if (vignette != null) vignette.intensity.Override(t * data.vignetteIntensity); break;
                 case CinematicValue.LowPass:
@@ -102,7 +105,7 @@ namespace BossFight.Cutscene
                 case CinematicValue.Debris: Toggle(debris, t > 0f, ref debrisOn); break;
                 case CinematicValue.Birds: Toggle(birds, t > 0f, ref birdsOn); break;
                 case CinematicValue.Wave:
-                    if (wave != null) { wave.gameObject.SetActive(t > 0f && t < 1f); wave.localScale = new Vector3(t * data.pushRadius * 2f, 0.12f, t * data.pushRadius * 2f); }
+                    if (wave != null) { wave.gameObject.SetActive(t > 0f && t < 1f); wave.localScale = new Vector3(t * data.pushRadius * 2f, data.waveHeight, t * data.pushRadius * 2f); }
                     break;
                 case CinematicValue.Push:
                     if (rig != null && guardianOrigin != null)
@@ -128,8 +131,8 @@ namespace BossFight.Cutscene
             if (guardianModel != null) guardianModel.localPosition = modelPosition + Vector3.down * (data.buriedDepth * (1f - rise));
             if (guardianCrown != null && wither > 0f)
             {
-                guardianCrown.localScale = Vector3.Scale(crownScale, new Vector3(1f - wither * 0.6f, 1f - wither * 0.8f, 1f - wither * 0.6f));
-                guardianCrown.localRotation = Quaternion.Euler(wither * 35f, 0f, 0f);
+                guardianCrown.localScale = Vector3.Scale(crownScale, Vector3.Lerp(Vector3.one, data.witherScale, wither));
+                guardianCrown.localRotation = Quaternion.Euler(wither * data.witherTilt, 0f, 0f);
             }
             if (glow < 1f) for (int i = 0; i < cracks.Length; i++)
             {

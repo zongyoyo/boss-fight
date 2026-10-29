@@ -109,7 +109,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Cutscene.CutsceneCueMarker
   m_Time: 7.5
-  cue: Surprise
+  kind: 6
+  cue: 
 --- !u!114 &-8236732442585570717
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -123,7 +124,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Cutscene.CutsceneCueMarker
   m_Time: 0.8
-  cue: Farewell
+  kind: 4
+  cue: 
 --- !u!114 &-7931131365744341123
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -538,7 +540,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Cutscene.CutsceneCueMarker
   m_Time: 9
-  cue: FlowerBurrow
+  kind: 7
+  cue: 
 --- !u!114 &-5611142241673308282
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -607,7 +610,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Cutscene.CutsceneCueMarker
   m_Time: 9.998999999999
-  cue: SequenceEnd
+  kind: 1
+  cue: 
 --- !u!114 &-2406601083913377168
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1413,7 +1417,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Cutscene.CutsceneCueMarker
   m_Time: 6.5
-  cue: FlowerEmerge
+  kind: 5
+  cue: 
 --- !u!114 &6892865117129568975
 MonoBehaviour:
   m_ObjectHideFlags: 1

@@ -111,6 +111,8 @@ namespace BossFight.Core
         public FeedbackCue seedBlast = new FeedbackCue(0.8f, 0.25f);
         [Tooltip("呼喚孩子（守衛怒吼）")]
         public FeedbackCue summon = new FeedbackCue(0.8f, 0.2f);
+        [Tooltip("二階段自損：樹皮剝落")]
+        public FeedbackCue barkPeel = new FeedbackCue(0.6f, 0f);
 
         [Header("序章角色")]
         [Tooltip("小樹精被砍中（木頭聲）")]

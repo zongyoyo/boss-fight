@@ -2,6 +2,7 @@ using System.Linq;
 using BossFight.Boss;
 using BossFight.Cameras;
 using BossFight.Core;
+using BossFight.Hazards;
 using BossFight.Player;
 using Unity.Cinemachine;
 using UnityEditor;
@@ -18,6 +19,7 @@ namespace BossFight.EditorTools
     ///    Boss 的場景實例另外接 AudioManager（場景物件，prefab 不能引用）；玩家是執行時生成的，AudioManager 由 PlayerSpawner 填（這裡最後跑 PlayerSpawnerBuilder.Wire）。
     ///    玩家的 PlayerFeedback 另外接刀光（HazardBuilder.BuildExtraFx）與成功閃避的火花；序章的大樹守衛、小樹精、菊花的佔位音由 PrologueAudioBuilder 合成，一起填進同一份資產。
     /// 3. 自由視角與鎖定視角兩台 CinemachineCamera 加上 CinemachineImpulseListener（鏡頭震動）。
+    /// 4. 預兆分類色 TelegraphPalette.asset（沒有才建）接到 GroundTelegraph、OIIA 貓、大樹守衛、小樹精的 prefab（白可格擋、紅不可格擋、綠安全區只有這一份）。
     /// CameraRigBuilder（DaoDunDogBuilder 也會跑）、BossBuilder、IntroCutsceneBuilder（重建 AudioManager）結束時呼叫 Wire 重接，
     /// 重建角色、Boss、鏡頭或 AudioManager 後引用不會斷。
     /// </summary>
@@ -27,6 +29,11 @@ namespace BossFight.EditorTools
         const string DataPath = DataDir + "/CombatFeedback.asset";
         const string PlayerPrefabPath = DaoDunDogBuilder.PrefabPath;
         const string BossPrefabPath = "Assets/Prefabs/OiiaCat.prefab";
+        const string PalettePath = DataDir + "/TelegraphPalette.asset";
+        static readonly string[] PalettePrefabs =
+        {
+            "Assets/Prefabs/Hazards/GroundTelegraph.prefab", BossPrefabPath, "Assets/Prefabs/TreeGuardian.prefab", "Assets/Prefabs/Prologue/TrainingSapling.prefab",
+        };
 
         [MenuItem("Tools/Feedback/Build Combat Feedback")]
         public static void BuildFromMenu()
@@ -92,10 +99,54 @@ namespace BossFight.EditorTools
             return true;
         }
 
+        /// <summary>預兆的紅、白、安全區綠（TelegraphPaletteData）：沒有就建，回傳資產。</summary>
+        public static TelegraphPaletteData EnsureTelegraphPalette()
+        {
+            var palette = AssetDatabase.LoadAssetAtPath<TelegraphPaletteData>(PalettePath);
+            if (palette != null) return palette;
+            DaoDunDogBuilder.EnsureFolder(DataDir);
+            palette = ScriptableObject.CreateInstance<TelegraphPaletteData>();
+            AssetDatabase.CreateAsset(palette, PalettePath);
+            AssetDatabase.SaveAssets();
+            Debug.Log($"[Feedback] 已建立 {PalettePath}");
+            return palette;
+        }
+
+        /// <summary>把分類色接到所有預兆 prefab：地面範圍（GroundTelegraph）、OIIA 貓與大樹守衛的預兆閃光、小樹精。沒有的 prefab 跳過。</summary>
+        public static void WireTelegraphPalette()
+        {
+            var palette = EnsureTelegraphPalette();
+            foreach (var path in PalettePrefabs)
+            {
+                if (AssetDatabase.LoadAssetAtPath<GameObject>(path) == null) continue;
+                var root = PrefabUtility.LoadPrefabContents(path);
+                try
+                {
+                    bool changed = false;
+                    foreach (var c in root.GetComponentsInChildren<MonoBehaviour>(true))
+                    {
+                        if (!(c is GroundTelegraph || c is BossTelegraphFlash || c is TrainingSaplingVisual)) continue;
+                        var so = new SerializedObject(c);
+                        var p = so.FindProperty("palette");
+                        if (p == null || p.objectReferenceValue == palette) continue;
+                        p.objectReferenceValue = palette;
+                        so.ApplyModifiedPropertiesWithoutUndo();
+                        changed = true;
+                    }
+                    if (changed) PrefabUtility.SaveAsPrefabAsset(root, path);
+                }
+                finally
+                {
+                    PrefabUtility.UnloadPrefabContents(root);
+                }
+            }
+        }
+
         static void Wire(CombatFeedbackData data)
         {
             SetupPrefab<PlayerFeedback>(PlayerPrefabPath, data);
             SetupPrefab<BossImpactFeedback>(BossPrefabPath, data);
+            WireTelegraphPalette();
 
             var audio = Object.FindAnyObjectByType<AudioManager>();
             var boss = Object.FindAnyObjectByType<BossController>();

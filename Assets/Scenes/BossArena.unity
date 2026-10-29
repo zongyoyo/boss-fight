@@ -198,7 +198,7 @@ MonoBehaviour:
     m_FontStyle: 1
     m_BestFit: 0
     m_MinSize: 10
-    m_MaxSize: 40
+    m_MaxSize: 54
     m_Alignment: 4
     m_AlignByGeometry: 0
     m_RichText: 1
@@ -965,6 +965,7 @@ MonoBehaviour:
   fill: {fileID: 376413722}
   trail: {fileID: 0}
   useTrail: 0
+  loss: {fileID: 0}
 --- !u!114 &34686710
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1688,7 +1689,7 @@ MonoBehaviour:
     m_FontStyle: 1
     m_BestFit: 0
     m_MinSize: 10
-    m_MaxSize: 40
+    m_MaxSize: 56
     m_Alignment: 4
     m_AlignByGeometry: 0
     m_RichText: 1
@@ -1904,7 +1905,7 @@ MonoBehaviour:
     m_FontStyle: 1
     m_BestFit: 0
     m_MinSize: 10
-    m_MaxSize: 40
+    m_MaxSize: 56
     m_Alignment: 4
     m_AlignByGeometry: 0
     m_RichText: 1
@@ -4550,6 +4551,10 @@ MonoBehaviour:
   cameraController: {fileID: 1477780914}
   faceTarget: {fileID: 1800870795941640675}
   stage: {fileID: 322683112}
+  externalControl: 0
+  manualClock: 0
+  pause: {fileID: 0}
+  hitStop: {fileID: 0}
 --- !u!320 &275599824
 PlayableDirector:
   m_ObjectHideFlags: 0
@@ -9405,7 +9410,7 @@ MonoBehaviour:
     m_FontStyle: 1
     m_BestFit: 0
     m_MinSize: 10
-    m_MaxSize: 40
+    m_MaxSize: 64
     m_Alignment: 4
     m_AlignByGeometry: 0
     m_RichText: 1
@@ -10535,6 +10540,7 @@ MonoBehaviour:
   fill: {fileID: 2055871011}
   trail: {fileID: 0}
   useTrail: 0
+  loss: {fileID: 0}
 --- !u!114 &679287658
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -11396,6 +11402,8 @@ MonoBehaviour:
   bossHealth: {fileID: 1800870795941640679}
   stagger: {fileID: 1800870795941640682}
   cameraController: {fileID: 1477780914}
+  inputLock: {fileID: 0}
+  extraRoots: []
   spawner: {fileID: 21998371}
   testModifiers: {fileID: 11400000, guid: cbd314306a9ffe34fa29ed73d54fb2a7, type: 2}
   panelVisible: 0
@@ -11416,11 +11424,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.DebugTools.DeveloperMode
   options: {fileID: 394135888}
   pause: {fileID: 394135887}
-  bossTools: {fileID: 709609763}
   tools:
+  - {fileID: 709609761}
   - {fileID: 709609763}
   - {fileID: 709609764}
-  - {fileID: 709609761}
 --- !u!1 &710213521
 GameObject:
   m_ObjectHideFlags: 0
@@ -12250,7 +12257,7 @@ MonoBehaviour:
     m_FontStyle: 1
     m_BestFit: 0
     m_MinSize: 10
-    m_MaxSize: 40
+    m_MaxSize: 150
     m_Alignment: 4
     m_AlignByGeometry: 0
     m_RichText: 1
@@ -12329,7 +12336,7 @@ MonoBehaviour:
     m_FontStyle: 1
     m_BestFit: 0
     m_MinSize: 10
-    m_MaxSize: 40
+    m_MaxSize: 56
     m_Alignment: 4
     m_AlignByGeometry: 0
     m_RichText: 1
@@ -12939,7 +12946,7 @@ MonoBehaviour:
     m_FontStyle: 1
     m_BestFit: 0
     m_MinSize: 10
-    m_MaxSize: 40
+    m_MaxSize: 56
     m_Alignment: 4
     m_AlignByGeometry: 0
     m_RichText: 1
@@ -13446,6 +13453,7 @@ MonoBehaviour:
   developerLabel: {fileID: 544338671}
   resetSaveButton: {fileID: 1542093547}
   settingsBackButton: {fileID: 538452342}
+  skipPrologueToggle: {fileID: 0}
   controlsPage: {fileID: 959994629}
   keyboardButton: {fileID: 3232622}
   gamepadButton: {fileID: 1877668077}
@@ -16101,6 +16109,7 @@ MonoBehaviour:
   fill: {fileID: 102837481}
   trail: {fileID: 0}
   useTrail: 0
+  loss: {fileID: 0}
 --- !u!114 &1057783041
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -17981,6 +17990,7 @@ MonoBehaviour:
   fill: {fileID: 380185349}
   trail: {fileID: 856498526}
   useTrail: 1
+  loss: {fileID: 0}
 --- !u!114 &1229028673
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -19660,7 +19670,7 @@ MonoBehaviour:
     m_FontStyle: 1
     m_BestFit: 0
     m_MinSize: 10
-    m_MaxSize: 40
+    m_MaxSize: 56
     m_Alignment: 4
     m_AlignByGeometry: 0
     m_RichText: 1
@@ -20506,6 +20516,10 @@ MonoBehaviour:
   cameraController: {fileID: 1477780914}
   faceTarget: {fileID: 1800870795941640675}
   stage: {fileID: 0}
+  externalControl: 0
+  manualClock: 0
+  pause: {fileID: 0}
+  hitStop: {fileID: 0}
 --- !u!320 &1408265736
 PlayableDirector:
   m_ObjectHideFlags: 0
@@ -21166,6 +21180,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.UI.BattleResultUI
   data: {fileID: 11400000, guid: f65f0d74436ff7c499f6347f68841621, type: 2}
   battle: {fileID: 374381860}
+  prologue: {fileID: 0}
   intro: {fileID: 1408265735}
   group: {fileID: 1453256336}
   victoryGroup: {fileID: 773068570}
@@ -21565,6 +21580,7 @@ MonoBehaviour:
   lockOnGroup: {fileID: 215217076}
   lockOnYawSmoothTime: 0.12
   playerFramingRadius: 0.5
+  lockOnFramingSmoothTime: 0.25
   lockCursor: 1
 --- !u!4 &1477780915
 Transform:
@@ -22215,6 +22231,7 @@ MonoBehaviour:
   fill: {fileID: 1539488501}
   trail: {fileID: 1935916559}
   useTrail: 1
+  loss: {fileID: 0}
 --- !u!114 &1512853978
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -22350,7 +22367,7 @@ MonoBehaviour:
     m_FontStyle: 1
     m_BestFit: 0
     m_MinSize: 10
-    m_MaxSize: 40
+    m_MaxSize: 56
     m_Alignment: 4
     m_AlignByGeometry: 0
     m_RichText: 1
@@ -25603,7 +25620,7 @@ MonoBehaviour:
     m_FontStyle: 1
     m_BestFit: 0
     m_MinSize: 10
-    m_MaxSize: 40
+    m_MaxSize: 280
     m_Alignment: 4
     m_AlignByGeometry: 0
     m_RichText: 1
@@ -28176,7 +28193,7 @@ MonoBehaviour:
     m_FontStyle: 1
     m_BestFit: 0
     m_MinSize: 10
-    m_MaxSize: 40
+    m_MaxSize: 56
     m_Alignment: 4
     m_AlignByGeometry: 0
     m_RichText: 1
@@ -28551,6 +28568,8 @@ MonoBehaviour:
   data: {fileID: 11400000, guid: f3090bd2c2ae524499c1b556d0eb995e, type: 2}
   fade: {fileID: 1079973197}
   pause: {fileID: 394135887}
+  options: {fileID: 0}
+  prologueSkippable: 0
 --- !u!4 &1957420066
 Transform:
   m_ObjectHideFlags: 0

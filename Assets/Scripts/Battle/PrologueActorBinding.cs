@@ -10,7 +10,7 @@ namespace BossFight.Battle
     {
         [SerializeField] DaisyMentor mentor;
         [SerializeField] TrainingSapling sapling;
-        [SerializeField] PrologueSession session;
+        [SerializeField] InputLockArbiter session;
         PlayerRig player;
         bool subscribed, whipLock;
 

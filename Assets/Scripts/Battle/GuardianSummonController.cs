@@ -62,6 +62,8 @@ namespace BossFight.Battle
                 p.y = boss.ArenaCenter.y;
                 if (Vector3.ProjectOnPlane(p - boss.ArenaCenter, Vector3.up).magnitude + Spec.spawnClearance > boss.Arena.radius) continue;
                 if (Physics.CheckSphere(p + Vector3.up * Spec.spawnClearance, Spec.spawnClearance, 1 << LayerMask.NameToLayer("ArenaWall"), QueryTriggerInteraction.Ignore)) continue;
+                // 守衛本體不在 ArenaWall layer（D6），另外用樹幹半徑避開
+                if (Vector3.ProjectOnPlane(p - boss.transform.position, Vector3.up).magnitude < guardian.Data.bodyRadius + Spec.spawnClearance) continue;
                 bool overlaps = false;
                 foreach (var c in children) if (c.IsAlive && Vector3.Distance(c.transform.position, p) < Spec.spawnClearance * 2f) overlaps = true;
                 if (!overlaps) { position = p; return true; }

@@ -5,6 +5,7 @@ using BossFight.Player;
 using BossFight.Progression;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Serialization;
 
 namespace BossFight.Hub
 {
@@ -13,8 +14,8 @@ namespace BossFight.Hub
     /// 自由走動時玩家在站點範圍內（InteractionScanner 的焦點）按 Player/Interact（按一下就觸發）打開那個站點：
     /// 站點鏡頭的優先度調高（Cinemachine 混過去）、玩家用 ScriptedMoveTo 以 HubLayoutData.approachSpeed 走到站位點並面向站點，送 OnStationOpened。
     /// 介面（HubStationUI）讀 UI/Cancel（Esc、手把 B）後呼叫 CloseStation：鏡頭優先度還原、自由視角擺到玩家背後面向站點，送 OnStationClosed。
-    /// 輸入鎖定：介面開著或 ESC 選單暫停（GamePause）時鎖住玩家與鏡頭、放開游標；跟 BattleManager 一樣在 LateUpdate 鎖／解鎖，
-    /// 解除那一幀玩家的 Update 已經跑完，關介面用的手把 B（翻滾）不會被當成動作。介面開著時 ESC 選單不開（PauseMenuUI 訂閱這裡的事件）。
+    /// 輸入鎖定：介面開著時經 InputLockArbiter（owner 是自己）鎖住玩家與鏡頭、放開游標；ESC 選單暫停由 arbiter 鎖。
+    /// 釋放在 arbiter 的 LateUpdate，解除那一幀玩家的 Update 已經跑完，關介面用的手把 B（翻滾）不會被當成動作。介面開著時 ESC 選單不開（PauseMenuUI 訂閱這裡的事件）。
     /// 也提供 ESC 選單秘技的解鎖（UnlockDeveloperOptions，記在 BattleSession，跟 Boss 戰共用）。
     /// 開場劇情（T24）：存檔沒看過時，Start 後等 VillageChief.IntroDelay 秒（期間就鎖住輸入），自由視角轉到玩家背後看著村長、打開村長站點；
     /// 站點還沒 ReadyToTalk（村長走過來的路上）時不切站點鏡頭、玩家站著面向他，準備好了才切鏡頭、照常走到站位點。
@@ -26,7 +27,9 @@ namespace BossFight.Hub
         [SerializeField] InteractionScanner scanner;
         [SerializeField] CameraController cameraController;
         [SerializeField] GamePause pause;
-        [SerializeField] PrologueSession presentationSession;
+        [Tooltip("輸入鎖與游標的仲裁（休息區的介面、開場劇情與醒來演出共用）")]
+        [FormerlySerializedAs("presentationSession")]
+        [SerializeField] InputLockArbiter inputLock;
         [Tooltip("村長：存檔沒看過開場劇情時，進休息區後自動走過來講話（T24）；留空時沒有開場劇情")]
         [SerializeField] VillageChief chief;
         [Tooltip("介面開著時站點鏡頭的優先度（要比自由視角、鎖定鏡頭高）")]
@@ -60,7 +63,6 @@ namespace BossFight.Hub
         {
             this.rig = rig;
             player = rig != null ? rig.Controller : null;
-            if (locked && player != null) player.SetInputLocked(true);
         }
 
         void Awake()
@@ -104,24 +106,17 @@ namespace BossFight.Hub
             if (target != null) Open(target);
         }
 
-        // 介面開著或暫停時鎖住輸入、放開游標
+        // 介面開著、開場劇情與醒來演出時鎖住輸入（暫停由 InputLockArbiter 自己鎖），介面開著時放開游標
         void LateUpdate()
         {
-            bool shouldLock = Current != null || introPending || introDeferred || (pause != null && pause.IsPaused);
-            if (presentationSession != null)
+            if (inputLock == null) return;
+            bool shouldLock = Current != null || introPending || introDeferred;
+            if (shouldLock != locked)
             {
-                if (shouldLock != locked) { locked = shouldLock; presentationSession.SetInputLocked(this, locked); }
-                presentationSession.SetCursorReleased(this, Current != null || (pause != null && pause.IsPaused));
-                return;
+                locked = shouldLock;
+                inputLock.SetInputLocked(this, locked);
             }
-            if (shouldLock == locked) return;
-            locked = shouldLock;
-            if (player != null) player.SetInputLocked(locked);
-            if (cameraController != null)
-            {
-                cameraController.SetInputLocked(locked);
-                cameraController.SetCursorReleased(locked);
-            }
+            inputLock.SetCursorReleased(this, Current != null);
         }
 
         void Open(Interactable target)

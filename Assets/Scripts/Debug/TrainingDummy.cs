@@ -44,8 +44,8 @@ namespace BossFight.DebugTools
         [SerializeField] Transform labelAnchor;
         [Tooltip("把文字投到畫面上用的鏡頭（Main Camera）")]
         [SerializeField] Camera viewCamera;
-        [SerializeField] Color blockableColor = Color.white;
-        [SerializeField] Color unblockableColor = new Color(1f, 0.15f, 0.1f);
+        [Tooltip("白（可格擋）、紅（不可格擋）的分類色（所有攻擊共用一份）")]
+        [SerializeField] TelegraphPaletteData palette;
         [Min(0f)] [SerializeField] float flashIntensity = 2.5f;
         [Range(8, 256)] [SerializeField] int ringSegments = 64;
         [SerializeField] float wobbleAngle = 6f;
@@ -200,7 +200,7 @@ namespace BossFight.DebugTools
             }
         }
 
-        Color AttackColor() => current.canBlock ? blockableColor : unblockableColor;
+        Color AttackColor() => TelegraphPaletteData.Resolve(palette, this).Flash(current.canBlock);
 
         void AddPopup(string text, Color color)
         {

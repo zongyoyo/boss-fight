@@ -1793,8 +1793,7 @@ MonoBehaviour:
   - {fileID: 7715500363999621576}
   - {fileID: 1309344102462506647}
   - {fileID: 1109246770450362505}
-  blockableColor: {r: 1, g: 1, b: 1, a: 1}
-  unblockableColor: {r: 1, g: 0.15, b: 0.1, a: 1}
+  palette: {fileID: 11400000, guid: 5d5e3534e3d712947b406d398a8d13d7, type: 2}
   peakIntensity: 2.5
   blinkRate: 4
   fadeTime: 0.3
@@ -1811,7 +1810,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Core.LockOnTarget
   aimPoint: {fileID: 2396883953501962816}
+  markerPoint: {fileID: 0}
   framingRadius: 1.3
+  lockOnPitch: 12
+  lockOnDistance: 0
 --- !u!114 &1250550736248061922
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1832,7 +1834,6 @@ MonoBehaviour:
   blockedColor: {r: 0.6, g: 1.4, b: 3, a: 1}
   guardBreakColor: {r: 3, g: 1.3, b: 0.2, a: 1}
   parriedColor: {r: 3, g: 2.6, b: 0.6, a: 1}
-  evadedColor: {r: 0.6, g: 2.5, b: 0.8, a: 1}
 --- !u!114 &9025145577014846774
 MonoBehaviour:
   m_ObjectHideFlags: 0

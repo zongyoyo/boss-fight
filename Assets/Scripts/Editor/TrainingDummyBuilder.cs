@@ -106,6 +106,7 @@ namespace BossFight.EditorTools
             var dummy = root.AddComponent<TrainingDummy>();
             var so = new SerializedObject(dummy);
             so.FindProperty("data").objectReferenceValue = data;
+            so.FindProperty("palette").objectReferenceValue = CombatFeedbackBuilder.EnsureTelegraphPalette();
             so.FindProperty("attackHitbox").objectReferenceValue = hitbox;
             var renderers = so.FindProperty("flashRenderers");
             renderers.arraySize = flash.Count;

@@ -68,7 +68,7 @@ namespace BossFight.Cutscene
         public event Action<float> OnSkipProgress;
         /// <summary>顯示字卡。</summary>
         public event Action<TitleCardInfo> OnTitleCard;
-        public event Action<string> OnCue;
+        public event Action<CutsceneCue> OnCue;
         public event Action OnCutsceneCancelled;
         bool normalEnd;
 
@@ -237,12 +237,12 @@ namespace BossFight.Cutscene
             OnCutsceneCancelled?.Invoke();
         }
         /// <summary>對白提早讀完時，前進到指定交接標記；不能用來結束／提交結局。</summary>
-        public void JumpToCue(string name)
+        public void JumpToCue(CutsceneCue cue)
         {
             if (!IsPlaying || !manualClock || !(director.playableAsset is TimelineAsset timeline) || timeline.markerTrack == null) return;
             foreach (var marker in timeline.markerTrack.GetMarkers())
-                if (marker is CutsceneCueMarker cue && cue.cue == name && cue.time > director.time)
-                { director.time = cue.time; director.Evaluate(); OnCue?.Invoke(name); return; }
+                if (marker is CutsceneCueMarker m && m.kind == cue && m.time > director.time)
+                { director.time = m.time; director.Evaluate(); OnCue?.Invoke(cue); return; }
         }
 
         void Finish()
@@ -270,8 +270,8 @@ namespace BossFight.Cutscene
         {
             if (IsPlaying && notification is CutsceneCueMarker cue)
             {
-                if (cue.cue == "SequenceEnd") normalEnd = true;
-                else OnCue?.Invoke(cue.cue);
+                if (cue.kind == CutsceneCue.SequenceEnd) normalEnd = true;
+                else OnCue?.Invoke(cue.kind);
                 return;
             }
             if (!IsPlaying || !(notification is CutsceneEventMarker marker)) return;

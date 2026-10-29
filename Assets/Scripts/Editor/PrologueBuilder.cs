@@ -26,6 +26,22 @@ namespace BossFight.EditorTools
             Build();
         }
 
+        /// <summary>Tools > Prologue > Validate Prologue：在 Prologue 場景依序跑所有序章 Builder 的接線檢查（不改場景、不檢查玩法數值）。</summary>
+        [MenuItem("Tools/Prologue/Validate Prologue")]
+        public static void ValidateAll()
+        {
+            if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().path != ScenePath)
+            {
+                Debug.LogError("[Prologue] 請先開啟 Prologue 場景。");
+                return;
+            }
+            Debug.Log(PrologueActorsBuilder.Validate());
+            Debug.Log(TutorialBuilder.Validate());
+            Debug.Log(GuardianBuilder.Validate());
+            Debug.Log(GuardianPhaseTwoBuilder.Validate());
+            Debug.Log(PrologueCutsceneBuilder.Validate());
+        }
+
         public static void Build()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode)
@@ -76,7 +92,7 @@ namespace BossFight.EditorTools
             PlayerSpawnerBuilder.Build(start.position, start.rotation, ("Start", start));
             var camera = CameraRigBuilder.Build(PlayerSpawnerBuilder.Preview().Controller);
             UnityEngine.Camera.main.GetUniversalAdditionalCameraData().renderPostProcessing = true;
-            var session = new GameObject("Prologue").AddComponent<PrologueSession>();
+            var session = new GameObject("Prologue").AddComponent<InputLockArbiter>();
             DaoDunDogBuilder.SetReference(session, "cameraController", camera);
             PauseMenuBuilder.Build();
             SceneFlowBuilder.Build();
@@ -89,7 +105,7 @@ namespace BossFight.EditorTools
                 AssetDatabase.LoadAssetAtPath<BossFight.Boss.BossPhaseData>(GuardianPhaseTwoBuilder.PhasePath) != null) GuardianBuilder.Build();
             AssetDatabase.SaveAssets();
             HubBuilder.SetBuildScenes();
-            Debug.Log($"[Prologue] 已建立 {ScenePath}；空地半徑 {data.clearingRadius} m；Hub 0、BossArena 1、Prologue 2");
+            Debug.Log($"[Prologue] 已建立 {ScenePath}；空地半徑 {data.clearingRadius} m；Build Settings：Boot 0、Hub 1、BossArena 2、Prologue 3");
         }
 
         static void BuildForest(Transform parent, PrologueLayoutData data, Material bark, Material[] leaves)

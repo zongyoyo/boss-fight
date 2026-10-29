@@ -29,24 +29,27 @@ MonoBehaviour:
   slowScale: 0.3
   blackHold: 1.5
   dialogueTimeout: 3
-  hudSlideTime: 0.5
   pushRadius: 9
   buriedDepth: 11
   cameraRoll: 10
   darkLightColor: {r: 0.8, g: 0.08, b: 0.045, a: 1}
   darkLightIntensity: 0.25
+  darkSaturation: -45
+  darkColorFilter: {r: 1, g: 0.45, b: 0.38, a: 1}
   darkFog: {r: 0.16, g: 0.035, b: 0.025, a: 1}
   darkFogDensity: 0.035
   lowPassFrequency: 550
   blurFocus: 0.2
   blurAperture: 1
+  blurFocalLength: 70
+  blurStartFocus: 10
+  witherScale: {x: 0.4, y: 0.2, z: 0.4}
+  witherTilt: 35
+  waveHeight: 0.12
   vignetteIntensity: 0.85
   battleVignette: 0.4
   title: "\u5927\u6A39\u5B88\u885B"
-  guardianSpeaker: "\u5927\u6A39\u5B88\u885B"
-  transitionLine: "\u5F88\u5C11\u6709\u4EBA\u80FD\u5805\u6301\u5230\u9019\u88E1\uFF0C\u6211\u8A8D\u53EF\u4F60\u4E86\uFF0C\u63A5\u4E0B\u4F86\u6211\u8981\u51FA\u5168\u529B\u4E86\u3002"
   farewellLine: "\u2026\u2026\u53BB\u5427\uFF0C\u5192\u96AA\u8005\u3002"
-  mentorSpeaker: "\u795E\u7955\u5C0F\u82B1"
   surpriseLine: "\u6B38\u2026\u2026\u4F60\u771F\u7684\u8D0F\u4E86\uFF1F"
   tutorialMusic: {fileID: 8300000, guid: d9cbf688b6eae08459d42bdae526e3c2, type: 3}
   phase1Music: {fileID: 8300000, guid: 3fddd8a90741b0445948bbc4f9ea5a3c, type: 3}

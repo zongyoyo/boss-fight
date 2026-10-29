@@ -12,24 +12,26 @@ using UnityEngine.SceneManagement;
 namespace BossFight.DebugTools
 {
     /// <summary>
-    /// Boss 戰的 Debug 快捷鍵與右上角的 Boss 面板。按鍵直接讀 Keyboard.current，不放進 Input Actions，沒有 Debug 程式的 build（見 CLAUDE.md 的 BOSSFIGHT_DEV_TOOLS）不會帶到。
-    /// F1：Boss 血量設為「下一個階段的門檻 + 1」（第一階段時是 1001，再打一下就轉階段）。
+    /// Boss 戰的 Debug 快捷鍵與右上角的 Boss 面板，任何 Boss 戰都能用：流程相關的按鍵交給這場戰鬥的 IBattleDebugTarget
+    /// （OIIA 貓是 BattleManager、大樹守衛是 PrologueCutsceneFlow），同一張按鍵表在每個場景意義相同。
+    /// 按鍵直接讀 Keyboard.current，不放進 Input Actions，沒有 Debug 程式的 build（見 CLAUDE.md 的 BOSSFIGHT_DEV_TOOLS）不會帶到。
+    /// F1：下一階段（OIIA：Boss 血量設為「下一個階段的門檻 + 1」；守衛：開戰 → 萬根齊發 → 二階段演出）。
     /// F2：切換玩家無敵。
-    /// F3：依序切換下一招指定（不指定 → 各招 → 不指定），下一次選招直接出，不看距離、冷卻、不連出與開場序列。
+    /// F3：依序切換下一招指定（不指定 → 各招 → 不指定），下一次選招直接出，不看距離、冷卻、不連出與開場序列（守衛的萬根齊發走自己的流程）。
     /// F4：開關 Boss 面板：狀態、階段、血量、失衡值（衰減倒數、頭暈的受傷倍率、可否處決）、上次受傷的實際扣血、距離、
     /// 各招的招式池／距離／冷卻、開場序列進度、最近幾次選招與上次命中。
-    /// F5：重新挑戰（BattleManager.Retry，重新載入場景）。「看過開場」留在 BattleSession，第二次起開場可以長按 Space 跳過；勝敗畫面的按鈕走同一條路。
-    /// F6：Boss 血量歸零（測勝利）。F7：玩家血量歸零（測失敗）。
+    /// F5：重新挑戰（OIIA：BattleManager.Retry；序章：重新載入序章）。
+    /// F6：Boss 血量歸零（測勝利；守衛會越過一階段的血量鎖）。F7：玩家血量歸零（測失敗；序章接擊倒演出）。
     /// 選招、換階段、失衡值增加、頭暈、處決與按鍵都會在 Console 寫一行。狀態每幀讀 BossController／BossHealth／BossStagger，選招、命中、受傷、頭暈訂閱事件。
     /// </summary>
     [DisallowMultipleComponent]
-    public class BossDebugTools : MonoBehaviour, IPlayerBinding
+    public class BossDebugTools : MonoBehaviour, IPlayerBinding, IDebugCheats
     {
         [SerializeField] BossController boss;
         [SerializeField] BossHealth bossHealth;
         [SerializeField] BossStagger stagger;
-        [Tooltip("F5 重新挑戰；留空時直接重新載入場景")]
-        [SerializeField] BattleManager battle;
+        [Tooltip("這場戰鬥的流程（實作 IBattleDebugTarget：BattleManager 或序章的 PrologueCutsceneFlow）；留空時 F5 直接重新載入場景")]
+        [SerializeField] MonoBehaviour battle;
         [Tooltip("一開始就顯示 Boss 面板（F4 切換）")]
         [SerializeField] bool panelVisible;
         [Tooltip("每次選招都在 Console 寫一行")]
@@ -52,6 +54,8 @@ namespace BossFight.DebugTools
         GUIStyle style, toastStyle;
         readonly StringBuilder sb = new StringBuilder();
         PlayerHealth playerHealth; // F2 無敵、F7 倒下；PlayerSpawner 交給 BindPlayer
+
+        IBattleDebugTarget Target => battle as IBattleDebugTarget;
 
         /// <summary>PlayerSpawner 生成（或換）角色時呼叫（只讀寫狀態、不訂閱事件）。</summary>
         public void BindPlayer(PlayerRig rig) => playerHealth = rig != null ? rig.Health : null;
@@ -96,7 +100,7 @@ namespace BossFight.DebugTools
         {
             var kb = Keyboard.current;
             if (kb == null) return;
-            if (kb.f1Key.wasPressedThisFrame) SetHealthAboveNextThreshold();
+            if (kb.f1Key.wasPressedThisFrame) NextPhase();
             if (kb.f2Key.wasPressedThisFrame) TogglePlayerInvulnerable();
             if (kb.f3Key.wasPressedThisFrame) CycleForcedMove();
             if (kb.f4Key.wasPressedThisFrame) panelVisible = !panelVisible;
@@ -114,18 +118,11 @@ namespace BossFight.DebugTools
 
         // ---------- 快捷鍵 ----------
 
-        void SetHealthAboveNextThreshold()
+        void NextPhase()
         {
-            if (boss == null || bossHealth == null) return;
-            var next = boss.NextPhase;
-            if (next == null)
-            {
-                Notify("F1：已經是最後一個階段，沒有下一個門檻");
-                return;
-            }
-            float value = next.healthThreshold + 1f;
-            bossHealth.DebugSetHealth(value);
-            Notify($"F1：Boss 血量設為 {value:0}（{next.displayName}門檻 {next.healthThreshold:0} + 1）");
+            if (Target == null) return;
+            string message = Target.DebugNextPhase();
+            if (!string.IsNullOrEmpty(message)) Notify(message);
         }
 
         void TogglePlayerInvulnerable()
@@ -139,23 +136,27 @@ namespace BossFight.DebugTools
         {
             if (boss == null || boss.Moves.Count == 0) return;
             var moves = boss.Moves;
+            var forced = boss.ForcedNextMove != null ? boss.ForcedNextMove : Target?.DebugPendingMove;
             int index = -1;
             for (int i = 0; i < moves.Count; i++)
             {
-                if (moves[i] == boss.ForcedNextMove) index = i;
+                if (moves[i] == forced) index = i;
             }
             index++;
             var move = index < moves.Count ? moves[index] : null;
-            boss.ForceNextMove(move);
+            if (Target == null || !Target.DebugForceMove(move)) boss.ForceNextMove(move);
+            else boss.ForceNextMove(null); // 這場自己處理（萬根齊發），清掉一般的指定
             Notify(move != null ? $"F3：下一招指定 {move.DisplayName}" : "F3：不指定下一招");
         }
 
         void Retry()
         {
-            Debug.Log($"[BossDebug] F5：重新挑戰（第 {BattleSession.Attempt + 1} 次，開場{(BattleSession.IntroSeen ? "可以長按跳過" : "還沒看過，不能跳過")}）");
-            if (battle != null)
+            if (Target == null || Target is BattleManager)
+                Debug.Log($"[BossDebug] F5：重新挑戰（第 {BattleSession.Attempt + 1} 次，開場{(BattleSession.IntroSeen ? "可以長按跳過" : "還沒看過，不能跳過")}）");
+            else Debug.Log($"[BossDebug] F5：重新挑戰（重新載入 {gameObject.scene.name}）");
+            if (Target != null)
             {
-                battle.Retry();
+                Target.DebugRetry();
                 return;
             }
             Time.timeScale = 1f; // 畫面停頓中按下時不要把 timeScale 0 帶到新場景
@@ -164,9 +165,15 @@ namespace BossFight.DebugTools
 
         void DefeatBoss()
         {
-            if (bossHealth == null || bossHealth.IsDefeated) return;
-            bossHealth.DebugSetHealth(0f);
-            Notify("F6：Boss 血量歸零");
+            string message;
+            if (Target != null) message = Target.DebugDefeatBoss();
+            else
+            {
+                if (bossHealth == null || bossHealth.IsDefeated) return;
+                bossHealth.DebugSetHealth(0f);
+                message = "F6：Boss 血量歸零";
+            }
+            if (!string.IsNullOrEmpty(message)) Notify(message);
         }
 
         void KillPlayer()
@@ -361,11 +368,13 @@ namespace BossFight.DebugTools
             var phase = boss.Phase;
             float distance = boss.DistanceToTarget;
 
-            sb.AppendLine($"<b>OIIA 貓</b>　{StateLine()}");
+            sb.AppendLine($"<b>{(Target != null ? Target.DebugBossName : boss.name)}</b>　{StateLine()}");
             sb.AppendLine($"階段  {phase.displayName}（招式池 {phase.movePool}）　間隔 {phase.moveIntervalMin:0.0#}–{phase.moveIntervalMax:0.0#} s　冷卻 ×{phase.cooldownMultiplier:0.##}");
             string invul = bossHealth.Invulnerable ? "　<color=#7fd4ff>無敵</color>" : "";
             sb.AppendLine($"HP  {bossHealth.Current:0} / {bossHealth.Max:0}{invul}");
             sb.AppendLine(StaggerLine());
+            string extra = Target != null ? Target.DebugPanelLines() : string.Empty;
+            if (!string.IsNullOrEmpty(extra)) sb.AppendLine(extra);
             sb.AppendLine($"上次受傷  {lastDamageText}");
             sb.AppendLine($"距離  {distance:0.00} m　上一招 {(boss.LastMove != null ? boss.LastMove.DisplayName : "—")}");
 
@@ -427,7 +436,7 @@ namespace BossFight.DebugTools
             if (boss == null || bossHealth == null) return;
             if (!panelVisible)
             {
-                const string hint = "F1 Boss 血量→下一門檻+1　F2 玩家無敵　F3 指定下一招　F4 Boss 面板　F5 重新挑戰　F6 擊倒 Boss　F7 玩家倒下";
+                string hint = $"F1 {(Target != null ? Target.DebugNextPhaseHint : "—")}　F2 玩家無敵　F3 指定下一招　F4 Boss 面板　F5 重新挑戰　F6 擊倒 Boss　F7 玩家倒下";
                 var size = style.CalcSize(new GUIContent(hint));
                 GUI.Label(new Rect(Screen.width - size.x - 12f, 10f, size.x + 4f, size.y), hint, style);
                 return;

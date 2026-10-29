@@ -4,19 +4,21 @@ using BossFight.Battle;
 using BossFight.Boss;
 using BossFight.Core;
 using BossFight.Hazards;
-using BossFight.DebugTools;
 using BossFight.Progression;
 using BossFight.UI;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
-using UnityEngine.InputSystem;
 using UnityEngine.UI;
 using Object = UnityEngine.Object;
 
 namespace BossFight.EditorTools
 {
-    /// <summary>只建立 T26 角色與接線，不重建 T25 的地形、鏡頭、出生或選單。</summary>
+    /// <summary>
+    /// Tools > Prologue > Build Teaching Actors：在 Prologue 場景重建菊花與小樹精（T26）與接線，不重建地形、鏡頭、出生點或選單。
+    /// 資產（沒有才建）：DaisyMentor、TrainingSapling、AngrySapling（呼喚孩子用）；prefab 每次重建。
+    /// 開發者工具（F8–F11）在 DebugToolsBuilder 建的 PrologueDebugTools，這裡不建。教學已經存在時接著重跑 TutorialBuilder.Build。
+    /// </summary>
     public static class PrologueActorsBuilder
     {
         public const string DaisyDataPath = "Assets/ScriptableObjects/Prologue/DaisyMentor.asset";
@@ -27,7 +29,7 @@ namespace BossFight.EditorTools
         const string LeafPrefabPath = "Assets/Prefabs/Prologue/Fx_SaplingLeaves.prefab";
         const string ModelDir = "Assets/Models/Prologue/Actors";
 
-        [MenuItem("Tools/Prologue/Build Teaching Actors (T26)")]
+        [MenuItem("Tools/Prologue/Build Teaching Actors")]
         public static void BuildFromMenu()
         {
             Build();
@@ -35,7 +37,7 @@ namespace BossFight.EditorTools
             AssetDatabase.SaveAssets();
         }
 
-        /// <summary>MCP 可在非 Play 呼叫的引用驗證；不讀寫 ProfileStore 或 PlayerPrefs。</summary>
+        /// <summary>檢查菊花與小樹精的接線（Tools > Prologue > Validate Prologue 一起跑）；不讀寫 ProfileStore 或 PlayerPrefs。</summary>
         public static string Validate()
         {
             var scene = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
@@ -51,7 +53,7 @@ namespace BossFight.EditorTools
             Require(mentor, "data", "whipHitbox", "hurtCollider");
             Require(sapling, "data", "attackHitbox", "hurtCollider");
             Require(mentor.GetComponent<DaisyMentorVisual>(), "mentor", "model", "flower", "petalHand", "vine");
-            Require(sapling.GetComponent<TrainingSaplingVisual>(), "sapling", "model", "branch", "stars", "leavesPrefab", "telegraphPrefab");
+            Require(sapling.GetComponent<TrainingSaplingVisual>(), "sapling", "model", "branch", "stars", "leavesPrefab", "telegraphPrefab", "palette");
             Require(sapling.GetComponent<BossHitFeedback>(), "boss", "sparkPrefab");
             Require(binding, "mentor", "sapling", "session");
             Require(hud, "sapling", "viewCamera", "anchor", "panel", "health", "stagger", "title");
@@ -62,11 +64,8 @@ namespace BossFight.EditorTools
             {
                 bool found = false;
                 for (int i = 0; i < receivers.arraySize; i++) found |= receivers.GetArrayElementAtIndex(i).objectReferenceValue == expected;
-                if (!found || expected == null) throw new InvalidOperationException("PlayerSpawner 缺少 T26 接收者。");
+                if (!found || expected == null) throw new InvalidOperationException("PlayerSpawner 缺少教學角色的接收者。");
             }
-            var actions = AssetDatabase.LoadAssetAtPath<InputActionAsset>("Assets/InputSystem_Actions.inputactions");
-            foreach (string name in new[] { "DebugSaplingMode", "DebugMentorWhip", "DebugMentorSlap", "DebugSaplingInvulnerability" })
-                if (actions.FindAction("Player/" + name, false) == null) throw new InvalidOperationException("缺少開發動作 " + name);
             var hit = new DamageInfo(40f, false, false, 0f, ignoreInvulnerability: true, ignoreDefense: true, pushDistance: 1f, pushDuration: 0.25f)
                 .WithSource(Vector3.one, null).WithBlockStaminaMultiplier(1f);
             if (!hit.ignoreInvulnerability || !hit.ignoreDefense || hit.pushDistance != 1f || hit.pushDuration != 0.25f)
@@ -78,12 +77,12 @@ namespace BossFight.EditorTools
             var red = new SaplingTelegraph(0, training, SaplingMode.DodgeAttack);
             if (!white.canBlock || !white.canParry || red.canBlock || red.canParry || (int)SaplingMode.Target != 2)
                 throw new InvalidOperationException("白色格擋／紅色閃避模式或舊資產編號不符。");
-            return $"T26 PASS: {scene.path}; Missing Script 0; actor/UI/spawner refs OK; Debug Actions 4; DamageInfo copy/defaults OK; nodes {all.Length}";
+            return $"[PrologueActors] 菊花與小樹精接線檢查通過：{scene.path}";
         }
 
         static void Require(Object target, params string[] fields)
         {
-            if (target == null) throw new InvalidOperationException("缺少 T26 元件。");
+            if (target == null) throw new InvalidOperationException("缺少教學角色的元件。");
             var so = new SerializedObject(target);
             foreach (string field in fields)
                 if (so.FindProperty(field)?.objectReferenceValue == null) throw new InvalidOperationException($"{target.name}: 缺少 {field}");
@@ -126,15 +125,15 @@ namespace BossFight.EditorTools
             sapling.transform.SetPositionAndRotation(anchors.transform.Find("Sapling").position, Quaternion.Euler(0f, 180f, 0f));
             var binding = root.AddComponent<PrologueActorBinding>();
             Set(binding, "mentor", mentor); Set(binding, "sapling", sapling);
-            Set(binding, "session", Object.FindAnyObjectByType<PrologueSession>());
+            Set(binding, "session", Object.FindAnyObjectByType<InputLockArbiter>());
             BuildUI(sapling);
-            BuildDebug(binding, mentor, sapling);
             PlayerSpawnerBuilder.Wire();
             EditorSceneManager.MarkSceneDirty(scene);
             AssetDatabase.SaveAssets();
-            Debug.Log("[T26] 菊花、小樹精、SO、HUD 與開發按鍵已接線；F8 模式／F9 抽打／F10 巴掌／F11 無敵。");
-            // T27 已存在時一併重接，避免重建角色後教學仍指向已銷毀的實例。
+            Debug.Log("[PrologueActors] 菊花、小樹精、資料、HUD 已接線（開發者工具在 Tools > Debug > Wire Debug Tools）。");
+            // 教學已存在時一併重接，避免重建角色後教學仍指向已銷毀的實例
             if (scene.path == PrologueBuilder.ScenePath && GameObject.Find("Tutorial") != null) TutorialBuilder.Build();
+            else DebugToolsBuilder.Wire();
         }
 
         static GameObject BuildDaisy(DaisyMentorData data)
@@ -178,6 +177,7 @@ namespace BossFight.EditorTools
             var root = new GameObject("TrainingSapling");
             var actor = root.AddComponent<TrainingSapling>();
             var visual = root.AddComponent<TrainingSaplingVisual>();
+            Set(visual, "palette", CombatFeedbackBuilder.EnsureTelegraphPalette());
             var model = Node("Model", root.transform, Vector3.zero);
             model.localScale = Vector3.one * 2f;
             var bark = Mat("SaplingBark", new Color(0.44f, 0.27f, 0.12f));
@@ -302,18 +302,6 @@ namespace BossFight.EditorTools
             Set(executionUI, "data", data); Set(executionUI, "target", sapling.GetComponent<ExecutionTarget>());
             Set(executionUI, "aimPoint", sapling.transform.Find("AimPoint")); Set(executionUI, "viewCamera", UnityEngine.Camera.main);
             Set(executionUI, "marker", marker); SetArray(executionUI, "tinted", new Image[] { ring, dot });
-        }
-
-        static void BuildDebug(PrologueActorBinding binding, DaisyMentor mentor, TrainingSapling sapling)
-        {
-            var root = new GameObject("PrologueActorDebug");
-            var debug = root.AddComponent<PrologueActorDebugTools>();
-            debug.enabled = false;
-            Set(debug, "binding", binding); Set(debug, "mentor", mentor); Set(debug, "sapling", sapling);
-            var gate = root.AddComponent<DeveloperMode>();
-            Set(gate, "options", Object.FindAnyObjectByType<GameOptions>());
-            Set(gate, "pause", Object.FindAnyObjectByType<GamePause>());
-            SetArray(gate, "tools", new Behaviour[] { debug });
         }
 
         static T Data<T>(string path) where T : ScriptableObject

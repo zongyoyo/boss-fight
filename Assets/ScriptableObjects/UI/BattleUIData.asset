@@ -40,6 +40,7 @@ MonoBehaviour:
   staminaBoostColor: {r: 0.55, g: 1, b: 0.95, a: 1}
   bossHealthColor: {r: 0.72, g: 0.18, b: 0.85, a: 1}
   trailColor: {r: 1, g: 0.9, b: 0.65, a: 1}
+  selfCostColor: {r: 1, g: 1, b: 1, a: 1}
   staggerColor: {r: 1, g: 0.78, b: 0.2, a: 1}
   stunnedColor: {r: 1, g: 1, b: 0.75, a: 1}
   boneColor: {r: 0.98, g: 0.93, b: 0.82, a: 1}
@@ -56,6 +57,7 @@ MonoBehaviour:
   victoryButton: "\u518D\u6311\u6230"
   defeatButton: "\u91CD\u8A66"
   returnToHubButton: "\u8FD4\u56DE\u4F11\u606F\u5340"
+  singleButtonX: 0
   victoryColor: {r: 1, g: 0.85, b: 0.4, a: 1}
   defeatTitleStartColor: {r: 1, g: 1, b: 1, a: 1}
   defeatColor: {r: 0.9, g: 0.12, b: 0.1, a: 1}

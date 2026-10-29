@@ -74,8 +74,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Hazards.GroundTelegraph
   projector: {fileID: 8472408444310860902}
-  blockableColor: {r: 1, g: 1, b: 1, a: 0.9}
-  unblockableColor: {r: 1, g: 0.12, b: 0.08, a: 0.95}
+  palette: {fileID: 11400000, guid: 5d5e3534e3d712947b406d398a8d13d7, type: 2}
   edgeWidth: 0.12
   fillAlpha: 0.45
   areaAlpha: 0.12

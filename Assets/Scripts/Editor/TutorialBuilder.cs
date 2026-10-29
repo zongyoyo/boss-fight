@@ -18,7 +18,10 @@ using Object = UnityEngine.Object;
 
 namespace BossFight.EditorTools
 {
-    /// <summary>T27 可重建教學接線；保留 T25 地形鏡頭及 T26 已驗收角色。</summary>
+    /// <summary>
+    /// Tools > Prologue > Build Tutorial：在 Prologue 場景重建六步教學（T27）的 TutorialDirector、對話與 HUD，並接好菊花、小樹精的回饋；
+    /// 不重建地形、鏡頭與角色。資產（教學、各步驟、TutorialUIData）沒有才建。最後補守衛的教學引用與開發者工具。
+    /// </summary>
     public static class TutorialBuilder
     {
         public const string DataPath = "Assets/ScriptableObjects/Tutorial/Tutorial.asset";
@@ -27,7 +30,7 @@ namespace BossFight.EditorTools
         const string FeedbackPath = "Assets/ScriptableObjects/Feedback/CombatFeedback.asset";
         const string StylePath = "Assets/ScriptableObjects/Hub/HubUIData.asset";
 
-        [MenuItem("Tools/Prologue/Build Tutorial (T27)")]
+        [MenuItem("Tools/Prologue/Build Tutorial")]
         public static void Build()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode) throw new InvalidOperationException("請先停止 Play。");
@@ -37,7 +40,7 @@ namespace BossFight.EditorTools
             // 場上另有 T29 戰鬥池；只使用教學綁定器明確指定的樹精。
             var actorBinding = Object.FindAnyObjectByType<PrologueActorBinding>();
             var sapling = actorBinding != null ? new SerializedObject(actorBinding).FindProperty("sapling").objectReferenceValue as TrainingSapling : null;
-            if (mentor == null || sapling == null) throw new InvalidOperationException("先完成 T26 角色。");
+            if (mentor == null || sapling == null) throw new InvalidOperationException("請先跑 Tools > Prologue > Build Teaching Actors。");
             EnsureData();
             var anchors = GameObject.Find("ActorAnchors").transform;
             var layout = AssetDatabase.LoadAssetAtPath<PrologueLayoutData>(PrologueBuilder.LayoutPath);
@@ -57,32 +60,17 @@ namespace BossFight.EditorTools
             var dialogue = root.AddComponent<DialogueSession>();
             var director = root.AddComponent<TutorialDirector>();
             Set(director, "data", AssetDatabase.LoadAssetAtPath<TutorialData>(DataPath));
-            Set(director, "session", Object.FindAnyObjectByType<PrologueSession>());
+            Set(director, "session", Object.FindAnyObjectByType<InputLockArbiter>());
             Set(director, "dialogue", dialogue); Set(director, "mentor", mentor); Set(director, "sapling", sapling);
             Set(director, "startCenter", anchors.Find("Daisy"));
             BuildUI(root.transform, director, dialogue);
             GuardianBuilder.WireTutorial();
             PlayerSpawnerBuilder.Wire();
+            DebugToolsBuilder.Wire();
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
             AssetDatabase.SaveAssets();
-            Debug.Log("[T27] 六步教學、共用對話、HUD、角色回饋已建立並接線。");
-        }
-
-        [MenuItem("Tools/Prologue/Upgrade Hub Dialogue (T27)")]
-        public static void UpgradeHubDialogue()
-        {
-            if (EditorApplication.isPlayingOrWillChangePlaymode) throw new InvalidOperationException("請先停止 Play。");
-            var scene = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
-            if (scene.path != "Assets/Scenes/Hub.unity") throw new InvalidOperationException("請開啟 Hub。");
-            var box = Object.FindAnyObjectByType<DialogueUI>(FindObjectsInactive.Include);
-            HubUIBuilder.WireDialogue(box.gameObject, Object.FindAnyObjectByType<HubManager>(),
-                Object.FindAnyObjectByType<VillageChief>(), Object.FindAnyObjectByType<EventSystem>(),
-                AssetDatabase.LoadAssetAtPath<HubUIData>(StylePath));
-            EditorSceneManager.MarkSceneDirty(scene);
-            EditorSceneManager.SaveScene(scene);
-            AssetDatabase.SaveAssets();
-            Debug.Log("[T27] Hub 原對話框已升級，未重建站點或場景。");
+            Debug.Log("[Tutorial] 六步教學、共用對話、HUD、角色回饋已建立並接線。");
         }
 
         static void EnsureData()
@@ -238,7 +226,7 @@ namespace BossFight.EditorTools
             {
                 Require(Object.FindAnyObjectByType<HubDialogueUI>(FindObjectsInactive.Include), "data", "hub", "chief", "session", "choiceCanvas", "choiceGroup", "questText", "acceptButton", "declineButton");
                 Require(Object.FindAnyObjectByType<DialogueUI>(FindObjectsInactive.Include), "data", "session", "group", "speakerText", "bodyText", "continueMark");
-                return "T27 Hub PASS: MissingScript=0; generic dialogue + quest adapter refs OK";
+                return "[Tutorial] 休息區對話框接線檢查通過";
             }
             if (scene.path != PrologueBuilder.ScenePath) throw new InvalidOperationException("請開啟序章或休息區。");
             var director = Object.FindAnyObjectByType<TutorialDirector>();
@@ -258,8 +246,7 @@ namespace BossFight.EditorTools
                 if (((Component)teachingActors.FindProperty(actorField).objectReferenceValue).GetComponent<TeachingActorFeedback>() == null)
                     throw new InvalidOperationException("教學角色回饋不完整。");
             var data = AssetDatabase.LoadAssetAtPath<TutorialData>(DataPath);
-            if (data.steps.Length != 6 || data.grantedBones != 1 || data.initialBones != 0 || data.endingPause != 1f)
-                throw new InvalidOperationException("教學步數／骨頭／停頓不符。");
+            if (data.steps.Length != 6) throw new InvalidOperationException("教學不是六步。");
             if (data.steps[2].mode != SaplingMode.DodgeAttack || data.steps[3].mode != SaplingMode.Attack)
                 throw new InvalidOperationException("教學紅白模式不符。");
             var combat = AssetDatabase.LoadAssetAtPath<CombatFeedbackData>(FeedbackPath);
@@ -274,13 +261,13 @@ namespace BossFight.EditorTools
                 for (int i = 0; i < receivers.arraySize; i++) found |= receivers.GetArrayElementAtIndex(i).objectReferenceValue == expected;
                 if (!found) throw new InvalidOperationException("缺少玩家接收者：" + expected.GetType().Name);
             }
-            return "T27 Prologue PASS: MissingScript=0; 6 steps; red/white modes; dialogue/HUD/spawner refs; 2 actor emitters + VFX; 14 SFX cues OK";
+            return "[Tutorial] 教學接線檢查通過（6 步、紅白模式、對話、HUD、角色回饋與音效）";
         }
         /// <summary>非 Play 的事件管道檢查；不生成玩家、不讀存檔。</summary>
         public static string ValidateRules()
         {
             // 成功閃避改由 PlayerHealth（IDodgeable）結算，需要玩家實例，留給 Play 驗收
-            var root = new GameObject("T27_DialogueValidation") { hideFlags = HideFlags.HideAndDontSave };
+            var root = new GameObject("DialogueValidation") { hideFlags = HideFlags.HideAndDontSave };
             try
             {
                 var session = root.AddComponent<DialogueSession>();
@@ -306,11 +293,11 @@ namespace BossFight.EditorTools
                 if (finished != 2) throw new InvalidOperationException("被動招呼後正式對話無法推進。");
             }
             finally { Object.DestroyImmediate(root); }
-            return "T27 rules PASS: mandatory dialogue/stale id/replay/exactly-once completion";
+            return "[Tutorial] 對話規則檢查通過";
         }
         static void Require(Object target, params string[] fields)
         {
-            if (target == null) throw new InvalidOperationException("缺少 T27 元件。");
+            if (target == null) throw new InvalidOperationException("缺少教學元件。");
             var so = new SerializedObject(target);
             foreach (string field in fields)
                 if (so.FindProperty(field)?.objectReferenceValue == null) throw new InvalidOperationException(target.name + ": 缺少 " + field);

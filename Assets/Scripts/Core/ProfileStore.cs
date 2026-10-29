@@ -79,7 +79,6 @@ namespace BossFight.Core
         static ProfileData data;
         static bool hasArrival;
         static string arrival;
-        static bool launchRoutingPending;
 
         /// <summary>序章是否完成；舊存檔沒有這個欄位時為 false。</summary>
         public static bool PrologueDone => Data.prologueDone;
@@ -121,22 +120,6 @@ namespace BossFight.Core
                 data = next; firstClear = first; return true;
             }
             catch (Exception e) { Debug.LogError("[ProfileStore] 序章完成保存失敗，未採用結算快照：" + e.Message); return false; }
-        }
-
-        /// <summary>結局演出完成後才呼叫；T30 加入結果資料時在同一次存檔寫入。</summary>
-        public static void MarkPrologueDone()
-        {
-            if (Data.prologueDone) return;
-            Data.prologueDone = true;
-            Save();
-        }
-
-        /// <summary>每次執行只取一次的開機分流機會；任何初始場景都要取走，返回 Hub 不重新分流。</summary>
-        public static bool TakeLaunchRouting()
-        {
-            bool pending = launchRoutingPending;
-            launchRoutingPending = false;
-            return pending;
         }
 
         /// <summary>存檔的完整路徑。</summary>
@@ -472,7 +455,6 @@ namespace BossFight.Core
         static void ResetOnLaunch()
         {
             data = null; // 下次讀到時重新從檔案載入
-            launchRoutingPending = true;
             hasArrival = false;
             arrival = null;
             Application.quitting -= Save;

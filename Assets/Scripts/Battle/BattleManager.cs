@@ -86,7 +86,7 @@ namespace BossFight.Battle
     /// 放在 Battle（最上層）：它要指揮 Boss、玩家與演出，Core 才能維持在最底層、不引用其他系統。
     /// </summary>
     [DisallowMultipleComponent]
-    public class BattleManager : MonoBehaviour, IPlayerBinding
+    public class BattleManager : MonoBehaviour, IPlayerBinding, IBattleDebugTarget
     {
         [Tooltip("勝敗結算的節奏")]
         [SerializeField] BattleSettings settings;
@@ -254,6 +254,45 @@ namespace BossFight.Battle
         {
             if (sceneFlow != null) sceneFlow.ReturnFromBattle();
         }
+
+        // ---------- 開發者工具（IBattleDebugTarget，只給 Debug 的 F 鍵與平衡面板） ----------
+
+        string IBattleDebugTarget.DebugBossName => "OIIA 貓";
+        BattleState IBattleDebugTarget.DebugState => State;
+        event Action<BattleState> IBattleDebugTarget.OnDebugStateChanged
+        {
+            add => OnBattleStateChanged += value;
+            remove => OnBattleStateChanged -= value;
+        }
+        bool IBattleDebugTarget.DebugUltimateBeforeTransition => false;
+        string IBattleDebugTarget.DebugUltimateName => "大迴旋";
+        Difficulty IBattleDebugTarget.DebugDifficulty => Difficulty;
+        int IBattleDebugTarget.DebugAttempt => BattleSession.Attempt;
+        bool IBattleDebugTarget.DebugIsOver => IsOver;
+        BossMove IBattleDebugTarget.DebugPendingMove => null;
+        string IBattleDebugTarget.DebugNextPhaseHint => "Boss 血量→下一門檻+1";
+
+        // F1：血量設為「下一個階段的門檻 + 1」（第一階段時是 1001，再打一下就轉階段）
+        string IBattleDebugTarget.DebugNextPhase()
+        {
+            if (boss == null || bossHealth == null) return "F1：沒有接 Boss";
+            var next = boss.NextPhase;
+            if (next == null) return "F1：已經是最後一個階段，沒有下一個門檻";
+            float value = next.healthThreshold + 1f;
+            bossHealth.DebugSetHealth(value);
+            return $"F1：Boss 血量設為 {value:0}（{next.displayName}門檻 {next.healthThreshold:0} + 1）";
+        }
+
+        string IBattleDebugTarget.DebugDefeatBoss()
+        {
+            if (bossHealth == null || bossHealth.IsDefeated) return null;
+            bossHealth.DebugSetHealth(0f);
+            return "F6：Boss 血量歸零";
+        }
+
+        void IBattleDebugTarget.DebugRetry() => Retry();
+        bool IBattleDebugTarget.DebugForceMove(BossMove move) => false;
+        string IBattleDebugTarget.DebugPanelLines() => string.Empty;
 
         /// <summary>ESC 選單輸入了秘技：這次執行（含重試）都顯示開發者模式開關。</summary>
         public void UnlockDeveloperOptions()

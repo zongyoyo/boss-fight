@@ -5,7 +5,7 @@ namespace BossFight.Cutscene
 {
     [TrackColor(0.55f, 0.3f, 0.15f)]
     [TrackClipType(typeof(CinematicValueClip))]
-    [TrackBindingType(typeof(CinematicStage))]
+    [TrackBindingType(typeof(PrologueCinematicStage))]
     public class CinematicValueTrack : TrackAsset
     {
         protected override Playable CreatePlayable(PlayableGraph graph, GameObject go, TimelineClip clip)

@@ -32,7 +32,7 @@ namespace BossFight.EditorTools
         const string MaterialDirectory = "Assets/Models/Prologue/Cutscene";
         static readonly string[] Names = { "GuardianEntrance", "GuardianTransition", "Knockdown", "GuardianVictory", "HubWake" };
 
-        [MenuItem("Tools/Prologue/Build Cutscenes (T30)")]
+        [MenuItem("Tools/Prologue/Build Cutscenes")]
         public static void BuildAll()
         {
             Guard();
@@ -46,7 +46,7 @@ namespace BossFight.EditorTools
             EditorSceneManager.OpenScene(PrologueBuilder.ScenePath);
             Debug.Log(Validate());
         }
-        [MenuItem("Tools/Prologue/Reset Cutscene Timelines (T30)")]
+        [MenuItem("Tools/Prologue/Reset Cutscene Timelines")]
         public static void ResetTimelines()
         {
             Guard();
@@ -65,7 +65,7 @@ namespace BossFight.EditorTools
             if (d.phase2Music == null) d.phase2Music = sounds["Phase2"];
             EditorUtility.SetDirty(d); return d;
         }
-        /// <summary>上游重建後只在 T30 已安裝時接回；不遞迴執行上游 Builder。</summary>
+        /// <summary>上游（守衛、教學）重建後，演出已經建過才接回；不遞迴執行上游 Builder。</summary>
         public static void ReconnectIfPresent()
         {
             if (AssetDatabase.LoadAssetAtPath<PrologueCutsceneData>(DataPath) == null) return;
@@ -78,7 +78,7 @@ namespace BossFight.EditorTools
             var guardian = Object.FindAnyObjectByType<GuardianPhaseController>();
             var tutorial = Object.FindAnyObjectByType<TutorialDirector>();
             var phase = Object.FindAnyObjectByType<GuardianPhaseTwo>();
-            if (guardian == null || tutorial == null || phase == null) throw new InvalidOperationException("先完成 T25～T29。");
+            if (guardian == null || tutorial == null || phase == null) throw new InvalidOperationException("先建好序章場景、教學與守衛（Build Prologue → Build Teaching Actors → Build Tutorial → Build Guardian）。");
             var d = Data(); var sounds = PrologueAudioBuilder.Build();
             var old = GameObject.Find("PrologueCutscenes"); if (old != null) Object.DestroyImmediate(old);
             var root = new GameObject("PrologueCutscenes");
@@ -116,14 +116,12 @@ namespace BossFight.EditorTools
             var victory = Sequence(root.transform, "GuardianVictory", d.victoryDuration, stage, shots, sounds, tl => Victory(tl, d));
             var flow = root.AddComponent<PrologueCutsceneFlow>();
             Set(flow, "tutorial", tutorial); Set(flow, "guardian", guardian); Set(flow, "phaseTwo", phase);
-            Set(flow, "outcome", guardian.GetComponent<PrologueOutcome>()); Set(flow, "session", Object.FindAnyObjectByType<PrologueSession>());
+            Set(flow, "outcome", guardian.GetComponent<PrologueOutcome>()); Set(flow, "session", Object.FindAnyObjectByType<InputLockArbiter>());
             Set(flow, "dialogue", new SerializedObject(tutorial).FindProperty("dialogue").objectReferenceValue);
             Set(flow, "mentor", mentor); Set(flow, "fullPower", guardian.Boss.GetComponent<GuardianFullPowerVisual>());
             Set(flow, "audioManager", Object.FindAnyObjectByType<AudioManager>()); Set(flow, "cameraController", Object.FindAnyObjectByType<CameraController>());
             Set(flow, "sceneFlow", Object.FindAnyObjectByType<SceneFlow>()); Set(flow, "pause", Object.FindAnyObjectByType<GamePause>());
             Set(flow, "stage", stage); Set(flow, "data", d); Set(flow, "entrance", entrance); Set(flow, "transition", transition); Set(flow, "knockdown", knockdown); Set(flow, "victory", victory);
-            guardian.Data.startAfterTutorial = false; EditorUtility.SetDirty(guardian.Data);
-            Set(Object.FindAnyObjectByType<BossFight.UI.GuardianBattleUI>(), "presentation", d);
             Array(stage, "noise", root.GetComponentsInChildren<CinemachineBasicMultiChannelPerlin>(true));
             WireAudio(stage); PlayerSpawnerBuilder.Wire(); EditorSceneManager.MarkSceneDirty(root.scene);
             void Add(string name, Vector3 position, Transform look, float fov, Transform parent = null, bool local = false, float roll = 0f)
@@ -137,10 +135,10 @@ namespace BossFight.EditorTools
             var old = GameObject.Find("HubWakeCutscene"); if (old != null) Object.DestroyImmediate(old);
             var root = new GameObject("HubWakeCutscene");
             var chief = Object.FindAnyObjectByType<VillageChief>();
-            var session = DaoDunDogBuilder.GetOrAdd<PrologueSession>(hub.gameObject);
+            var session = DaoDunDogBuilder.GetOrAdd<InputLockArbiter>(hub.gameObject);
             Set(session, "cameraController", Object.FindAnyObjectByType<CameraController>()); Set(session, "pause", Object.FindAnyObjectByType<GamePause>());
-            Set(session, "options", Object.FindAnyObjectByType<GameOptions>()); Set(session, "sceneFlow", Object.FindAnyObjectByType<SceneFlow>()); Bool(session, "allowDeveloperSkip", false);
-            Set(hub, "presentationSession", session);
+            Set(session, "sceneFlow", Object.FindAnyObjectByType<SceneFlow>());
+            Set(hub, "inputLock", session);
             var stage = BuildStage(root.transform, d);
             Ambient(root.transform, sounds["Fire"], 0.08f); Ambient(root.transform, sounds["Birds"], 0.035f);
             var playerStage = Node(root.transform, "PlayerStage", PlayerSpawnerBuilder.Preview().transform.position); Set(stage, "playerStage", playerStage);
@@ -163,9 +161,9 @@ namespace BossFight.EditorTools
             Object.DestroyImmediate(defaults); EditorUtility.SetDirty(story);
             WireAudio(stage); SceneFlowBuilder.Build(); PlayerSpawnerBuilder.Wire(); EditorSceneManager.MarkSceneDirty(hub.gameObject.scene);
         }
-        static CinematicStage BuildStage(Transform parent, PrologueCutsceneData d)
+        static PrologueCinematicStage BuildStage(Transform parent, PrologueCutsceneData d)
         {
-            var stage = parent.gameObject.AddComponent<CinematicStage>(); Set(stage, "data", d);
+            var stage = parent.gameObject.AddComponent<PrologueCinematicStage>(); Set(stage, "data", d);
             Set(stage, "pause", Object.FindAnyObjectByType<GamePause>()); Set(stage, "hitStop", Object.FindAnyObjectByType<HitStop>());
             Set(stage, "sun", Object.FindObjectsByType<Light>(FindObjectsSortMode.None).FirstOrDefault(l => l.type == LightType.Directional));
             var volume = new GameObject("PresentationVolume").AddComponent<Volume>(); volume.transform.SetParent(parent, false); volume.isGlobal = true; volume.priority = 100f;
@@ -215,7 +213,7 @@ namespace BossFight.EditorTools
             noise.NoiseProfile = AssetDatabase.LoadAssetAtPath<NoiseSettings>("Packages/com.unity.cinemachine/Presets/Noise/6D Shake.asset");
             return c;
         }
-        static CutsceneDirector Sequence(Transform parent, string name, double duration, CinematicStage stage, Dictionary<string, CinemachineCamera> shots, Dictionary<string, AudioClip> sounds, Action<TimelineAsset> create)
+        static CutsceneDirector Sequence(Transform parent, string name, double duration, PrologueCinematicStage stage, Dictionary<string, CinemachineCamera> shots, Dictionary<string, AudioClip> sounds, Action<TimelineAsset> create)
         {
             string path = TimelineDirectory + "/" + name + ".playable";
             var tl = AssetDatabase.LoadAssetAtPath<TimelineAsset>(path);
@@ -227,8 +225,8 @@ namespace BossFight.EditorTools
             }
             var root = Node(parent, name, Vector3.zero); root.localPosition = Vector3.zero;
             tl.CreateMarkerTrack();
-            if (!tl.markerTrack.GetMarkers().OfType<CutsceneCueMarker>().Any(m => m.cue == "SequenceEnd"))
-            { Cue(tl, "SequenceEnd", tl.fixedDuration - 0.001); EditorUtility.SetDirty(tl); }
+            if (!tl.markerTrack.GetMarkers().OfType<CutsceneCueMarker>().Any(m => m.kind == CutsceneCue.SequenceEnd))
+            { Cue(tl, CutsceneCue.SequenceEnd, tl.fixedDuration - 0.001); EditorUtility.SetDirty(tl); }
             var pd = root.gameObject.AddComponent<PlayableDirector>(); pd.playOnAwake = false; pd.extrapolationMode = DirectorWrapMode.None; pd.timeUpdateMode = DirectorUpdateMode.UnscaledGameTime; pd.playableAsset = tl;
             var seq = root.gameObject.AddComponent<CutsceneDirector>(); Bool(seq, "externalControl", true); Bool(seq, "manualClock", true);
             Set(seq, "pause", Object.FindAnyObjectByType<GamePause>()); Set(seq, "hitStop", Object.FindAnyObjectByType<HitStop>());
@@ -282,7 +280,7 @@ namespace BossFight.EditorTools
         {
             double end = d.transitionDuration, power = end - 1;
             Shots(tl, ("T1_Front", 0, power), ("T2_Wave", power, 1));
-            Cue(tl, "TransitionLine", power - d.dialogueTimeout); Cue(tl, "Power", power);
+            Cue(tl, CutsceneCue.TransitionLine, power - d.dialogueTimeout); Cue(tl, CutsceneCue.Power, power);
             Value(tl, CinematicValue.WhiteFlash, power, 0.3, Curve((0, 0.65f), (1, 0)));
             Value(tl, CinematicValue.Wave, power, 1, AnimationCurve.Linear(0f, 0f, 1f, 1f));
             Value(tl, CinematicValue.Push, power, 0.8, AnimationCurve.EaseInOut(0f, 0f, 1f, 1f), true);
@@ -315,7 +313,7 @@ namespace BossFight.EditorTools
             Value(tl, CinematicValue.Darkness, end * 0.4, end * 0.25, AnimationCurve.Linear(0f, 1f, 1f, 0f), true);
             Value(tl, CinematicValue.GroundCrack, end * 0.65, end * 0.35, AnimationCurve.Linear(0f, 0f, 1f, 0f));
             Value(tl, CinematicValue.Debris, end * 0.4, end * 0.25, Curve((0, 1), (0.8f, 1), (1, 0)));
-            Cue(tl, "Farewell", 0.8); Cue(tl, "FlowerEmerge", end * 0.65); Cue(tl, "Surprise", end * 0.75); Cue(tl, "FlowerBurrow", end * 0.9);
+            Cue(tl, CutsceneCue.Farewell, 0.8); Cue(tl, CutsceneCue.FlowerEmerge, end * 0.65); Cue(tl, CutsceneCue.Surprise, end * 0.75); Cue(tl, CutsceneCue.FlowerBurrow, end * 0.9);
             Audio(tl, "Wither", 0.8, 2.5); Audio(tl, "Sink", end * 0.4, 2.5); Audio(tl, "Surprise", end * 0.75, 0.6); Audio(tl, "Victory", end * 0.7, end * 0.3);
         }
         static void Wake(TimelineAsset tl, PrologueCutsceneData d)
@@ -339,8 +337,8 @@ namespace BossFight.EditorTools
         static AnimationCurve Curve(params (float at, float value)[] keys) => new AnimationCurve(keys.Select(k => new Keyframe(k.at, k.value)).ToArray());
         static void Shots(TimelineAsset tl, params (string name, double at, double duration)[] shots)
         { var track = tl.CreateTrack<CinemachineTrack>(null, "Cameras"); foreach (var shot in shots) IntroCutsceneBuilder.ShotClip(track, shot.name, shot.at, shot.duration); }
-        static void Cue(TimelineAsset tl, string cue, double at)
-        { tl.CreateMarkerTrack(); var m = tl.markerTrack.CreateMarker<CutsceneCueMarker>(at); m.cue = cue; }
+        static void Cue(TimelineAsset tl, CutsceneCue cue, double at)
+        { tl.CreateMarkerTrack(); var m = tl.markerTrack.CreateMarker<CutsceneCueMarker>(at); m.kind = cue; }
         static TimelineClip Audio(TimelineAsset tl, string name, double at, double length)
         {
             var track = tl.CreateTrack<AudioTrack>(null, "Audio_" + name);
@@ -353,7 +351,7 @@ namespace BossFight.EditorTools
             var clip = IntroCutsceneBuilder.Clip<CameraMoveClip>(track, camera, at, length);
             var b = ((CameraMoveClip)clip.asset).template; b.from = from; b.to = to; b.localSpace = local;
         }
-        static void BuildGroundFx(CinematicStage stage, Transform parent, Vector3 center)
+        static void BuildGroundFx(PrologueCinematicStage stage, Transform parent, Vector3 center)
         {
             var cracks = Node(parent, "GroundCracks", center + Vector3.up * 0.04f);
             var material = Mat("Crack", new Color(3f, 0.02f, 0.005f));
@@ -389,7 +387,7 @@ namespace BossFight.EditorTools
             string path = MaterialDirectory + "/" + name + ".mat"; var m = AssetDatabase.LoadAssetAtPath<Material>(path); if (m != null) return m;
             m = new Material(Shader.Find("Universal Render Pipeline/Unlit")); m.SetColor("_BaseColor", color); AssetDatabase.CreateAsset(m, path); return m;
         }
-        static void WireAudio(CinematicStage stage)
+        static void WireAudio(PrologueCinematicStage stage)
         {
             var sources = Object.FindObjectsByType<AudioSource>(FindObjectsInactive.Include, FindObjectsSortMode.None);
             var audio = Object.FindAnyObjectByType<AudioManager>();
@@ -425,7 +423,7 @@ namespace BossFight.EditorTools
                 var tl = AssetDatabase.LoadAssetAtPath<TimelineAsset>(TimelineDirectory + "/" + Names[i] + ".playable");
                 if (tl == null || Math.Abs(tl.fixedDuration - durations[i]) > 0.01) throw new InvalidOperationException("Timeline 長度不符：" + Names[i]);
                 if (!tl.GetOutputTracks().OfType<CinemachineTrack>().Any() || !tl.GetOutputTracks().OfType<AudioTrack>().Any() || !tl.GetOutputTracks().OfType<CinematicValueTrack>().Any()) throw new InvalidOperationException("缺少鏡頭／音軌／曲線：" + Names[i]);
-                if (tl.markerTrack == null || !tl.markerTrack.GetMarkers().OfType<CutsceneCueMarker>().Any(m => m.cue == "SequenceEnd" && m.time > tl.fixedDuration - 0.01)) throw new InvalidOperationException("缺正常結束標記：" + Names[i]);
+                if (tl.markerTrack == null || !tl.markerTrack.GetMarkers().OfType<CutsceneCueMarker>().Any(m => m.kind == CutsceneCue.SequenceEnd && m.time > tl.fixedDuration - 0.01)) throw new InvalidOperationException("缺正常結束標記：" + Names[i]);
                 foreach (var track in tl.GetOutputTracks()) foreach (var clip in track.GetClips())
                 {
                     if (clip.duration <= 0 || clip.end > tl.fixedDuration + 0.01) throw new InvalidOperationException("片段越界：" + clip.displayName);
@@ -446,7 +444,7 @@ namespace BossFight.EditorTools
                     if (track is CinemachineTrack cams) foreach (var c in cams.GetClips()) if (pd.GetReferenceValue(((CinemachineShot)c.asset).VirtualCamera.exposedName, out bool valid) == null || !valid) throw new InvalidOperationException("未綁鏡頭");
                 }
             }
-            foreach (var stage in Object.FindObjectsByType<CinematicStage>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            foreach (var stage in Object.FindObjectsByType<PrologueCinematicStage>(FindObjectsInactive.Include, FindObjectsSortMode.None))
             {
                 Require(stage, "data", "volume", "redFlash", "whiteFlash", "black", "title", "playerStage", "pause");
                 var profile = ((Volume)new SerializedObject(stage).FindProperty("volume").objectReferenceValue).sharedProfile;
@@ -461,25 +459,24 @@ namespace BossFight.EditorTools
             if (SceneManager.GetActiveScene().path == PrologueBuilder.ScenePath)
             {
                 Require(Object.FindAnyObjectByType<PrologueCutsceneFlow>(), "tutorial", "guardian", "phaseTwo", "outcome", "session", "dialogue", "mentor", "fullPower", "audioManager", "cameraController", "sceneFlow", "pause", "data", "stage", "entrance", "transition", "knockdown", "victory");
-                if (Object.FindAnyObjectByType<GuardianPhaseController>().Data.startAfterTutorial) throw new InvalidOperationException("登場捷徑未關閉");
-                GuardianPhaseTwoBuilder.ValidatePureRules(); GuardianPhaseTwoBuilder.ValidateData(); GuardianBuilder.ValidatePresentation();
+                GuardianPhaseTwoBuilder.ValidatePureRules();
             }
             else
             {
                 Require(Object.FindAnyObjectByType<HubPrologueArrival>(), "sceneFlow", "flowData", "hub", "chief", "session", "stage", "wake");
-                Require(Object.FindAnyObjectByType<HubManager>(), "presentationSession");
+                Require(Object.FindAnyObjectByType<HubManager>(), "inputLock");
             }
             ValidateCompletionProtocol();
-            return "T30 non-Play PASS: five Timelines 9.5/5/5/10/4s; camera/audio/curve/end-marker bindings; Volume/filter/player refs; MissingScript=0; isolated normal/cancel events; pure save snapshots/idempotency. Play/visual/audio perception not tested.";
+            return "[PrologueCutscene] 演出接線檢查通過（五段 Timeline 的長度、軌道綁定、結束標記、後處理、玩家接收者與結局協定）";
         }
         static void Require(Object o, params string[] fields)
-        { if (o == null) throw new InvalidOperationException("缺少 T30 元件"); var so = new SerializedObject(o); foreach (string f in fields) if (so.FindProperty(f)?.objectReferenceValue == null) throw new InvalidOperationException(o.name + " 缺少 " + f); }
+        { if (o == null) throw new InvalidOperationException("缺少演出元件"); var so = new SerializedObject(o); foreach (string f in fields) if (so.FindProperty(f)?.objectReferenceValue == null) throw new InvalidOperationException(o.name + " 缺少 " + f); }
         /// <summary>非 Play、隔離物件，只走通知與取消回呼；不呼叫正式結局保存，不讀真實 ProfileStore.Data。</summary>
         public static void ValidateCompletionProtocol()
         {
             int complete = 0, cancel = 0;
-            var go = new GameObject("T30_IsolatedProtocol"); go.hideFlags = HideFlags.HideInHierarchy; go.SetActive(false);
-            var cue = ScriptableObject.CreateInstance<CutsceneCueMarker>(); cue.cue = "SequenceEnd";
+            var go = new GameObject("IsolatedProtocol"); go.hideFlags = HideFlags.HideInHierarchy; go.SetActive(false);
+            var cue = ScriptableObject.CreateInstance<CutsceneCueMarker>(); cue.kind = CutsceneCue.SequenceEnd;
             try
             {
                 var seq = go.AddComponent<CutsceneDirector>(); seq.BindPlayer(null); Bool(seq, "externalControl", true);

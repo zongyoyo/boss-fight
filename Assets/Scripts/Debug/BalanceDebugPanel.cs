@@ -20,6 +20,8 @@ namespace BossFight.DebugTools
 {
     /// <summary>
     /// 平衡面板（F12，T10）：即時調整 Boss 血量、各招傷害／冷卻／預兆／破綻／權重、各階段節奏、失衡值、玩家耐力，並量這場的通關時間。
+    /// 任何 Boss 戰都能用：流程狀態與難度讀這場戰鬥的 IBattleDebugTarget（OIIA 貓的 BattleManager、序章的 PrologueCutsceneFlow）；
+    /// 序章另外調大樹守衛的流程（GuardianBattleData）、守衛招式的段數／間隔／預兆，以及「教學」頁的小樹精（TrainingSaplingData）與菊花（DaisyMentorData）。
     /// <para>
     /// 不寫入 SO 資產：Awake 時把 Boss、鏡頭底下所有元件引用的 BossStats／BossPhaseData／BossMoveData
     /// 換成記憶體裡的複本（Instantiate；BossStats.phases、階段的 entryMove 與開場序列也改指向複本，招式比對才不會錯），面板只改複本。
@@ -47,12 +49,17 @@ namespace BossFight.DebugTools
     [DisallowMultipleComponent]
     public class BalanceDebugPanel : MonoBehaviour, IPlayerBinding
     {
-        [SerializeField] BattleManager battle;
+        [Tooltip("這場戰鬥的流程（實作 IBattleDebugTarget：BattleManager 或序章的 PrologueCutsceneFlow）")]
+        [SerializeField] MonoBehaviour battle;
         [SerializeField] BossController boss;
         [SerializeField] BossHealth bossHealth;
         [SerializeField] BossStagger stagger;
         [Tooltip("面板開著時鎖住視角、放開游標")]
         [SerializeField] CameraController cameraController;
+        [Tooltip("序章：輸入鎖與游標經 InputLockArbiter（留空時直接鎖玩家與鏡頭，BossArena）")]
+        [SerializeField] InputLockArbiter inputLock;
+        [Tooltip("Boss、玩家、鏡頭以外，引用可調資料的物件（序章：守衛流程、小樹精、菊花）")]
+        [SerializeField] GameObject[] extraRoots = new GameObject[0];
         [Tooltip("玩家的數值管線：基礎值換成面板的複本、登記測試修正")]
         [SerializeField] PlayerSpawner spawner;
         [Tooltip("「玩家」頁開關套用的測試修正（T19）")]
@@ -96,7 +103,10 @@ namespace BossFight.DebugTools
 
         static bool IsTunable(Type t) =>
             typeof(BossStats).IsAssignableFrom(t) || typeof(BossPhaseData).IsAssignableFrom(t) ||
-            typeof(BossMoveData).IsAssignableFrom(t);
+            typeof(BossMoveData).IsAssignableFrom(t) || typeof(GuardianBattleData).IsAssignableFrom(t) ||
+            typeof(TrainingSaplingData).IsAssignableFrom(t) || typeof(DaisyMentorData).IsAssignableFrom(t);
+
+        IBattleDebugTarget Target => battle as IBattleDebugTarget;
 
         // ---------- 一個可調的欄位 ----------
 
@@ -141,17 +151,21 @@ namespace BossFight.DebugTools
             public string result = "進行中";
             public bool finished;
             public float phase1, transition, phase2, ultimate, berserk;
+            // 序章：終極技（萬根齊發）在轉階段之前，活過才算進入轉階段
+            public bool ultimateBeforeTransition, survivedUltimate;
+            public string ultimateName;
             public float damagePhase1, damagePhase2, damageTaken;
             public int parries, stuns, executions, hitsTaken, bonesUsed, bonesEarned;
             public int tunedCount;
 
-            public float Phase2Total => phase2 + ultimate + berserk;
-            public float Total => phase1 + transition + Phase2Total;
+            public float Phase2Total => ultimateBeforeTransition ? phase2 + berserk : phase2 + ultimate + berserk;
+            public float Total => phase1 + transition + Phase2Total + (ultimateBeforeTransition ? ultimate : 0f);
         }
 
         static readonly string[] Tabs = { "計時", "Boss", "階段", "招式", "玩家" };
+        static readonly string[] TabsWithTutorial = { "計時", "Boss", "階段", "招式", "玩家", "教學" };
 
-        readonly List<Section>[] sections = { null, new List<Section>(), new List<Section>(), new List<Section>(), new List<Section>() };
+        readonly List<Section>[] sections = { null, new List<Section>(), new List<Section>(), new List<Section>(), new List<Section>(), new List<Section>() };
         readonly List<Knob> allKnobs = new List<Knob>();
         Knob maxHealthKnob;
         readonly List<Knob> thresholdKnobs = new List<Knob>();
@@ -233,6 +247,10 @@ namespace BossFight.DebugTools
             if (boss != null) yield return boss.gameObject;
             if (player != null) yield return player.gameObject;
             if (cameraController != null) yield return cameraController.gameObject;
+            foreach (var root in extraRoots)
+            {
+                if (root != null) yield return root;
+            }
         }
 
         static ScriptableObject CloneOf(ScriptableObject original)
@@ -357,7 +375,7 @@ namespace BossFight.DebugTools
             var bossStats = FindClone<BossStats>();
             if (bossStats != null)
             {
-                var s = new Section { title = "OIIA 貓" };
+                var s = new Section { title = Target != null ? Target.DebugBossName : boss != null ? boss.name : "Boss" };
                 sections[1].Add(s);
                 maxHealthKnob = AddKnob(s, "血量上限", bossStats, nameof(BossStats.maxHealth), 200f, 5000f, 50f);
                 if (maxHealthKnob != null) maxHealthKnob.onChanged = HandleMaxHealthChanged;
@@ -402,8 +420,11 @@ namespace BossFight.DebugTools
                     AddKnob(m, "預兆 (s)", d, nameof(BossMoveData.telegraphTime), 0f, 3f, 0.05f);
                     AddKnob(m, d is ThunderCircleData ? "破綻（含施法）(s)" : "破綻 (s)", d, nameof(BossMoveData.recoveryTime), 0f, 6f, 0.1f);
                     AddKnob(m, "權重", d, nameof(BossMoveData.weight), 0f, 5f, 0.1f);
+                    if (d is GuardianMoveData g) AddGuardianMoveKnobs(m, g);
                 }
             }
+
+            BuildPrologueKnobs();
 
             var playerStats = FindClone<PlayerStats>();
             if (playerStats != null)
@@ -429,6 +450,73 @@ namespace BossFight.DebugTools
                     var field = s.knobs[i].field;
                     s.knobs[i].actual = () => ActualPlayerValue(field);
                     s.knobs[i].onChanged = (_, __) => { if (spawner != null) spawner.ReapplyStats(false); };
+                }
+            }
+        }
+
+        // 大樹守衛招式：只列這一招有用到的欄位（資產裡是 0 的不列）
+        void AddGuardianMoveKnobs(Section m, GuardianMoveData g)
+        {
+            void Optional(string text, string field, float value, float max, float step)
+            {
+                if (value > 0f) AddKnob(m, text, g, field, 0f, max, step);
+            }
+            AddKnob(m, "判定持續 (s)", g, nameof(GuardianMoveData.hitWindow), 0f, 1f, 0.05f);
+            Optional("各段間隔 (s)", nameof(GuardianMoveData.interval), g.interval, 3f, 0.05f);
+            Optional("中途每段預兆 (s)", nameof(GuardianMoveData.warning), g.warning, 3f, 0.05f);
+            Optional("半徑 (m)", nameof(GuardianMoveData.radius), g.radius, 20f, 0.1f);
+            Optional("內半徑 (m)", nameof(GuardianMoveData.innerRadius), g.innerRadius, 20f, 0.1f);
+            Optional("扇形角度", nameof(GuardianMoveData.angle), g.angle, 360f, 5f);
+            Optional("長度 (m)", nameof(GuardianMoveData.reach), g.reach, 30f, 0.5f);
+            Optional("寬度 (m)", nameof(GuardianMoveData.width), g.width, 10f, 0.1f);
+            Optional("速度 (m/s)", nameof(GuardianMoveData.speed), g.speed, 40f, 0.5f);
+            Optional("萬根第一波預兆 (s)", nameof(GuardianMoveData.outerWarning), g.outerWarning, 3f, 0.05f);
+            Optional("萬根第二波預兆 (s)", nameof(GuardianMoveData.innerWarning), g.innerWarning, 3f, 0.05f);
+            Optional("萬根第三波預兆 (s)", nameof(GuardianMoveData.crossWarning), g.crossWarning, 3f, 0.05f);
+            Optional("萬根最後一波預兆 (s)", nameof(GuardianMoveData.finalWarning), g.finalWarning, 3f, 0.05f);
+            Optional("安全圈半徑 (m)", nameof(GuardianMoveData.safeRadius), g.safeRadius, 5f, 0.1f);
+        }
+
+        // 序章：守衛流程（Boss 頁）、小樹精與菊花（教學頁）
+        void BuildPrologueKnobs()
+        {
+            var battleData = FindClone<GuardianBattleData>();
+            if (battleData != null)
+            {
+                var s = new Section { title = "守衛流程" };
+                sections[1].Add(s);
+                AddKnob(s, "一階段時間上限 (s)", battleData, nameof(GuardianBattleData.phaseDuration), 10f, 180f, 1f);
+                AddKnob(s, "萬根事前提示 (s)", battleData, nameof(GuardianBattleData.guidanceAt), 0f, 180f, 1f);
+                AddKnob(s, "一階段血量鎖比例（重試後生效）", battleData, nameof(GuardianBattleData.healthFloorRatio), 0f, 1f, 0.05f);
+                AddKnob(s, "萬根安全指引半徑 (m)", battleData, nameof(GuardianBattleData.guidanceRadius), 0f, 20f, 0.5f);
+                AddKnob(s, "二階段每招自損比例", battleData, nameof(GuardianBattleData.selfCostRatio), 0f, 0.5f, 0.01f);
+            }
+            var clones = new List<ScriptableObject>(originalOf.Keys);
+            foreach (var clone in clones)
+            {
+                if (clone is TrainingSaplingData sapling)
+                {
+                    var s = new Section { title = $"小樹精（{sapling.name}）", foldable = true };
+                    sections[5].Add(s);
+                    AddKnob(s, "血量上限", sapling, nameof(TrainingSaplingData.maxHealth), 1f, 200f, 1f);
+                    AddKnob(s, "傷害", sapling, nameof(TrainingSaplingData.damage), 0f, 100f, 1f);
+                    AddKnob(s, "攻擊週期 (s)", sapling, nameof(TrainingSaplingData.attackPeriod), 0.2f, 10f, 0.1f);
+                    AddKnob(s, "預兆 (s)", sapling, nameof(TrainingSaplingData.telegraphTime), 0f, 3f, 0.05f);
+                    AddKnob(s, "預兆追蹤時間 (s)", sapling, nameof(TrainingSaplingData.telegraphTrackTime), 0f, 3f, 0.05f);
+                    AddKnob(s, "判定持續 (s)", sapling, nameof(TrainingSaplingData.activeTime), 0f, 1f, 0.05f);
+                    AddKnob(s, "攻擊長度 (m)", sapling, nameof(TrainingSaplingData.reach), 0f, 10f, 0.1f);
+                    AddKnob(s, "攻擊寬度 (m)", sapling, nameof(TrainingSaplingData.width), 0f, 10f, 0.1f);
+                    AddKnob(s, "軀幹上限", sapling, nameof(TrainingSaplingData.staggerMax), 1f, 300f, 5f);
+                    AddKnob(s, "存活時間 (s)", sapling, nameof(TrainingSaplingData.lifetime), 0f, 60f, 1f);
+                }
+                else if (clone is DaisyMentorData mentor)
+                {
+                    var s = new Section { title = "菊花" };
+                    sections[5].Add(s);
+                    AddKnob(s, "藤蔓抽打傷害", mentor, nameof(DaisyMentorData.whipDamage), 0f, 100f, 1f);
+                    AddKnob(s, "擊退距離 (m)", mentor, nameof(DaisyMentorData.pushDistance), 0f, 5f, 0.1f);
+                    AddKnob(s, "抽打動作 (s)", mentor, nameof(DaisyMentorData.whipTime), 0f, 3f, 0.05f);
+                    AddKnob(s, "巴掌動作 (s)", mentor, nameof(DaisyMentorData.slapTime), 0f, 3f, 0.05f);
                 }
             }
         }
@@ -519,6 +607,14 @@ namespace BossFight.DebugTools
             if (open && !opened)
             {
                 opened = true;
+                if (inputLock != null)
+                {
+                    // 序章：其他流程也經同一個仲裁上鎖，這裡用自己的 owner，關掉時只放開自己的
+                    inputLock.SetInputLocked(this, true);
+                    inputLock.SetCursorReleased(this, true);
+                    SetPaused(pauseWhileOpen);
+                    return;
+                }
                 if (player != null)
                 {
                     savedPlayerLock = player.InputLocked;
@@ -537,13 +633,19 @@ namespace BossFight.DebugTools
             {
                 opened = false;
                 SetPaused(false);
+                if (inputLock != null)
+                {
+                    inputLock.SetInputLocked(this, false);
+                    inputLock.SetCursorReleased(this, false);
+                    return;
+                }
                 // 開場、轉階段演出或勝敗畫面期間維持鎖定，交給原本的流程解除
-                bool fighting = battle == null || IsFighting(battle.State);
+                bool fighting = Target == null || IsFighting(Target.DebugState);
                 if (player != null && !savedPlayerLock && fighting) player.SetInputLocked(false);
                 if (cameraController != null)
                 {
                     if (!savedCameraLock && fighting) cameraController.SetInputLocked(false);
-                    if (!savedCursorReleased && (battle == null || !battle.IsOver)) cameraController.SetCursorReleased(false);
+                    if (!savedCursorReleased && (Target == null || !Target.DebugIsOver)) cameraController.SetCursorReleased(false);
                 }
             }
         }
@@ -580,7 +682,7 @@ namespace BossFight.DebugTools
 
         void OnEnable()
         {
-            if (battle != null) battle.OnBattleStateChanged += HandleBattleState;
+            if (Target != null) Target.OnDebugStateChanged += HandleBattleState;
             if (bossHealth != null) bossHealth.OnDamaged += HandleBossDamaged;
             if (stagger != null)
             {
@@ -615,7 +717,7 @@ namespace BossFight.DebugTools
 
         void Unsubscribe()
         {
-            if (battle != null) battle.OnBattleStateChanged -= HandleBattleState;
+            if (Target != null) Target.OnDebugStateChanged -= HandleBattleState;
             if (bossHealth != null) bossHealth.OnDamaged -= HandleBossDamaged;
             if (stagger != null)
             {
@@ -628,13 +730,20 @@ namespace BossFight.DebugTools
 
         void HandleBattleState(BattleState next)
         {
+            if (run != null && !run.finished && segmentState == BattleState.Ultimate && next == BattleState.Transition) run.survivedUltimate = true;
             CloseSegment();
             segmentState = next;
             segmentStart = Time.time;
 
             if (next == BattleState.Phase1 && run == null)
             {
-                run = new RunRecord { attempt = BattleSession.Attempt, difficulty = battle != null ? battle.Difficulty : Difficulty.Hard };
+                run = new RunRecord
+                {
+                    attempt = Target != null ? Target.DebugAttempt : BattleSession.Attempt,
+                    difficulty = Target != null ? Target.DebugDifficulty : Difficulty.Hard,
+                    ultimateBeforeTransition = Target != null && Target.DebugUltimateBeforeTransition,
+                    ultimateName = Target != null ? Target.DebugUltimateName : "大迴旋",
+                };
                 runs.Add(run);
                 ResetStunCount();
             }
@@ -727,10 +836,17 @@ namespace BossFight.DebugTools
 
         static string Dps(float damage, float time) => time > 0f ? $"{damage / time:0.0}" : "—";
 
-        static string RunLine(RunRecord r) =>
+        static string RunLine(RunRecord r) => r.ultimateBeforeTransition ? PrologueRunLine(r) :
             $"第 {r.attempt} 次（{(r.difficulty == Difficulty.Easy ? "簡單" : "困難")}）{r.result}｜總 {Clock(r.Total)}｜第一階段 {Clock(r.phase1)}（DPS {Dps(r.damagePhase1, r.phase1)}）" +
             $"｜轉階段 {Clock(r.transition)}｜第二階段 {Clock(r.Phase2Total)}（DPS {Dps(r.damagePhase2, r.Phase2Total)}；" +
             $"大迴旋 {Clock(r.ultimate)}、狂暴 {Clock(r.berserk)}）｜盾反 {r.parries}、頭暈 {r.stuns}、處決 {r.executions}" +
+            $"｜被打中 {r.hitsTaken} 次、受傷 {r.damageTaken:0}、骨頭 用 {r.bonesUsed}／得 {r.bonesEarned}｜調整 {r.tunedCount} 項";
+
+        // 序章：一階段 → 萬根齊發（活過沒有）→ 轉階段 → 二階段
+        static string PrologueRunLine(RunRecord r) =>
+            $"{r.result}｜總 {Clock(r.Total)}｜一階段 {Clock(r.phase1)}（DPS {Dps(r.damagePhase1, r.phase1)}）" +
+            $"｜{r.ultimateName} {Clock(r.ultimate)}（{(r.survivedUltimate ? "活過" : "沒活過")}）｜轉階段 {Clock(r.transition)}" +
+            $"｜二階段 {Clock(r.Phase2Total)}（DPS {Dps(r.damagePhase2, r.Phase2Total)}）｜盾反 {r.parries}、頭暈 {r.stuns}、處決 {r.executions}" +
             $"｜被打中 {r.hitsTaken} 次、受傷 {r.damageTaken:0}、骨頭 用 {r.bonesUsed}／得 {r.bonesEarned}｜調整 {r.tunedCount} 項";
 
         // ---------- 畫面 ----------
@@ -762,7 +878,7 @@ namespace BossFight.DebugTools
             GUILayout.BeginArea(new Rect(rect.x + 8f, rect.y + 6f, rect.width - 16f, rect.height - 12f));
 
             GUILayout.Label($"<b>平衡面板（F12）</b>　{(paused ? "<color=#ffd84d>暫停中</color>" : "遊戲進行中")}　調整 {CountChanged()} 項", header);
-            tab = GUILayout.Toolbar(tab, Tabs);
+            tab = GUILayout.Toolbar(tab, sections[5].Count > 0 ? TabsWithTutorial : Tabs);
             scroll = GUILayout.BeginScrollView(scroll);
             if (tab == 0) DrawTimerTab();
             else
@@ -778,7 +894,14 @@ namespace BossFight.DebugTools
 
         void DrawTimerStrip()
         {
-            string current = segmentState == BattleState.Phase1 ? $"第一階段 {Clock(run.phase1 + LiveSegment(BattleState.Phase1))}"
+            string current;
+            if (run.ultimateBeforeTransition)
+            {
+                current = segmentState == BattleState.Phase1 ? $"一階段 {Clock(run.phase1 + LiveSegment(BattleState.Phase1))}"
+                    : segmentState == BattleState.Ultimate ? $"{run.ultimateName} {Clock(run.ultimate + LiveSegment(BattleState.Ultimate))}"
+                    : $"二階段 {Clock(run.Phase2Total + LiveSegment(BattleState.Phase2))}";
+            }
+            else current = segmentState == BattleState.Phase1 ? $"第一階段 {Clock(run.phase1 + LiveSegment(BattleState.Phase1))}"
                 : $"第二階段 {Clock(run.Phase2Total + LiveSegment(BattleState.Phase2) + LiveSegment(BattleState.Ultimate) + LiveSegment(BattleState.Berserk))}";
             string text = $"{current}　總 {Clock(LiveTotal())}" + (run.finished ? $"　{run.result}" : "");
             var size = box.CalcSize(new GUIContent(text));
@@ -794,6 +917,22 @@ namespace BossFight.DebugTools
             if (run == null)
             {
                 GUILayout.Label("開場結束後開始計時。", label);
+            }
+            else if (run.ultimateBeforeTransition)
+            {
+                float p1 = run.phase1 + LiveSegment(BattleState.Phase1);
+                float ul = run.ultimate + LiveSegment(BattleState.Ultimate);
+                float tr = run.transition + LiveSegment(BattleState.Transition);
+                float p2 = run.phase2 + LiveSegment(BattleState.Phase2);
+                GUILayout.Label($"<b>{run.result}</b>", header);
+                GUILayout.Label($"一階段　　{Clock(p1)}　造成 {run.damagePhase1:0}　DPS {Dps(run.damagePhase1, p1)}", label);
+                GUILayout.Label($"{run.ultimateName}　{Clock(ul)}　{(run.survivedUltimate ? "活過" : segmentState == BattleState.Ultimate ? "進行中" : "沒活過")}", label);
+                GUILayout.Label($"轉階段　　{Clock(tr)}", label);
+                GUILayout.Label($"二階段　　{Clock(p2)}　造成 {run.damagePhase2:0}　DPS {Dps(run.damagePhase2, p2)}", label);
+                GUILayout.Label($"<b>總時間　　{Clock(p1 + ul + tr + p2)}</b>", label);
+                GUILayout.Label($"盾反 {run.parries}　頭暈 {run.stuns}　處決 {run.executions}　被打中 {run.hitsTaken} 次　受傷 {run.damageTaken:0}　骨頭 用 {run.bonesUsed}／得 {run.bonesEarned}", label);
+                string max = stagger != null ? $" / {stagger.Max:0}" : "";
+                GUILayout.Label($"這次頭暈前：盾反 {stunParries}、輕攻擊 {stunLights}、重攻擊 {stunHeavies}　目前失衡 {(stagger != null ? stagger.Current : 0f):0.0}{max}", label);
             }
             else
             {

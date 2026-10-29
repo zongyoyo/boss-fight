@@ -12,8 +12,8 @@ namespace BossFight.Hub
         [SerializeField] SceneFlowData flowData;
         [SerializeField] HubManager hub;
         [SerializeField] VillageChief chief;
-        [SerializeField] PrologueSession session;
-        [SerializeField] CinematicStage stage;
+        [SerializeField] InputLockArbiter session;
+        [SerializeField] PrologueCinematicStage stage;
         [SerializeField] CutsceneDirector wake;
         PlayerRig rig;
         bool waking;

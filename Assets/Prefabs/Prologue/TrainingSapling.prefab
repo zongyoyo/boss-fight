@@ -883,8 +883,7 @@ MonoBehaviour:
   telegraphPrefab: {fileID: 6870321746339504149, guid: 2736527db7c2850409b418f29ac5f4e5, type: 3}
   emergeTime: 0.4
   hurtTime: 0.25
-  blockableGlow: {r: 1, g: 1, b: 1, a: 1}
-  unblockableGlow: {r: 1, g: 0.12, b: 0.08, a: 1}
+  palette: {fileID: 11400000, guid: 5d5e3534e3d712947b406d398a8d13d7, type: 2}
 --- !u!114 &3501062887969608000
 MonoBehaviour:
   m_ObjectHideFlags: 0

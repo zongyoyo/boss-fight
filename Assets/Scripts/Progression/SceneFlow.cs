@@ -6,7 +6,7 @@ using UnityEngine.SceneManagement;
 namespace BossFight.Progression
 {
     /// <summary>
-    /// 換場景（T17）：休息區與 Boss 戰都放一個。GoToBattle（休息區的傳送門）、ReturnFromBattle（勝敗畫面與 ESC 選單的「返回休息區」）、
+    /// 換場景（T17）：休息區、Boss 戰、序章都放一個（開機分流在 Boot 場景的 BootRouter）。GoToBattle（休息區的傳送門）、ReturnFromBattle（勝敗畫面與 ESC 選單的「返回休息區」）、
     /// ResetProfile（開發者模式的「重置存檔」：清空存檔、回到休息區的啟動出生點）。
     /// 換場景：黑幕用真實時間淡出（暫停中也會動），全黑時解除暫停、timeScale 回 1，把出生點 id 交給 ProfileStore，再載入新場景；換場景中的其他請求不理。
     /// 新場景的 PlayerSpawner 在 Awake 依出生點 id 生成玩家（T18），SceneFlow 在 Start 取走出生點，從全黑淡入；
@@ -27,12 +27,8 @@ namespace BossFight.Progression
         [Tooltip("換場景前解除暫停（ESC 選單開著時）；可留空")]
         [SerializeField] GamePause pause;
         [SerializeField] GameOptions options;
-        [Tooltip("只在 Hub 啟用：第一次啟動時決定是否進序章")]
-        [SerializeField] bool routePrologueOnLaunch;
-        [Tooltip("分流前停用的 Hub 內容；不包含 SceneFlow 與 GameOptions，並且早於 PlayerSpawner.Awake")]
-        [SerializeField] GameObject[] startupContents = new GameObject[0];
-        [Tooltip("開機分流期間清成全黑的備用相機；位於 Hub 內容閘門外，只在轉入序章時啟用")]
-        [SerializeField] UnityEngine.Camera startupCamera;
+        [Tooltip("只在序章打開：開發者模式勾了「略過序章」時直接回休息區（保留序章未完成）")]
+        [SerializeField] bool prologueSkippable;
 
         public event Action<bool> OnLoadingChanged;
         /// <summary>Start 取走 arrival 後送出；訂閱方在 OnEnable 訂閱，不要另行 TakeArrival。</summary>
@@ -44,32 +40,35 @@ namespace BossFight.Progression
         string targetScene, targetArrival;
         float fadeElapsed, fadeFrom, fadeTo;
         float fadeDuration = -1f; // < 0 = 沒有在淡入淡出
-        bool redirectOnLaunch, holdArrivalFade;
+        bool holdArrivalFade;
 
         void Awake()
         {
-            bool firstScene = ProfileStore.TakeLaunchRouting();
-            redirectOnLaunch = firstScene && routePrologueOnLaunch && data != null &&
-                               !ProfileStore.PrologueDone && !(options != null && options.CanSkipPrologue);
-            if (redirectOnLaunch)
-            {
-                if (startupCamera != null) startupCamera.enabled = true;
-                foreach (var content in startupContents)
-                    if (content != null) content.SetActive(false);
-            }
-            SetFade(redirectOnLaunch || ProfileStore.PeekArrival(out _) ? 1f : 0f);
+            SetFade(ProfileStore.PeekArrival(out _) ? 1f : 0f);
+        }
+
+        void OnEnable()
+        {
+            if (!prologueSkippable || options == null) return;
+            options.OnSkipPrologueChanged += HandleSkipOption;
+            options.OnDeveloperModeChanged += HandleSkipOption;
+        }
+
+        void OnDisable()
+        {
+            if (options == null) return;
+            options.OnSkipPrologueChanged -= HandleSkipOption;
+            options.OnDeveloperModeChanged -= HandleSkipOption;
+        }
+
+        // 序章裡在 ESC 選單勾「略過序章」（或開著它打開開發者模式）時直接回休息區
+        void HandleSkipOption(bool _)
+        {
+            if (prologueSkippable) SkipPrologue();
         }
 
         void Start()
         {
-            if (redirectOnLaunch)
-            {
-                targetScene = data.prologueScene;
-                targetArrival = string.Empty;
-                IsLoading = true;
-                LoadTarget();
-                return;
-            }
             if (!ProfileStore.TakeArrival(out string arrival)) return;
             // 從全黑淡入
             SetFade(1f);

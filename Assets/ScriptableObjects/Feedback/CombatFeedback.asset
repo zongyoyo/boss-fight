@@ -180,6 +180,11 @@ MonoBehaviour:
     - {fileID: 8300000, guid: 4c9d04cc30140c345b1411c47b29148a, type: 3}
     volume: 0.8
     shake: 0.2
+  barkPeel:
+    clips:
+    - {fileID: 8300000, guid: 7fe9c5f063fe8354390f2ec28350155a, type: 3}
+    volume: 0.6
+    shake: 0
   saplingHurt:
     clips:
     - {fileID: 8300000, guid: 7fe9c5f063fe8354390f2ec28350155a, type: 3}

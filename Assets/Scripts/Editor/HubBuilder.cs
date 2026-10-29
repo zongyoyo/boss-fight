@@ -22,7 +22,7 @@ namespace BossFight.EditorTools
     /// 3. 出生點 Start（營火旁，啟動遊戲時）與 Portal（傳送門前，從 Boss 戰回來時）、PlayerSpawner（預設生成在 Start）與鏡頭（CameraRigBuilder）、
     ///    GameOptions、AudioManager（沒有音樂）、Hub 物件（HubManager、InteractionScanner）、ESC 選單（PauseMenuBuilder 的休息區版：繼續、設定、退出遊戲）、
     ///    互動提示與站點面板（HubUIBuilder）、SceneFlow（PauseMenuBuilder.Wire 最後建）。休息區不建 HUD。
-    /// 也把 Build Settings 設成 Hub 0、BossArena 1。佔位模型的尺寸、顏色是純視覺參數；玩法相關的位置與距離都在 HubLayoutData。
+    /// 也把 Build Settings 設成 Boot 0、Hub 1、BossArena 2、Prologue 3（SetBuildScenes）。佔位模型的尺寸、顏色是純視覺參數；玩法相關的位置與距離都在 HubLayoutData。
     /// </summary>
     public static class HubBuilder
     {
@@ -145,78 +145,42 @@ namespace BossFight.EditorTools
             hubSo.FindProperty("cameraController").objectReferenceValue = cameraController;
             hubSo.FindProperty("pause").objectReferenceValue = pause;
             hubSo.FindProperty("chief").objectReferenceValue = chief;
+            // 介面、開場劇情、醒來演出、ESC 選單共用的輸入鎖（SceneFlowBuilder 接 sceneFlow）
+            var inputLock = hubGo.AddComponent<InputLockArbiter>();
+            var lockSo = new SerializedObject(inputLock);
+            lockSo.FindProperty("cameraController").objectReferenceValue = cameraController;
+            lockSo.FindProperty("pause").objectReferenceValue = pause;
+            lockSo.ApplyModifiedPropertiesWithoutUndo();
+            hubSo.FindProperty("inputLock").objectReferenceValue = inputLock;
             hubSo.ApplyModifiedPropertiesWithoutUndo();
 
             PauseMenuBuilder.Build(); // 休息區版 ESC 選單；Wire 最後建 SceneFlow（接傳送門）並接 spawner
             HubUIBuilder.Build(hub, scanner);
             if (AssetDatabase.LoadAssetAtPath<BossFight.Cutscene.PrologueCutsceneData>(PrologueCutsceneBuilder.DataPath) != null) PrologueCutsceneBuilder.BuildHub();
-            SceneFlowBuilder.Build(); // 把最後建立的 HubUI 也納入開機閘門
+            SceneFlowBuilder.Build();
             PlayerSpawnerBuilder.Wire();
 
             EditorSceneManager.SaveScene(scene, ScenePath);
             AssetDatabase.SaveAssets();
             SetBuildScenes();
-            Debug.Log($"[Hub] 休息區已建立：{ScenePath}（{interactables.Count} 個站點）；Build Settings：Hub 0、BossArena 1");
+            Debug.Log($"[Hub] 休息區已建立：{ScenePath}（{interactables.Count} 個站點）；Build Settings：Boot 0、Hub 1、BossArena 2、Prologue 3");
         }
 
-        /// <summary>Build Settings：Hub 0、BossArena 1（SampleScene 拿掉）。</summary>
+        /// <summary>Build Settings：Boot 0（開機分流）、Hub 1、BossArena 2、Prologue 3（SampleScene 拿掉，其他場景排在後面）。</summary>
         public static void SetBuildScenes()
         {
-            var scenes = new List<EditorBuildSettingsScene>
+            var ordered = new[] { BootBuilder.ScenePath, ScenePath, BattleScenePath, PrologueBuilder.ScenePath };
+            var scenes = new List<EditorBuildSettingsScene>();
+            foreach (var path in ordered)
             {
-                new EditorBuildSettingsScene(ScenePath, true),
-                new EditorBuildSettingsScene(BattleScenePath, true),
-            };
-            if (AssetDatabase.LoadAssetAtPath<SceneAsset>(PrologueBuilder.ScenePath) != null)
-                scenes.Add(new EditorBuildSettingsScene(PrologueBuilder.ScenePath, true));
+                if (AssetDatabase.LoadAssetAtPath<SceneAsset>(path) != null) scenes.Add(new EditorBuildSettingsScene(path, true));
+            }
             foreach (var existing in EditorBuildSettings.scenes)
             {
-                if (existing.path == ScenePath || existing.path == BattleScenePath || existing.path == PrologueBuilder.ScenePath ||
-                    existing.path == "Assets/Scenes/SampleScene.unity") continue;
+                if (System.Array.IndexOf(ordered, existing.path) >= 0 || existing.path == "Assets/Scenes/SampleScene.unity") continue;
                 scenes.Add(existing);
             }
             EditorBuildSettings.scenes = scenes.ToArray();
-        }
-
-        /// <summary>T25 原地升級目前的 Hub：保留美術與現有出生點，只補 Wake、選單與啟動閘門。</summary>
-        [MenuItem("Tools/Prologue/Upgrade Hub Wiring")]
-        public static void UpgradePrologueWiring()
-        {
-            if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().path != ScenePath)
-                throw new System.InvalidOperationException("請先開啟 Hub 場景。");
-            var spawner = PlayerSpawnerBuilder.Find();
-            var layout = AssetDatabase.LoadAssetAtPath<HubLayoutData>(LayoutPath);
-            var flowData = AssetDatabase.LoadAssetAtPath<SceneFlowData>(SceneFlowBuilder.DataPath);
-            if (spawner == null || layout == null || flowData == null)
-                throw new System.InvalidOperationException("Hub 缺少 PlayerSpawner、HubLayout 或 SceneFlowData。");
-            var so = new SerializedObject(spawner);
-            var points = so.FindProperty("spawnPoints");
-            Transform parent = null, wake = null;
-            for (int i = 0; i < points.arraySize; i++)
-            {
-                var p = points.GetArrayElementAtIndex(i);
-                var point = p.FindPropertyRelative("point").objectReferenceValue as Transform;
-                if (point != null) parent = point.parent;
-                if (p.FindPropertyRelative("id").stringValue == flowData.wakeArrival) wake = point;
-            }
-            if (wake == null)
-            {
-                wake = new GameObject(flowData.wakeArrival).transform;
-                wake.SetParent(parent, false);
-                int index = points.arraySize++;
-                var entry = points.GetArrayElementAtIndex(index);
-                entry.FindPropertyRelative("id").stringValue = flowData.wakeArrival;
-                entry.FindPropertyRelative("point").objectReferenceValue = wake;
-            }
-            wake.SetPositionAndRotation(HubLayoutData.Ground(layout.wakeSpawn), Quaternion.Euler(0f, layout.wakeFacing, 0f));
-            so.ApplyModifiedPropertiesWithoutUndo();
-            EditorUtility.SetDirty(layout);
-            EditorUtility.SetDirty(flowData);
-            PauseMenuBuilder.Build();
-            SceneFlowBuilder.Build();
-            PlayerSpawnerBuilder.Wire();
-            SetBuildScenes();
-            EditorSceneManager.MarkSceneDirty(spawner.gameObject.scene);
         }
 
         // ---------- 地面、小路 ----------

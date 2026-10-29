@@ -514,6 +514,7 @@ namespace BossFight.EditorTools
             var flashComp = root.AddComponent<BossTelegraphFlash>();
             var fso = new SerializedObject(flashComp);
             fso.FindProperty("boss").objectReferenceValue = controller;
+            fso.FindProperty("palette").objectReferenceValue = CombatFeedbackBuilder.EnsureTelegraphPalette();
             var renderers = fso.FindProperty("renderers");
             renderers.arraySize = flash.Count;
             for (int i = 0; i < flash.Count; i++) renderers.GetArrayElementAtIndex(i).objectReferenceValue = flash[i];

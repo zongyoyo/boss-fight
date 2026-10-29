@@ -469,6 +469,31 @@ namespace BossFight.EditorTools
         }
 
         // 一條量條：深色底 → Inner（內縮 3）→ Trail（延遲扣血）、Fill
+        /// <summary>
+        /// Boss 自損那一截（大樹守衛二階段，ResourceBar.FlashLoss）：在量條的 Inner 裡、主條上面加一張 Image（預設藏起來，顏色在執行時讀 BattleUIData.selfCostColor），
+        /// 接到 ResourceBar.loss。已經有就沿用。
+        /// </summary>
+        public static void AddSelfCostSegment(ResourceBar bar)
+        {
+            if (bar == null) return;
+            var inner = bar.transform.Find("Inner");
+            if (inner == null) return;
+            var existing = inner.Find("SelfCost");
+            Image image;
+            if (existing != null) image = existing.GetComponent<Image>();
+            else
+            {
+                image = Img("SelfCost", inner, null, Color.white);
+                Stretch(image.rectTransform, Vector2.zero, Vector2.zero);
+            }
+            image.raycastTarget = false;
+            image.transform.SetAsLastSibling();
+            image.gameObject.SetActive(false);
+            var so = new SerializedObject(bar);
+            so.FindProperty("loss").objectReferenceValue = image.rectTransform;
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
         static ResourceBar Bar(string name, RectTransform parent, BattleUIData data, Vector2 pos, Vector2 size, bool trail, Color color)
         {
             var bg = Img(name, parent, null, new Color(0f, 0f, 0f, 0.6f));

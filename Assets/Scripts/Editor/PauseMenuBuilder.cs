@@ -67,10 +67,10 @@ namespace BossFight.EditorTools
         {
             var battle = Object.FindAnyObjectByType<BattleManager>();
             var hub = battle == null ? Object.FindAnyObjectByType<HubManager>() : null;
-            var prologue = Object.FindAnyObjectByType<PrologueSession>();
+            var prologue = Object.FindAnyObjectByType<InputLockArbiter>();
             if (battle == null && hub == null && prologue == null)
             {
-                Debug.LogError("[PauseMenu] 需要 BattleManager、HubManager 或 PrologueSession。");
+                Debug.LogError("[PauseMenu] 需要 BattleManager、HubManager 或 InputLockArbiter。");
                 return null;
             }
 
@@ -261,7 +261,7 @@ namespace BossFight.EditorTools
             var hintDevice = DaoDunDogBuilder.GetOrAdd<InputHintDevice>(options.gameObject);
             var battle = Object.FindAnyObjectByType<BattleManager>();
             var hub = Object.FindAnyObjectByType<HubManager>();
-            var prologue = Object.FindAnyObjectByType<PrologueSession>();
+            var prologue = Object.FindAnyObjectByType<InputLockArbiter>();
             var audio = Object.FindAnyObjectByType<AudioManager>();
 
             // 音量：選單試聽的 AudioSource、演出 Timeline 音軌的 AudioSource
@@ -287,27 +287,11 @@ namespace BossFight.EditorTools
             if (prologue != null)
             {
                 DaoDunDogBuilder.SetReference(prologue, "pause", pause);
-                DaoDunDogBuilder.SetReference(prologue, "options", options);
             }
 
-            // 開發者模式
+            // 開發者模式：每個場景一個 DeveloperMode，收齊這個場景的所有 Debug 工具
             var bossTools = Object.FindAnyObjectByType<BossDebugTools>();
-            if (bossTools != null)
-            {
-                var developer = bossTools.GetComponent<DeveloperMode>();
-                if (developer == null) developer = Undo.AddComponent<DeveloperMode>(bossTools.gameObject);
-                var tools = new List<Behaviour> { bossTools };
-                var panel = Object.FindAnyObjectByType<BalanceDebugPanel>();
-                if (panel != null) tools.Add(panel);
-                var overlay = Object.FindAnyObjectByType<PlayerDebugOverlay>();
-                if (overlay != null) tools.Add(overlay);
-                var so = new SerializedObject(developer);
-                so.FindProperty("options").objectReferenceValue = options;
-                so.FindProperty("pause").objectReferenceValue = pause;
-                so.FindProperty("bossTools").objectReferenceValue = bossTools;
-                IntroCutsceneBuilder.SetArray(so.FindProperty("tools"), tools);
-                so.ApplyModifiedProperties();
-            }
+            if (bossTools != null) DebugToolsBuilder.WireDeveloperMode(bossTools.gameObject, options, pause);
 
             // 按鍵提示跟著改鍵、跟著目前的裝置（鍵鼠／手把）
             foreach (var hud in Object.FindObjectsByType<BossHudUI>(FindObjectsInactive.Include, FindObjectsSortMode.None))

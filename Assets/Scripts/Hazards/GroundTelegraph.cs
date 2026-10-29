@@ -1,3 +1,4 @@
+using BossFight.Core;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
 
@@ -17,11 +18,8 @@ namespace BossFight.Hazards
     {
         [SerializeField] DecalProjector projector;
 
-        [Header("顏色（HDR，A 是整體不透明度）")]
-        [SerializeField] [ColorUsage(true, true)] Color blockableColor = new Color(1f, 1f, 1f, 0.9f);
-        [SerializeField] [ColorUsage(true, true)] Color unblockableColor = new Color(1f, 0.12f, 0.08f, 0.95f);
-        [Tooltip("安全區、安全指引（序章大樹守衛的萬根齊發）")]
-        [SerializeField] [ColorUsage(true, true)] Color safeColor = new Color(0.2f, 2f, 0.6f, 0.7f);
+        [Tooltip("紅、白、安全區綠的分類色（所有攻擊共用一份）")]
+        [SerializeField] TelegraphPaletteData palette;
 
         [Header("樣式")]
         [Tooltip("外框寬度 (m)")]
@@ -64,10 +62,11 @@ namespace BossFight.Hazards
         float holeRadius;
 
         public bool IsVisible => visible;
-        public Color BlockableColor => blockableColor;
-        public Color UnblockableColor => unblockableColor;
-        public Color SafeColor => safeColor;
-        public Color ColorFor(bool blockable) => blockable ? blockableColor : unblockableColor;
+        TelegraphPaletteData Palette => TelegraphPaletteData.Resolve(palette, this);
+        public Color BlockableColor => Palette.groundBlockable;
+        public Color UnblockableColor => Palette.groundUnblockable;
+        public Color SafeColor => Palette.groundSafe;
+        public Color ColorFor(bool blockable) => Palette.Ground(blockable);
 
         void Awake()
         {
@@ -83,7 +82,7 @@ namespace BossFight.Hazards
 
         /// <summary>以 groundCenter 為中心的圓（innerRadius &gt; 0 時是環），填色從 0 開始。</summary>
         public void ShowCircle(Vector3 groundCenter, float radius, bool blockable, float innerRadius = 0f) =>
-            ShowCircle(groundCenter, radius, blockable ? blockableColor : unblockableColor, innerRadius);
+            ShowCircle(groundCenter, radius, ColorFor(blockable), innerRadius);
 
         /// <summary>同上，但顏色另外指定（HDR，A 是整體不透明度），例如大迴旋的安全區。</summary>
         public void ShowCircle(Vector3 groundCenter, float radius, Color tint, float innerRadius = 0f)
@@ -103,7 +102,7 @@ namespace BossFight.Hazards
 
         /// <summary>從 groundStart 往 direction 長 length、寬 width 的長方形，填色從 0 開始。</summary>
         public void ShowRect(Vector3 groundStart, Vector3 direction, float length, float width, bool blockable) =>
-            ShowRect(groundStart, direction, length, width, blockable ? blockableColor : unblockableColor);
+            ShowRect(groundStart, direction, length, width, ColorFor(blockable));
 
         /// <summary>同上，但顏色另外指定。</summary>
         public void ShowRect(Vector3 groundStart, Vector3 direction, float length, float width, Color tint)

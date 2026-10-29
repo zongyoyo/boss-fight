@@ -12,7 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4d24ddb28d4c80d4e8a58a41b89a164e, type: 3}
   m_Name: GuardianBattle
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Battle.GuardianBattleData
-  startAfterTutorial: 0
   phaseDuration: 60
   guidanceAt: 56
   healthFloorRatio: 0.8
@@ -22,16 +21,15 @@ MonoBehaviour:
   transitionText: "\u5B88\u885B\u6E96\u5099\u5168\u529B\u61C9\u6230\u2026\u2026"
   bodyRadius: 1.1
   hurtHeight: 2
+  lockAimHeight: 4
+  lockFramingRadius: 3
+  lockOnPitch: 6
+  lockOnDistance: 8
+  markerOffset: {x: 0, y: 1.4, z: 0.8}
   selfCostRatio: 0.05
-  transitionLeadTime: 1
-  transitionDialogueTime: 3
-  transitionPushTime: 1
   transitionStageRadius: 6
-  transitionPushRadius: 9
   phase2Name: "\u5927\u6A39\u5B88\u885B\u30FB\u5168\u529B"
   guardianName: "\u5927\u6A39\u5B88\u885B"
   phase2Line: "\u5F88\u5C11\u6709\u4EBA\u80FD\u5805\u6301\u5230\u9019\u88E1\uFF0C\u6211\u8A8D\u53EF\u4F60\u4E86\uFF0C\u63A5\u4E0B\u4F86\u6211\u8981\u51FA\u5168\u529B\u4E86\u3002"
   phase2HealthColor: {r: 0.85, g: 0.06, b: 0.04, a: 1}
   selfCostFlashTime: 0.2
-  placeholderVictoryTime: 10
-  placeholderVictoryHint: "\u5927\u6A39\u5B88\u885B\u5012\u4E0B\u4E86\u2026\u2026"

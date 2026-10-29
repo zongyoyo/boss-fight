@@ -1,33 +1,60 @@
 using BossFight.Battle;
-using BossFight.Cutscene;
 using UnityEngine;
 using UnityEngine.UI;
+
 namespace BossFight.UI
 {
-    /// <summary>只訂閱流程事件；玩家 HUD 留用教學版本，Boss 面板沿用既有量條與頭暈倒數。</summary>
+    /// <summary>
+    /// 大樹守衛戰的 Boss 面板與提示：只訂閱 GuardianPhaseController。開戰時 Boss 面板從下方滑入（時間、距離、緩動跟 BattleUI 一樣，讀 BattleUIData），
+    /// 萬根齊發的事前提示與轉階段訊息顯示在 hint。玩家 HUD 沿用教學的；量條與頭暈倒數是 BossHudUI。
+    /// </summary>
     public class GuardianBattleUI : MonoBehaviour
     {
+        [SerializeField] BattleUIData data;
         [SerializeField] GuardianPhaseController guardian;
         [SerializeField] CanvasGroup bossGroup;
         [SerializeField] Text hint;
-        [SerializeField] PrologueOutcome outcome;
-        [SerializeField] PrologueCutsceneData presentation;
+
         RectTransform bar;
         Vector2 barHome;
-        float slideAge;
-        bool sliding;
-        void Awake() { bossGroup.alpha = 0f; bossGroup.blocksRaycasts = false; hint.text = string.Empty; bar = bossGroup.GetComponent<RectTransform>(); if (bar != null) barHome = bar.anchoredPosition; }
-        void OnEnable() { guardian.OnBattleStarted += Started; guardian.OnHintChanged += Hint; if (outcome != null) outcome.OnPresentationHint += Hint; }
-        void OnDisable() { guardian.OnBattleStarted -= Started; guardian.OnHintChanged -= Hint; if (outcome != null) outcome.OnPresentationHint -= Hint; }
-        void Started() { bossGroup.alpha = 1f; slideAge = 0f; sliding = presentation != null && bar != null; }
+        float slideStart = -1f; // 真實時間；< 0 = 沒有在滑
+
+        void Awake()
+        {
+            bossGroup.alpha = 0f;
+            bossGroup.blocksRaycasts = false;
+            hint.text = string.Empty;
+            bar = bossGroup.GetComponent<RectTransform>();
+            if (bar != null) barHome = bar.anchoredPosition;
+        }
+
+        void OnEnable()
+        {
+            guardian.OnBattleStarted += HandleBattleStarted;
+            guardian.OnHintChanged += HandleHint;
+        }
+
+        void OnDisable()
+        {
+            guardian.OnBattleStarted -= HandleBattleStarted;
+            guardian.OnHintChanged -= HandleHint;
+        }
+
+        void HandleBattleStarted()
+        {
+            bossGroup.alpha = 1f;
+            slideStart = bar != null && data != null ? Time.unscaledTime : -1f;
+        }
+
         void Update()
         {
-            if (!sliding) return;
-            slideAge += Time.deltaTime;
-            float t = presentation.hudSlideTime > 0f ? Mathf.Clamp01(slideAge / presentation.hudSlideTime) : 1f;
-            bar.anchoredPosition = barHome + Vector2.down * (180f * (1f - Mathf.SmoothStep(0f, 1f, t)));
-            if (t >= 1f) sliding = false;
+            if (slideStart < 0f) return;
+            float t = Mathf.Clamp01((Time.unscaledTime - slideStart) / data.bossBarSlideTime);
+            float ease = 1f - (1f - t) * (1f - t) * (1f - t);
+            bar.anchoredPosition = barHome + Vector2.down * (data.bossBarSlideDistance * (1f - ease));
+            if (t >= 1f) slideStart = -1f;
         }
-        void Hint(string value) => hint.text = value;
+
+        void HandleHint(string value) => hint.text = value;
     }
 }

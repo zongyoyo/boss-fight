@@ -18,26 +18,25 @@ namespace BossFight.UI
         [SerializeField] RectTransform trail;
         [Tooltip("扣的時候留延遲扣血；耐力這種一直變動的條關掉")]
         [SerializeField] bool useTrail = true;
+        [Tooltip("自損那一截（FlashLoss）；留空時沒有（只有大樹守衛的血條有）")]
+        [SerializeField] RectTransform loss;
 
         float target = 1f, shown = 1f, trailValue = 1f, trailHoldUntil;
         bool initialized, centered;
-        RectTransform loss;
         float lossUntil;
-        /// <summary>自損專用白色區段；主條照血量事件更新，白段停留後才消失。</summary>
+
+        /// <summary>自損：主條照血量更新，扣掉的那一截換成 selfCostColor 停 duration 秒（真實時間）才消失，不再疊一層延遲扣血。</summary>
         public void FlashLoss(float before, float after, float duration)
         {
-            Set(after, true); // 自損用白段保留原長度，不再疊一層一般黃色延遲扣血。
-            if (loss == null)
-            {
-                var go = new GameObject("SelfCostFlash", typeof(RectTransform), typeof(Image));
-                loss = (RectTransform)go.transform; loss.SetParent(fill.parent, false);
-                go.GetComponent<Image>().color = Color.white; go.GetComponent<Image>().raycastTarget = false;
-            }
+            Set(after, true);
+            if (loss == null) return;
             loss.anchorMin = new Vector2(Mathf.Clamp01(after), fill.anchorMin.y);
             loss.anchorMax = new Vector2(Mathf.Clamp01(before), fill.anchorMax.y);
             loss.offsetMin = loss.offsetMax = Vector2.zero;
-            loss.gameObject.SetActive(true); lossUntil = Time.unscaledTime + duration;
+            loss.gameObject.SetActive(true);
+            lossUntil = Time.unscaledTime + duration;
         }
+
         float fillMinX;
 
         /// <summary>主條的 Image（擁有者用來換顏色、閃爍）；沒有時為 null。</summary>
@@ -47,6 +46,12 @@ namespace BossFight.UI
         {
             FillImage = fill != null ? fill.GetComponent<Image>() : null;
             if (fill != null) fillMinX = fill.anchorMin.x;
+            if (loss != null)
+            {
+                var lossImage = loss.GetComponent<Image>();
+                if (lossImage != null) lossImage.color = data.selfCostColor;
+                loss.gameObject.SetActive(false);
+            }
             if (trail == null) return;
             trail.gameObject.SetActive(useTrail);
             var trailImage = trail.GetComponent<Image>();

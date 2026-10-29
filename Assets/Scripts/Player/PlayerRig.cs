@@ -40,6 +40,31 @@ namespace BossFight.Player
         public Transform FaceAnchor => faceAnchor;
         /// <summary>目前套用的數值（還沒 ApplyStats 時是 prefab 上接的資產）。</summary>
         public PlayerStats Stats => controller != null ? controller.Stats : null;
+        /// <summary>受擊範圍的 Collider（Hurtbox 那一個）；Boss 判定「玩家 Hurtbox 中心在圈內」、翻滾閃避用。</summary>
+        public Collider HurtCollider
+        {
+            get
+            {
+                if (hurtCollider == null)
+                {
+                    var hurtbox = GetComponentInChildren<Hurtbox>(true);
+                    hurtCollider = hurtbox != null ? hurtbox.GetComponent<Collider>() : null;
+                }
+                return hurtCollider;
+            }
+        }
+        /// <summary>身體半徑（CharacterController 的 radius，m）。</summary>
+        public float BodyRadius
+        {
+            get
+            {
+                if (body == null) body = GetComponent<CharacterController>();
+                return body != null ? body.radius : 0f;
+            }
+        }
+
+        Collider hurtCollider;
+        CharacterController body;
 
         /// <summary>
         /// 換進 PlayerController／Health／Stamina／Attack 的數值。refill 時補滿血量、耐力與骨頭（生成時、休息區換裝或點技能後），

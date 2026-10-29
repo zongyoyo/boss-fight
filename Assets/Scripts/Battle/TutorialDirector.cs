@@ -22,7 +22,7 @@ namespace BossFight.Battle
     public class TutorialDirector : MonoBehaviour, IPlayerBinding
     {
         [SerializeField] TutorialData data;
-        [SerializeField] PrologueSession session;
+        [SerializeField] InputLockArbiter session;
         [SerializeField] DialogueSession dialogue;
         [SerializeField] DaisyMentor mentor;
         [SerializeField] TrainingSapling sapling;
@@ -45,7 +45,16 @@ namespace BossFight.Battle
         float progress, delayLeft, greetingLeft;
         TutorialLine[] lines;
         Action sequenceFinished;
+        Action debugResume; // 開發者跳步：菊花冒出來之後接著做的事
         TutorialStepData Step => stepIndex >= 0 && stepIndex < data.steps.Length ? data.steps[stepIndex] : null;
+
+        /// <summary>教學的資料（說話者、對白）；演出流程借用菊花的名字。</summary>
+        public TutorialData Data => data;
+        /// <summary>目前第幾步（0 起算）；還沒開始時 -1，結尾之後等於步數。</summary>
+        public int StepIndex => stepIndex;
+        public int StepCount => data.steps.Length;
+        /// <summary>教學還在進行（可以跳步）。</summary>
+        public bool IsRunning => started && stage != Stage.Burrow && stage != Stage.Complete;
 
         void Awake() => interactAction = InputSystem.actions?.FindAction("Player/Interact", true);
 
@@ -137,6 +146,13 @@ namespace BossFight.Battle
         }
         void HandleEmerged()
         {
+            if (debugResume != null)
+            {
+                var resume = debugResume;
+                debugResume = null;
+                resume();
+                return;
+            }
             if (!started || stage != Stage.Emerge) return;
             stage = Stage.Inviting;
             // 招呼只逐字顯示，不攔操作、不要求按鍵讀完；靠近後的互動才接正式劇情。
@@ -375,12 +391,61 @@ namespace BossFight.Battle
         /// <summary>交棒或開發捷徑中止教學；不偽造完成、不改存檔。</summary>
         public void Abort()
         {
-            stage = Stage.Complete; started = false;
+            stage = Stage.Complete; started = false; debugResume = null;
             waitingLine = waitingCue = retryCue = sideDialogue = prankPending = parryPending = false;
             sequenceFinished = null; lines = null; delayLeft = greetingLeft = 0f;
             dialogue.Hide(); sapling.SetMode(SaplingMode.Idle); sapling.Despawn(SaplingDespawnReason.Cleared);
             mentor.CancelActions(); PublishState(); session.SetInputLocked(this, false); enabled = false;
         }
+
+        // ---------- 開發者工具（序章面板的跳步，只給 Debug 呼叫） ----------
+
+        /// <summary>開發者跳到第 index 步（0 起算）：中止目前的對白與動作，菊花重新冒出、小樹精重新出現後播那一步的開場對白。</summary>
+        public bool DebugJumpToStep(int index)
+        {
+            if (!IsRunning || index < 0 || index >= data.steps.Length) return false;
+            DebugRestart(() =>
+            {
+                stepIndex = index - 1;
+                NextStep();
+            });
+            return true;
+        }
+
+        /// <summary>開發者直接完成教學：中止目前的對白與動作，接結尾的鑽回（之後照常交給登場演出）。</summary>
+        public bool DebugComplete()
+        {
+            if (!IsRunning) return false;
+            DebugRestart(() =>
+            {
+                stepIndex = data.steps.Length;
+                if (sapling.IsAlive) sapling.Despawn(SaplingDespawnReason.Cleared);
+                stage = Stage.Burrow;
+                PublishState();
+                session.SetInputLocked(this, true);
+                OnEndingBurrowStarted?.Invoke();
+                mentor.Burrow();
+            });
+            return true;
+        }
+
+        void DebugRestart(Action resume)
+        {
+            waitingLine = waitingCue = retryCue = sideDialogue = prankPending = parryPending = parrySaid = false;
+            sequenceFinished = null;
+            lines = null;
+            delayLeft = greetingLeft = 0f;
+            progress = 0f;
+            dialogue.Hide();
+            if (sapling.IsAlive) sapling.Despawn(SaplingDespawnReason.Cleared);
+            sapling.Appear();
+            stage = Stage.Opening;
+            session.SetInputLocked(this, true);
+            debugResume = resume;
+            mentor.CancelActions();
+            mentor.Emerge(); // 冒出來之後 HandleEmerged 接著做 resume
+        }
+
         public void PublishState() => OnViewChanged?.Invoke(new TutorialView(Step, progress,
             stage == Stage.Operating || stage == Stage.Completing || (stage == Stage.Inviting && inInteractionRange),
             stage == Stage.Completing, stage == Stage.Inviting && inInteractionRange ? data.interactionHint : null));

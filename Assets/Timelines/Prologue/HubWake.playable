@@ -871,7 +871,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Cutscene.CutsceneCueMarker
   m_Time: 3.998999999999
-  cue: SequenceEnd
+  kind: 1
+  cue: 
 --- !u!114 &5179402096196021211
 MonoBehaviour:
   m_ObjectHideFlags: 1

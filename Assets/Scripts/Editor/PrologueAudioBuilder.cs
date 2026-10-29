@@ -40,6 +40,7 @@ namespace BossFight.EditorTools
                 { "rootBurst", new[] { clips["RootBurst"] } },
                 { "seedBlast", new[] { clips["SeedBlast"] } },
                 { "summon", new[] { clips["Summon"] } },
+                { "barkPeel", new[] { clips["WoodKnock"] } },
                 { "saplingHurt", new[] { clips["WoodKnock"] } },
                 { "daisyChatter", new[] { clips["Chatter"] } },
             };

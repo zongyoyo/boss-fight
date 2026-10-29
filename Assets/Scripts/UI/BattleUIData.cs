@@ -66,6 +66,8 @@ namespace BossFight.UI
         public Color bossHealthColor = new Color(0.72f, 0.18f, 0.85f);
         [Tooltip("延遲扣血（淺色）")]
         public Color trailColor = new Color(1f, 0.9f, 0.65f);
+        [Tooltip("Boss 自損（大樹守衛二階段每次出招）扣掉的那一截，停留後消失")]
+        public Color selfCostColor = Color.white;
         public Color staggerColor = new Color(1f, 0.78f, 0.2f);
         [Tooltip("頭暈中失衡條（倒數）的顏色")]
         public Color stunnedColor = new Color(1f, 1f, 0.75f);
@@ -94,6 +96,8 @@ namespace BossFight.UI
         public string defeatButton = "重試";
         [Tooltip("重試按鈕右邊的按鈕（勝敗共用）")]
         public string returnToHubButton = "返回休息區";
+        [Tooltip("只有「返回休息區」一顆按鈕時（序章）它的水平位置；0 = 置中")]
+        public float singleButtonX = 0f;
         public Color victoryColor = new Color(1f, 0.85f, 0.4f);
         [Tooltip("戰敗大字剛出現的顏色")]
         public Color defeatTitleStartColor = Color.white;

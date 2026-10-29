@@ -18,6 +18,7 @@ namespace BossFight.UI
     /// 戰敗的文字、顏色、字級、高度都讀 BattleUIData（Awake 時套用，改資產不用重建）。
     /// 按鈕呼叫 BattleManager.Retry（重新載入場景，之後開場可以長按跳過）；出現時把按鈕設為選取，Enter／手把 A 也能按。
     /// 右邊的「返回休息區」呼叫 BattleManager.ReturnToHub（不先確認，跟重試一樣直接走；勝敗共用）。
+    /// 序章（prologue 有接）：只顯示「返回休息區」並置中，不顯示通關時間與挑戰次數。
     /// Boss 名稱來自開場字卡（CutsceneDirector.OnTitleCard），沒有時用 BattleUIData.fallbackBossName。按鈕下面不放按鍵提示（勝敗都一樣）。
     /// </summary>
     [DisallowMultipleComponent]
@@ -139,7 +140,17 @@ namespace BossFight.UI
                 retryLabel.text = data.defeatButton;
             }
             if (hubLabel != null) hubLabel.text = data.returnToHubButton;
-            if (prologue != null) { retryButton.gameObject.SetActive(false); statsText.text = string.Empty; }
+            if (prologue != null)
+            {
+                // 序章只有「返回休息區」一顆按鈕：置中（BattleUIData.singleButtonX）
+                retryButton.gameObject.SetActive(false);
+                statsText.text = string.Empty;
+                if (hubButton != null)
+                {
+                    var rt = (RectTransform)hubButton.transform;
+                    rt.anchoredPosition = new Vector2(data.singleButtonX, rt.anchoredPosition.y);
+                }
+            }
             shownAt = Time.unscaledTime;
             group.interactable = true;
             group.blocksRaycasts = true;

@@ -16,7 +16,7 @@ namespace BossFight.Cutscene
         [NonSerialized] public double clipDuration;
         public override void ProcessFrame(Playable playable, FrameData info, object binding)
         {
-            if (!Application.isPlaying || info.effectiveWeight <= 0f || !(binding is CinematicStage stage)) return;
+            if (!Application.isPlaying || info.effectiveWeight <= 0f || !(binding is PrologueCinematicStage stage)) return;
             stage.Apply(channel, curve.Evaluate(CurveBehaviour.ClipProgress(playable, clipDuration)));
         }
     }

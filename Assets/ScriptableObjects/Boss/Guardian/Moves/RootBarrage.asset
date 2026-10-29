@@ -43,6 +43,13 @@ MonoBehaviour:
   scatter: 0
   nearCount: 0
   centerHeight: 0
+  previewLength: 3.5
+  leadWidth: 1.2
+  waves: 1
+  secondAngle: 0
+  trackLast: 0
+  reverseSecond: 0
+  angleOffset: 0
   outerWarning: 1
   innerWarning: 0.8
   crossWarning: 0.7

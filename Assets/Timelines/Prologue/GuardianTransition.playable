@@ -67,7 +67,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Cutscene.CutsceneCueMarker
   m_Time: 4.998999999999
-  cue: SequenceEnd
+  kind: 1
+  cue: 
 --- !u!114 &-3004102549164852377
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -135,7 +136,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Cutscene.CutsceneCueMarker
   m_Time: 1
-  cue: TransitionLine
+  kind: 2
+  cue: 
 --- !u!114 &-1699199866772878482
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -566,7 +568,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Cutscene.CutsceneCueMarker
   m_Time: 4
-  cue: Power
+  kind: 3
+  cue: 
 --- !u!114 &7734173282115330534
 MonoBehaviour:
   m_ObjectHideFlags: 1
