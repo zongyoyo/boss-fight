@@ -263,7 +263,7 @@ namespace BossFight.EditorTools
             Set(hud, "inputNames", AssetDatabase.LoadAssetAtPath<InputNameData>("Assets/ScriptableObjects/UI/InputNameData.asset"));
             var battleUI = AssetDatabase.LoadAssetAtPath<BattleUIData>("Assets/ScriptableObjects/UI/BattleUIData.asset");
             var marker = BattleUIBuilder.BuildLockMarker(root.transform as RectTransform, battleUI, UnityEngine.Camera.main);
-            Set(marker.parent.GetComponent<LockOnMarkerUI>(), "executionMarker", Object.FindAnyObjectByType<ExecutionMarkerUI>());
+            BattleUIBuilder.WireAllExecutionMarkers();
             var style = AssetDatabase.LoadAssetAtPath<HubUIData>(StylePath);
             var box = Rect("Dialogue", root.transform, new Vector2(0.5f, 0f), new Vector2(0f, style.dialogueY), style.dialogueSize);
             box.pivot = new Vector2(0.5f, 0f);
@@ -337,7 +337,13 @@ namespace BossFight.EditorTools
             Require(Object.FindAnyObjectByType<PrologueActorBinding>(), "mentor", "sapling", "session");
             Require(Object.FindAnyObjectByType<TutorialHudUI>(), "director", "data", "hintDevice", "inputNames", "group", "label", "counter", "playerHud");
             Require(Object.FindAnyObjectByType<DialogueUI>(), "data", "session", "pause", "group", "speakerText", "bodyText", "continueMark");
-            Require(Object.FindAnyObjectByType<LockOnMarkerUI>(), "data", "viewCamera", "marker", "executionMarker");
+            var lockMarker = Object.FindAnyObjectByType<LockOnMarkerUI>();
+            Require(lockMarker, "data", "viewCamera", "marker");
+            var wired = new SerializedObject(lockMarker).FindProperty("executionMarkers");
+            int markerCount = Object.FindObjectsByType<ExecutionMarkerUI>(FindObjectsInactive.Include, FindObjectsSortMode.None).Length;
+            if (wired.arraySize != markerCount) throw new InvalidOperationException(lockMarker.name + ": executionMarkers 接了 " + wired.arraySize + " 個，場景有 " + markerCount + " 個（Tools > Prologue 重跑 Build Tutorial）");
+            for (int i = 0; i < wired.arraySize; i++)
+                if (wired.GetArrayElementAtIndex(i).objectReferenceValue == null) throw new InvalidOperationException(lockMarker.name + ": executionMarkers 有空格");
             foreach (var feedback in Object.FindObjectsByType<TeachingActorFeedback>(FindObjectsSortMode.None))
             {
                 Require(feedback, "sparkPrefab", "impactAnchor");

@@ -105,7 +105,7 @@ namespace BossFight.EditorTools
             IntroCutsceneBuilder.Stretch(hud);
             var marker = BuildLockMarker(hud, data, mainCamera);
             var execution = BuildExecutionMarker(hud, data, boss, mainCamera);
-            DaoDunDogBuilder.SetReference(marker.parent.GetComponent<LockOnMarkerUI>(), "executionMarker", execution);
+            WireExecutionMarkers(marker.parent.GetComponent<LockOnMarkerUI>(), new[] { execution });
             BuildPlayerHud(hud, data);
 
             // ---------- Boss ----------
@@ -323,6 +323,26 @@ namespace BossFight.EditorTools
         }
 
         // ---------- 鎖定標記 ----------
+
+        /// <summary>把處決標記清單接到鎖定標記（任一個顯示時藏起菱形）。序章有小樹精與大樹守衛兩個，教學與守衛重建後都要重接。</summary>
+        public static void WireExecutionMarkers(LockOnMarkerUI lockMarker, ExecutionMarkerUI[] markers)
+        {
+            if (lockMarker == null) return;
+            var so = new SerializedObject(lockMarker);
+            var array = so.FindProperty("executionMarkers");
+            array.arraySize = markers.Length;
+            for (int i = 0; i < markers.Length; i++) array.GetArrayElementAtIndex(i).objectReferenceValue = markers[i];
+            so.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(lockMarker);
+        }
+
+        /// <summary>場景裡所有的處決標記接到所有的鎖定標記（序章用：教學、守衛哪個先重建都一樣）。</summary>
+        public static void WireAllExecutionMarkers()
+        {
+            var markers = Object.FindObjectsByType<ExecutionMarkerUI>(FindObjectsInactive.Include, FindObjectsSortMode.InstanceID);
+            foreach (var lockMarker in Object.FindObjectsByType<LockOnMarkerUI>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                WireExecutionMarkers(lockMarker, markers);
+        }
 
         public static RectTransform BuildLockMarker(RectTransform parent, BattleUIData data, Camera mainCamera)
         {

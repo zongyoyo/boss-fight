@@ -152,6 +152,7 @@ namespace BossFight.EditorTools
             actor.GetComponent<FeedbackEmitter>().SetAudioManager(Object.FindAnyObjectByType<AudioManager>());
             Set(actor.GetComponent<BossDamageFeedback>(), "viewCamera", UnityEngine.Camera.main.transform);
             BuildUI(controller, boss, ui);
+            BattleUIBuilder.WireAllExecutionMarkers(); // 守衛的處決標記重建了，教學的鎖定標記要重接（不然 Validate Prologue 擋下）
             PlayerSpawnerBuilder.Wire();
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);

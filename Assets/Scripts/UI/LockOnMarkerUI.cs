@@ -17,13 +17,13 @@ namespace BossFight.UI
         [SerializeField] Camera viewCamera;
         [Tooltip("標記（父物件是全螢幕的 RectTransform）")]
         [SerializeField] RectTransform marker;
-        [Tooltip("處決標記；出現時藏起鎖定菱形（可留空）")]
-        [SerializeField] ExecutionMarkerUI executionMarker;
+        [Tooltip("處決標記；任一個出現時藏起鎖定菱形（可留空；序章有小樹精與大樹守衛兩個）")]
+        [SerializeField] ExecutionMarkerUI[] executionMarkers;
 
         LockOnTarget target;
         RectTransform area;
         float shownTime;
-        bool hiddenByExecution;
+        int executionShown; // 目前顯示中的處決標記數
         PlayerController player; // PlayerSpawner 交給 BindPlayer
         bool subscribed;
 
@@ -45,21 +45,24 @@ namespace BossFight.UI
         void OnEnable()
         {
             if (player != null) player.OnLockTargetChanged += HandleLockTargetChanged;
-            if (executionMarker != null) executionMarker.OnShownChanged += HandleExecutionMarker;
+            if (executionMarkers != null)
+                foreach (var m in executionMarkers) if (m != null) m.OnShownChanged += HandleExecutionMarker;
             subscribed = true;
         }
 
         void OnDisable()
         {
             if (player != null) player.OnLockTargetChanged -= HandleLockTargetChanged;
-            if (executionMarker != null) executionMarker.OnShownChanged -= HandleExecutionMarker;
+            if (executionMarkers != null)
+                foreach (var m in executionMarkers) if (m != null) m.OnShownChanged -= HandleExecutionMarker;
+            executionShown = 0;
             subscribed = false;
         }
 
         void HandleExecutionMarker(bool shown)
         {
-            hiddenByExecution = shown;
-            if (!shown) shownTime = Time.unscaledTime; // 處決標記消失後重新彈出
+            executionShown = Mathf.Max(0, executionShown + (shown ? 1 : -1));
+            if (executionShown == 0) shownTime = Time.unscaledTime; // 處決標記都消失後重新彈出
         }
 
         void HandleLockTargetChanged(LockOnTarget next)
@@ -70,7 +73,7 @@ namespace BossFight.UI
 
         void LateUpdate()
         {
-            bool visible = target != null && viewCamera != null && !hiddenByExecution;
+            bool visible = target != null && viewCamera != null && executionShown == 0;
             Vector3 screen = Vector3.zero;
             if (visible)
             {

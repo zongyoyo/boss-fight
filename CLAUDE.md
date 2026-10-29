@@ -278,7 +278,7 @@ ScriptableObject 的「類別」寫在 `Scripts/` 對應的系統資料夾，「
 - 序章開場：`PrologueCutsceneFlow.Start` 先播 `PrologueOpening`（`PrologueCutsceneData.openingDuration`；MoundPeek cue 讓菊花 `Peek`），播完（或被中止）才 `TutorialDirector.StartApproach`。有接演出時 PrologueCutsceneBuilder 把 `TutorialDirector.autoStart` 關掉、`roarSource` 接守衛本體；沒接演出時教學在 Start 自己開始。北側的焦黑樹根（`ForeshadowRoots`）由 PrologueCinematicStage 的 Rise 收掉。
 - 守衛伏筆的聲音：地鳴與處決後的低吼由 Tutorial 物件上的 FeedbackEmitter 播（`TutorialData.rumble`／`distantRoar`／`boneToss`，佔位音 Tremor、Roar、Toss 由 TutorialBuilder 只填空欄位）。巴掌不加慢動作（使用者決定，不加盾反以外的畫面停頓），改用特寫與軀幹條閃白（TrainingSaplingHudUI）。
 - 村長交接（I2，使用者決定）：開場（擊倒版／勝利版／沒有序章結果）講完，`VillageChief.CompleteIntroDialogue` 記看過並回傳可接的任務，HubDialogueUI 接著 `VillageChief.Offer` 講任務說明，講完問「接受／再想想」。三種開場的最後一句只負責引出任務，怪貓與雷雨的說明只在 `QuestData.offerLines`，不要在開場重講。互動提示依頭上標記換動詞（`HubUIData.chiefNewQuestVerb`／`chiefTurnInVerb`，InteractionPromptUI 訂閱 `VillageChief.OnMarkerChanged`）；村長在原位、有標記時轉身看 `HubStoryData.greetRadius` 內的玩家（VillageChief 是 IPlayerBinding）。回原位揮手延後到有模型。
-- 已知：重跑 Build Guardian 會重建守衛 UI，教學 LockOn 的 `executionMarker` 會變成空的（Validate Prologue 擋下），再跑一次 Build Tutorial 就接回；照從頭重建順序最後也要補跑一次。
+- 鎖定標記 `LockOnMarkerUI.executionMarkers` 是清單，任一個處決標記顯示時藏起菱形（序章有小樹精與大樹守衛兩個）。Build Tutorial、Build Guardian 結尾都呼叫 `BattleUIBuilder.WireAllExecutionMarkers` 重接，哪個先重建都一樣（BossArena 的 Build Battle UI 只接自己那一個）；Validate Prologue 檢查數量與場景裡的處決標記相同。
 - 背景驗收（G＋H＋I）：教學用 `EditorApplication.update` 掛一個驅動，反射呼叫 `BeginStory`、`AddProgress`，對白用 `DialogueSession.Advance`；休息區先備份 `save.json`，改成 `prologueDone: true`、`storyIntroSeen: false`、`prologueResult` 1／2，HubDialogueUI 的按鈕用 `onClick.Invoke`，重開村長用反射呼叫 `HubManager.Open`。驅動晚於對話開始掛上時要先 `DialogueSession.PublishState()`。**進 Play 結束時 ProfileStore 會寫回 `save.json`**，測完一定要還原備份。
 
 ## 工作流程

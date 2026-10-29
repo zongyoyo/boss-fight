@@ -16710,6 +16710,9 @@ MonoBehaviour:
   healKeyText: {fileID: 1876214939}
   inputNames: {fileID: 11400000, guid: 71e9d9ddd0501574ea128bcc81e2714b, type: 2}
   hintDevice: {fileID: 394135890}
+  boneFlashTime: 1.5
+  boneFlashScale: 0.4
+  boneFlashPulses: 3
 --- !u!1 &1085118520
 GameObject:
   m_ObjectHideFlags: 0
@@ -31294,7 +31297,8 @@ MonoBehaviour:
   data: {fileID: 11400000, guid: f65f0d74436ff7c499f6347f68841621, type: 2}
   viewCamera: {fileID: 1411419183}
   marker: {fileID: 923400659}
-  executionMarker: {fileID: 1255087246}
+  executionMarkers:
+  - {fileID: 1255087246}
 --- !u!1 &2144863966
 GameObject:
   m_ObjectHideFlags: 0
