@@ -58,3 +58,6 @@ MonoBehaviour:
   safeCount: 3
   safeRadius: 0
   reachableDistance: 0
+  spikeCount: 24
+  spikeRadius: 0.3
+  ringStagger: 0.5

@@ -11,6 +11,7 @@ namespace BossFight.Hazards
     /// 圓形以中心定位（innerRadius &gt; 0 時是環）；長方形從起點往 direction 長出去，填色也從起點往前長。
     /// 序章修正（C1、C7）加上扇形（由中心往外填）、十字（由中心沿四條臂往外填）、全場（由填色起點往外填），
     /// 以及 SetClip 裁切到場地內、SetHoles 挖掉最多 3 個安全圈；安全區的綠色（SafeColor）也在這裡，跟紅、白同一個 prefab。
+    /// 圓與環可以 SetSegments 切成等角度的小段（樹根環障一根刺一段，試玩回饋）。
     /// 每個實例用自己的材質複本，參數直接改材質。這裡的數字全是視覺參數。
     /// </summary>
     [DisallowMultipleComponent]
@@ -60,6 +61,8 @@ namespace BossFight.Hazards
         readonly Vector3[] holes = new Vector3[MaxHoles];
         int holeCount;
         float holeRadius;
+        int segmentCount;
+        float segmentPhase, segmentHalfWidth;
 
         public bool IsVisible => visible;
         TelegraphPaletteData Palette => TelegraphPaletteData.Resolve(palette, this);
@@ -163,6 +166,17 @@ namespace BossFight.Hazards
             if (visible) Apply();
         }
 
+        /// <summary>
+        /// 圓或環只畫 count 個等角度的小段（每段沿弧長半寬 halfWidth m，第一段在世界角度 phase 度：0 = 北、順時針）；count 0 取消。Show 會重設。
+        /// </summary>
+        public void SetSegments(int count, float phase, float halfWidth)
+        {
+            segmentCount = Mathf.Max(0, count);
+            segmentPhase = phase;
+            segmentHalfWidth = halfWidth;
+            if (visible) Apply();
+        }
+
         /// <summary>移動長方形，不重設填色（預兆期間跟著 Boss 轉）。</summary>
         public void MoveRect(Vector3 groundStart, Vector3 direction, float length, float width)
         {
@@ -193,6 +207,7 @@ namespace BossFight.Hazards
         {
             hasSource = hasClip = false;
             holeCount = 0;
+            segmentCount = 0;
             fill = 0f;
             flash = 0f;
             fading = false;
@@ -246,9 +261,12 @@ namespace BossFight.Hazards
             material.SetVector(ParamsId, new Vector4(shape, fill, inner, flash));
             material.SetVector(StyleId, new Vector4(edgeWidth, fillAlpha, areaAlpha, emission));
             Vector2 origin = hasSource ? Local(source) : Vector2.zero;
-            material.SetVector(SizeId, new Vector4(boxSize.x, boxSize.y, hasSource ? origin.x : extra, hasSource ? origin.y : 0f));
+            // 圓／環的分段放在其他形狀才用的 Size.zw 與 Field.w（投影的 +y 是世界北方，見 ShowCircle）
+            bool segmented = shape == 0f && segmentCount > 0;
+            material.SetVector(SizeId, segmented ? new Vector4(boxSize.x, boxSize.y, segmentCount, segmentHalfWidth)
+                : new Vector4(boxSize.x, boxSize.y, hasSource ? origin.x : extra, hasSource ? origin.y : 0f));
             Vector2 clip = hasClip ? Local(clipCenter) : Vector2.zero;
-            material.SetVector(FieldId, new Vector4(clip.x, clip.y, hasClip ? clipRadius : 0f, 0f));
+            material.SetVector(FieldId, new Vector4(clip.x, clip.y, hasClip ? clipRadius : 0f, segmented ? segmentPhase : 0f));
             for (int i = 0; i < MaxHoles; i++)
             {
                 Vector2 hole = i < holeCount ? Local(holes[i]) : Vector2.zero;

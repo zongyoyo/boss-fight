@@ -36,14 +36,14 @@ namespace BossFight.Cutscene
         public ShotSetting[] shots =
         {
             new ShotSetting { shot = TutorialShot.TwoShot },
-            new ShotSetting { shot = TutorialShot.Mentor, anchor = ShotAnchor.Mentor, offset = new Vector3(0.35f, 0.75f, -1.7f), lookOffset = new Vector3(0f, 0.5f, 0f), fieldOfView = 40f },
+            new ShotSetting { shot = TutorialShot.Mentor, anchor = ShotAnchor.Mentor, offset = new Vector3(0.35f, 1f, -2f), lookOffset = new Vector3(0f, 0.85f, 0f), fieldOfView = 40f },
             new ShotSetting { shot = TutorialShot.Summon, anchor = ShotAnchor.Player, offset = new Vector3(-1.4f, 1.9f, -2.6f), lookAt = ShotAnchor.MentorSapling, lookOffset = new Vector3(0f, 0.4f, 0f), fieldOfView = 50f },
             new ShotSetting { shot = TutorialShot.Whip, anchor = ShotAnchor.PlayerMentor, offset = new Vector3(3.2f, 1.3f, -0.6f), lookAt = ShotAnchor.PlayerMentor, lookOffset = new Vector3(0f, 0.6f, 0f), fieldOfView = 50f },
             new ShotSetting { shot = TutorialShot.Demo, anchor = ShotAnchor.Player, frameTo = ShotAnchor.Sapling, offset = new Vector3(1.6f, 3.6f, -2.2f), lookAt = ShotAnchor.Sapling, lookOffset = new Vector3(0f, 0f, 1.4f), fieldOfView = 55f },
             new ShotSetting { shot = TutorialShot.SaplingBars, anchor = ShotAnchor.Sapling, frameTo = ShotAnchor.Sapling, offset = new Vector3(0.4f, 1.3f, -2.4f), lookAt = ShotAnchor.Sapling, lookOffset = new Vector3(0f, 1.6f, 0f), fieldOfView = 45f },
             new ShotSetting { shot = TutorialShot.Slap, anchor = ShotAnchor.MentorSapling, frameTo = ShotAnchor.MentorSapling, offset = new Vector3(1.8f, 1.1f, -2.4f), lookAt = ShotAnchor.MentorSapling, lookOffset = new Vector3(0f, 0.5f, 0f), fieldOfView = 45f },
             new ShotSetting { shot = TutorialShot.Sapling, anchor = ShotAnchor.Sapling, frameTo = ShotAnchor.Sapling, offset = new Vector3(0.9f, 1.4f, -2.4f), lookAt = ShotAnchor.Sapling, lookOffset = new Vector3(0f, 0.8f, 0f), fieldOfView = 45f },
-            new ShotSetting { shot = TutorialShot.Reveal, anchor = ShotAnchor.Mentor, offset = new Vector3(0.15f, 0.65f, -1.3f), lookOffset = new Vector3(0f, 0.55f, 0f), fieldOfView = 35f },
+            new ShotSetting { shot = TutorialShot.Reveal, anchor = ShotAnchor.Mentor, offset = new Vector3(0.15f, 0.95f, -1.5f), lookOffset = new Vector3(0f, 0.92f, 0f), fieldOfView = 35f },
         };
 
         public ShotSetting Get(TutorialShot shot)

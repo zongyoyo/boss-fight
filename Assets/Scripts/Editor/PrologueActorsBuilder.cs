@@ -51,7 +51,7 @@ namespace BossFight.EditorTools
             var sapling = binding != null ? new SerializedObject(binding).FindProperty("sapling").objectReferenceValue as TrainingSapling : null;
             var hud = Object.FindAnyObjectByType<TrainingSaplingHudUI>(FindObjectsInactive.Include);
             Require(mentor, "data", "whipHitbox", "hurtCollider");
-            Require(sapling, "data", "attackHitbox", "hurtCollider");
+            Require(sapling, "data", "attackHitbox", "hurtCollider", "bodyCollider");
             Require(mentor.GetComponent<DaisyMentorVisual>(), "mentor", "model", "flower", "petalHand", "vine", "smile", "bone");
             Require(sapling.GetComponent<TrainingSaplingVisual>(), "sapling", "model", "branch", "stars", "leavesPrefab", "telegraphPrefab", "palette");
             Require(sapling.GetComponent<BossHitFeedback>(), "boss", "sparkPrefab");
@@ -177,6 +177,11 @@ namespace BossFight.EditorTools
                     Prim("Knob", bone, PrimitiveType.Sphere, new Vector3(side, 0f, end), Vector3.one * 0.07f, boneMat);
             bone.gameObject.SetActive(false);
             Set(visual, "smile", smile.transform); Set(visual, "bone", bone);
+            // 開場「土堆動兩下」：扁球土包，平時頂端在地面下 1 cm、關著；Peek 時鼓起並噴一點土
+            var earth = Mat("DaisyMound", new Color(0.62f, 0.53f, 0.34f));
+            var mound = Prim("Mound", root.transform, PrimitiveType.Sphere, new Vector3(0f, -0.16f, 0f), new Vector3(0.9f, 0.3f, 0.9f), earth);
+            mound.SetActive(false);
+            Set(visual, "mound", mound.transform); Set(visual, "dirt", BuildDirt(root.transform, earth));
             var prefab = PrefabUtility.SaveAsPrefabAsset(root, DaisyPrefabPath);
             Object.DestroyImmediate(root);
             return prefab;
@@ -222,7 +227,16 @@ namespace BossFight.EditorTools
             var hitbox = Node("BranchHitbox", root.transform, Vector3.zero).gameObject.AddComponent<Hitbox>();
             SetHitbox(hitbox, root.transform);
             var hurt = Hurt(root.transform, actor, new Vector3(0f, 0.45f, 0f), new Vector3(0.45f, 0.9f, 0.45f));
-            Set(actor, "data", data); Set(actor, "attackHitbox", hitbox); Set(actor, "hurtCollider", hurt);
+            // 實心碰撞照 OIIA 貓（BossBuilder）：kinematic Rigidbody＋根物件上的 CapsuleCollider（Default 層，不擋 Hurtbox 判定），大小照資料
+            var rb = root.AddComponent<Rigidbody>();
+            rb.isKinematic = true;
+            rb.useGravity = false;
+            var body = root.AddComponent<CapsuleCollider>();
+            body.radius = data.bodyRadius;
+            body.height = Mathf.Max(data.bodyHeight, data.bodyRadius * 2f);
+            body.center = new Vector3(0f, body.height * 0.5f, 0f);
+            body.enabled = false;
+            Set(actor, "data", data); Set(actor, "attackHitbox", hitbox); Set(actor, "hurtCollider", hurt); Set(actor, "bodyCollider", body);
             Set(visual, "sapling", actor); Set(visual, "model", model); Set(visual, "branch", branch); Set(visual, "stars", stars); Set(visual, "leavesPrefab", leaves);
             Set(visual, "telegraphPrefab", AssetDatabase.LoadAssetAtPath<GroundTelegraph>("Assets/Prefabs/Hazards/GroundTelegraph.prefab"));
             SetArray(visual, "renderers", model.GetComponentsInChildren<Renderer>(true));
@@ -260,6 +274,23 @@ namespace BossFight.EditorTools
             var feedback = DaoDunDogBuilder.GetOrAdd<BossHitFeedback>(actor.gameObject);
             EditorUtility.CopySerialized(source, feedback);
             Set(feedback, "boss", actor);
+        }
+
+        // 土包鼓起時噴的土（菊花 prefab 的子物件，不另存 prefab）
+        static ParticleSystem BuildDirt(Transform parent, Material earth)
+        {
+            var go = Node("Dirt", parent, new Vector3(0f, 0.05f, 0f)).gameObject;
+            var particles = go.AddComponent<ParticleSystem>();
+            particles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            var main = particles.main;
+            main.duration = 0.3f; main.loop = false; main.playOnAwake = false; main.startLifetime = 0.5f; main.startSpeed = 1.4f;
+            main.startSize = 0.07f; main.gravityModifier = 1f; main.startColor = new Color(0.45f, 0.36f, 0.22f);
+            var emission = particles.emission; emission.rateOverTime = 0f;
+            emission.SetBursts(new[] { new ParticleSystem.Burst(0f, (short)14) });
+            var shape = particles.shape; shape.shapeType = ParticleSystemShapeType.Hemisphere; shape.radius = 0.3f;
+            shape.rotation = new Vector3(-90f, 0f, 0f);
+            particles.GetComponent<ParticleSystemRenderer>().sharedMaterial = earth;
+            return particles;
         }
 
         static ParticleSystem BuildLeaves()

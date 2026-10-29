@@ -3,6 +3,7 @@ using BossFight.Player;
 using Unity.Cinemachine;
 using UnityEngine;
 using UnityEngine.Rendering;
+using UnityEngine.Serialization;
 using UnityEngine.Rendering.Universal;
 using UnityEngine.UI;
 
@@ -29,8 +30,9 @@ namespace BossFight.Cutscene
         [SerializeField] ParticleSystem debris, birds;
         [SerializeField] Transform wave;
         [SerializeField] GameObject groundCracks;
-        [Tooltip("北側露出地面的焦黑樹根（H7 伏筆）；守衛破土（Rise > 0）時收掉")]
-        [SerializeField] GameObject foreshadowRoots;
+        [Tooltip("守衛破土處地上的淡紅裂縫（H7 伏筆）；守衛破土（Rise > 0）時收掉")]
+        [FormerlySerializedAs("foreshadowRoots")]
+        [SerializeField] GameObject foreshadowCracks;
         [SerializeField] AudioLowPassFilter[] filters = new AudioLowPassFilter[0];
         [SerializeField] GamePause pause;
         [SerializeField] HitStop hitStop;
@@ -90,7 +92,7 @@ namespace BossFight.Cutscene
                 case CinematicValue.Rise:
                     rise = t;
                     if (guardianModel != null) guardianModel.gameObject.SetActive(t > 0f);
-                    if (foreshadowRoots != null) foreshadowRoots.SetActive(t <= 0f);
+                    if (foreshadowCracks != null) foreshadowCracks.SetActive(t <= 0f);
                     break;
                 case CinematicValue.GroundCrack: if (groundCracks != null) groundCracks.SetActive(t > 0f); break;
                 case CinematicValue.Wither: wither = t; break;

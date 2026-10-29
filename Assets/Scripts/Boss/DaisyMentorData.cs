@@ -16,8 +16,8 @@ namespace BossFight.Boss
         [Tooltip("巴掌打滿軀幹的時刻（秒）")] [Min(0f)] public float slapImpactTime = 0.3f;
         [Tooltip("丟骨頭：骨頭從花瓣飛到玩家身上的時間（秒）；飛到才給骨頭")] [Min(0f)] public float tossTime = 0.6f;
         [Tooltip("丟骨頭的拋物線高度 (m)")] [Min(0f)] public float tossHeight = 1.2f;
-        [Tooltip("土堆動一下：冒出一點再縮回的時間（秒）")] [Min(0f)] public float peekTime = 0.35f;
-        [Tooltip("土堆動一下時冒出的比例（0 = 不露出、1 = 整朵冒出）")] [Range(0f, 1f)] public float peekHeight = 0.25f;
+        [Tooltip("土堆動一下：土堆鼓起再落回的時間（秒）；小花本身不露出地面")] [Min(0f)] public float peekTime = 0.35f;
+        [Tooltip("土堆動一下時鼓起的高度 (m)")] [Min(0f)] public float peekBulge = 0.12f;
 
         [Header("說話時的動作（純表現）")]
         [Tooltip("一般動作（歪頭、拍胸、點頭、拍手、竊笑、驚訝、揮手、指向）的長度（秒）")] [Min(0.01f)] public float gestureTime = 0.8f;

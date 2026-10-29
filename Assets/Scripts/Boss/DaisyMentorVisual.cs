@@ -14,10 +14,14 @@ namespace BossFight.Boss
         [SerializeField] Transform smile;
         [Tooltip("丟給玩家的骨頭（佔位模型）")]
         [SerializeField] Transform bone;
+        [Tooltip("土堆動一下（Peek）時鼓起的土包；平時埋在地面下、關著。小花模型在 Peek 時不出現（試玩回饋：露出花瓣看起來像穿模）")]
+        [SerializeField] Transform mound;
+        [Tooltip("土包鼓起時噴出的土（可留空）")]
+        [SerializeField] ParticleSystem dirt;
         [SerializeField] float undergroundDepth = 0.7f;
         [Tooltip("骨頭落點離目標根物件的高度 (m)")]
         [SerializeField] float boneTargetHeight = 0.8f;
-        Vector3 rest, handRest, slapPoint, tossFrom, tossTarget, pointAt, smileRest;
+        Vector3 rest, handRest, slapPoint, tossFrom, tossTarget, pointAt, smileRest, moundRest, moundScale;
         Quaternion flowerRest, modelRest;
         DaisyGesture gesture;
         float gestureClock;
@@ -35,6 +39,7 @@ namespace BossFight.Boss
             model.gameObject.SetActive(false);
             vine.enabled = false;
             if (bone != null) bone.gameObject.SetActive(false);
+            if (mound != null) { moundRest = mound.localPosition; moundScale = mound.localScale; mound.gameObject.SetActive(false); }
         }
         void OnEnable()
         {
@@ -56,7 +61,13 @@ namespace BossFight.Boss
         }
         void HandleAction(DaisyAction action)
         {
-            model.gameObject.SetActive(action != DaisyAction.Hidden);
+            model.gameObject.SetActive(action != DaisyAction.Hidden && action != DaisyAction.Peek);
+            if (mound != null)
+            {
+                mound.gameObject.SetActive(action == DaisyAction.Peek);
+                mound.localPosition = moundRest; mound.localScale = moundScale;
+            }
+            if (action == DaisyAction.Peek && dirt != null) dirt.Play(true);
             vine.enabled = false;
             model.localPosition = rest;
             model.localRotation = modelRest;
@@ -82,7 +93,12 @@ namespace BossFight.Boss
                 case DaisyAction.Burrow: case DaisyAction.PrankBurrow:
                     model.localPosition = rest - Vector3.up * (depth * k); break;
                 case DaisyAction.Peek:
-                    model.localPosition = rest - Vector3.up * (depth * (1f - Data.peekHeight * Mathf.Sin(t * Mathf.PI))); break;
+                    if (mound == null) break;
+                    // 土包從地下鼓起再落回；橫向稍微撐開，像底下有東西在頂
+                    float bulge = Mathf.Sin(t * Mathf.PI);
+                    mound.localPosition = moundRest + Vector3.up * (Data.peekBulge * bulge);
+                    mound.localScale = Vector3.Scale(moundScale, new Vector3(1f + 0.15f * bulge, 1f, 1f + 0.15f * bulge));
+                    break;
                 case DaisyAction.Whip:
                     flower.localRotation = flowerRest * Quaternion.Euler(0f, 0f, Mathf.Sin(t * Mathf.PI * 2f) * 25f); break;
                 case DaisyAction.Slap:

@@ -11,6 +11,7 @@ namespace BossFight.Hazards
     /// 地面預兆用專案共用的 GroundTelegraph（URP Decal，序章修正 C1）：白色可擋、紅色不可擋、安全區綠色，顏色都在同一個 GroundTelegraph prefab；
     /// 填色一律由攻擊源往外推（C7），填滿那一刻開判定，範圍裁切在場地內；萬根齊發最後一波的安全圈挖空並另外畫綠圈。
     /// 移動的環波可以加一段波前預警帶（ShowLead，C6），飛行的葉刃下方有一個跟著走的小框（C5）。
+    /// 分段的環（AttackArea.segments，樹根環障）：主範圍、預警帶與根刺都只畫在段上，判定也只算段上。
     /// 翻滾閃避：目標在範圍裡翻滾、判定窗結束沒打中時，經 Hurtbox.Dodger 回報給被打方結算（A5），這裡不判斷算不算成功。
     /// </summary>
     public class AreaStrike : Hazard
@@ -196,7 +197,10 @@ namespace BossFight.Hazards
             switch (a.shape)
             {
                 case AttackAreaShape.Circle: telegraph.ShowCircle(a.center, a.radius, tint); break;
-                case AttackAreaShape.Ring: telegraph.ShowCircle(a.center, a.radius, tint, a.innerRadius); break;
+                case AttackAreaShape.Ring:
+                    telegraph.ShowCircle(a.center, a.radius, tint, a.innerRadius);
+                    if (a.segments > 0) telegraph.SetSegments(a.segments, a.segmentPhase, a.segmentHalfWidth);
+                    break;
                 case AttackAreaShape.Sector: telegraph.ShowSector(a.center, a.forward, a.radius, a.angle, tint); break;
                 case AttackAreaShape.Rectangle: telegraph.ShowRect(a.center, a.forward, a.length, a.width, tint); break;
                 case AttackAreaShape.Cross: telegraph.ShowCross(a.center, a.width, FarthestFieldDistance(a.center), tint); break;
@@ -244,6 +248,7 @@ namespace BossFight.Hazards
                 lead = Instantiate(telegraphPrefab, transform);
                 lead.ShowCircle(Area.center, Area.radius + leadWidth, Tint, Area.radius);
                 lead.SetClip(Area.fieldCenter, Area.fieldRadius);
+                if (Area.segments > 0) lead.SetSegments(Area.segments, Area.segmentPhase, Area.segmentHalfWidth);
             }
             if (contracting)
             {

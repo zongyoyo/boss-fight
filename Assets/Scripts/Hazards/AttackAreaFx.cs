@@ -145,7 +145,18 @@ namespace BossFight.Hazards
         {
             float rise = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(impactAge / riseTime));
             float height = area.height * 0.9f * rise * fade;
-            if (area.shape == AttackAreaShape.Ring)
+            if (area.shape == AttackAreaShape.Ring && area.segments > 0)
+            {
+                // 分段的環：一段一根刺，刺的底部半徑就是判定的半寬（看到的空隙就是打不到的空隙）
+                float r = (area.radius + area.innerRadius) * 0.5f;
+                float width = Mathf.Min(area.segmentHalfWidth, (area.radius - area.innerRadius) * 0.5f);
+                for (int i = 0; i < area.segments; i++)
+                {
+                    Vector3 p = area.center + Quaternion.Euler(0f, area.SegmentAngle(i), 0f) * Vector3.forward * r;
+                    if (Inside(p, 0f)) Spike(p, width, height);
+                }
+            }
+            else if (area.shape == AttackAreaShape.Ring)
             {
                 float r = (area.radius + area.innerRadius) * 0.5f;
                 float width = Mathf.Min(rootWidth, (area.radius - area.innerRadius) * 0.35f);

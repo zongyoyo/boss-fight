@@ -28,6 +28,10 @@ namespace BossFight.Boss
         [Tooltip("可用盾擋下")] public bool canBlock = true;
         [Tooltip("可盾反")] public bool canParry = true;
 
+        [Header("實心碰撞（PrologueActorsBuilder 寫進小樹精的 CapsuleCollider）")]
+        [Tooltip("身體碰撞半徑 (m)：擋住玩家，攻擊與處決時不會重疊")] [Min(0.01f)] public float bodyRadius = 0.35f;
+        [Tooltip("身體碰撞高度 (m)")] [Min(0.01f)] public float bodyHeight = 1.3f;
+
         [Header("鎖定鏡頭（純視覺，PrologueActorsBuilder 寫進小樹精的 LockOnTarget）")]
         [Tooltip("鏡頭看的點的高度 (m)：身體中心")] [Min(0f)] public float lockAimHeight = 0.45f;
         [Tooltip("鎖定鏡頭框住小樹精用的半徑 (m)")] [Min(0f)] public float lockFramingRadius = 0.6f;

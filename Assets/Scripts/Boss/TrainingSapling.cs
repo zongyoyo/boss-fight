@@ -76,6 +76,8 @@ namespace BossFight.Boss
         [SerializeField] TrainingSaplingData data;
         [SerializeField] Hitbox attackHitbox;
         [SerializeField] Collider hurtCollider;
+        [Tooltip("實心碰撞（擋住玩家，跟 OIIA 貓一樣是 kinematic Rigidbody＋CapsuleCollider）；只在場上（Appear 到被打倒或消失）時開著")]
+        [SerializeField] Collider bodyCollider;
         [Tooltip("T26 可直接驗收；T27 流程接管時關閉，再呼叫 Appear")]
         [SerializeField] bool appearOnStart = true;
 
@@ -137,7 +139,11 @@ namespace BossFight.Boss
             attackHitbox.Filter = OnlyTarget;
             hurtCollider.enabled = false;
             lockTarget.enabled = false;
+            SetBody(false);
         }
+
+        // 處決命中後不關，等整段處決動作結束（Defeat）才關，玩家才不會踏進身體裡
+        void SetBody(bool on) { if (bodyCollider != null) bodyCollider.enabled = on; }
 
         void OnEnable()
         {
@@ -183,6 +189,7 @@ namespace BossFight.Boss
             Mode = data.initialMode;
             phase = AttackPhase.Waiting;
             hurtCollider.enabled = lockTarget.enabled = true;
+            SetBody(true);
             OnAppeared?.Invoke();
             OnModeChanged?.Invoke(Mode);
             PublishState();
@@ -435,6 +442,7 @@ namespace BossFight.Boss
             IsAlive = false;
             ResolveAttack(true);
             hurtCollider.enabled = lockTarget.enabled = false;
+            SetBody(false);
             executionTarget.SetExecutable(false);
             PublishState();
             OnDefeated?.Invoke(reason);
@@ -446,6 +454,7 @@ namespace BossFight.Boss
             IsAlive = executionHit = false;
             ResolveAttack(true);
             hurtCollider.enabled = lockTarget.enabled = false;
+            SetBody(false);
             executionTarget.SetExecutable(false);
             executionTarget.EndExecution();
             PublishState();
