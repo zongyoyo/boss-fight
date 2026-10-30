@@ -27,7 +27,7 @@ MonoBehaviour:
   wallThickness: 1
   visualSeed: 25
   treeHeight: {x: 6, y: 9}
-  mountainRadius: 70
+  mountainRadius: 58
   mountainCount: 24
   sunAngles: {x: 42, y: -35}
   sunColor: {r: 1, g: 0.94, b: 0.847, a: 1}

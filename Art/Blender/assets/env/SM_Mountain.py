@@ -2,7 +2,8 @@
 遠山 SM_Mountain_<變體>（ART_STYLE「序章」：MountainCone 換成 3 種有稜線的低面數山形，放在霧裡）。
 
 一圈圈往上收的不規則環（每圈半徑與高度隨機偏移，做出稜線與山肩），頂上收成峰頂；幾座峰疊在一起成山脈。
-朝上的面亮、陡坡中階、背光的暗。實際尺寸約 36 m 寬、20 m 高，Unity 端再依位置縮放。
+朝上的面亮、陡坡中階、背光的暗；山尖（每座峰高度 SNOW_LINE 以上，邊界每個面隨機上下）是雪，也照朝向分亮暗。
+實際尺寸約 36 m 寬、20 m 高，Unity 端再依位置縮放。
 軸心在底部中心，底面封起來（埋在地平線下）。變體：A 單峰、B 雙峰、C 三峰長稜線。
 """
 import importlib
@@ -26,6 +27,8 @@ VARIANTS = {
 }
 # 每圈的 (高度比例, 半徑比例)，最上面收成峰頂
 RINGS = [(0.0, 1.0), (0.28, 0.72), (0.55, 0.45), (0.8, 0.2)]
+SNOW_LINE = 0.6      # 面的中心高於峰高的這個比例就是雪
+SNOW_JITTER = 0.08   # 雪線每個面隨機上下的比例，邊界才是鋸齒狀
 
 
 def add_peak(bm, rng, cx, cy, radius, height, sides):
@@ -47,7 +50,12 @@ def add_peak(bm, rng, cx, cy, radius, height, sides):
     for k in range(sides):
         faces.append(bm.faces.new((rings[-1][k], rings[-1][(k + 1) % sides], top)))
     faces.append(bm.faces.new(list(reversed(rings[0]))))
-    kit.shade_faces(bm, faces, "mountain", up=0.62, down=0.2)
+    snow, rock = [], []
+    for f in faces:
+        z = f.calc_center_median().z
+        (snow if z > height * (SNOW_LINE + rng.uniform(-SNOW_JITTER, SNOW_JITTER)) else rock).append(f)
+    kit.shade_faces(bm, rock, "mountain", up=0.62, down=0.2)
+    kit.shade_faces(bm, snow, "snow", up=0.62, down=0.2)
 
 
 def build(variant, p):

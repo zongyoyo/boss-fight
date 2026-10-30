@@ -472,8 +472,9 @@ namespace BossFight.EditorTools
                 // 模型的 X 是山脈的走向：轉成沿著圓周（正面朝場地中心）
                 var holder = Holder(root, $"Mountain_{i:00}", terrain.At(p) + Vector3.down * 1.5f,
                                     Mathf.Atan2(-p.x, -p.y) * Mathf.Rad2Deg, 1f);
-                float scale = Mathf.Lerp(0.8f, 1.15f, (float)random.NextDouble());
-                holder.localScale = new Vector3(scale, scale * Mathf.Lerp(0.85f, 1.3f, (float)random.NextDouble()), scale);
+                float scale = Mathf.Lerp(data.mountainScale.x, data.mountainScale.y, (float)random.NextDouble());
+                float height = Mathf.Lerp(data.mountainHeight.x, data.mountainHeight.y, (float)random.NextDouble());
+                holder.localScale = new Vector3(scale, scale * height, scale);
                 ArtLibrary.Spawn(id, holder);
                 MarkStatic(holder);
             }

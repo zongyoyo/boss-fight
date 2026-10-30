@@ -70,10 +70,14 @@ namespace BossFight.Progression
         [Min(0f)] public float actorClearance = 2.5f;
         [Tooltip("牆外灌木、石頭、枯枝、樹樁、倒木的密度倍率（1 = Builder 預設）")]
         [Min(0f)] public float propDensity = 1f;
-        [Tooltip("遠山環的半徑 (m)，只作背景")]
-        [Min(1f)] public float mountainRadius = 70f;
+        [Tooltip("遠山環的半徑 (m)，只作背景；要比最外排裝飾樹遠一個山腳（約 20 m），樹才不會插進山坡")]
+        [Min(1f)] public float mountainRadius = 58f;
         [Tooltip("遠山數量")]
         [Min(1)] public int mountainCount = 24;
+        [Tooltip("遠山模型的水平縮放範圍（模型約 36 m 寬）")]
+        public Vector2 mountainScale = new Vector2(0.9f, 1.2f);
+        [Tooltip("遠山的高度倍率範圍（乘在水平縮放上；模型約 20 m 高）")]
+        public Vector2 mountainHeight = new Vector2(1.4f, 1.9f);
 
         [Header("天色（Tools > Prologue > Apply Atmosphere 套到開著的序章場景）")]
         [Tooltip("午後陽光的俯角與方位角")]
