@@ -1,0 +1,86 @@
+{
+  "_comment": "色票：256×256、16×16 格、每格 16 px；第 0 列在圖的最上面。每組顏色佔同一列連續 3 格：col＝亮、col+1＝中、col+2＝暗；色格名稱是「組名.l／.m／.d」。只寫 mid 時，亮階與暗階由 build_palette.py 依 tiers 推算，要手動指定就寫 l、d。第 0–3 列自然物、4–7 列人造物、8–11 列角色、12–13 列發光色（emission 貼圖同座標有色、其他格全黑）、14–15 列保留。初版顏色取自現有材質與草稿，Phase 1 風格切片時定案。",
+  "size": 256,
+  "grid": 16,
+  "tiers": { "light": 0.22, "dark": 0.6 },
+  "emissive_rows": [12, 13],
+  "groups": {
+    "grass":         { "row": 0,  "col": 0,  "mid": "#7FA34A" },
+    "leaf":          { "row": 0,  "col": 3,  "mid": "#4E7A34" },
+    "pine":          { "row": 0,  "col": 6,  "mid": "#2F5A3A" },
+    "moss":          { "row": 0,  "col": 9,  "mid": "#6B8A3A" },
+    "dry_grass":     { "row": 0,  "col": 12, "mid": "#B8A867" },
+
+    "bark":          { "row": 1,  "col": 0,  "mid": "#6B4A32" },
+    "bark_dark":     { "row": 1,  "col": 3,  "mid": "#3E2C22" },
+    "wood_cut":      { "row": 1,  "col": 6,  "mid": "#C9A472" },
+    "earth":         { "row": 1,  "col": 9,  "mid": "#7A5A3C" },
+    "mud":           { "row": 1,  "col": 12, "mid": "#4A3626" },
+
+    "stone":         { "row": 2,  "col": 0,  "mid": "#8C8C84" },
+    "stone_dark":    { "row": 2,  "col": 3,  "mid": "#5A5C5E" },
+    "sand":          { "row": 2,  "col": 6,  "mid": "#C8B48A" },
+    "flower_white":  { "row": 2,  "col": 9,  "mid": "#EDE6D6" },
+    "flower_yellow": { "row": 2,  "col": 12, "mid": "#E8B83A" },
+
+    "water":         { "row": 3,  "col": 0,  "mid": "#4F7D99" },
+    "mountain":      { "row": 3,  "col": 3,  "mid": "#6E7F92" },
+    "leaf_red":      { "row": 3,  "col": 6,  "mid": "#A8432F" },
+    "leaf_autumn":   { "row": 3,  "col": 9,  "mid": "#C77A2E" },
+    "dead_wood":     { "row": 3,  "col": 12, "mid": "#5C5650" },
+
+    "plank":         { "row": 4,  "col": 0,  "mid": "#9A6B43" },
+    "plank_dark":    { "row": 4,  "col": 3,  "mid": "#6E4A2E" },
+    "roof":          { "row": 4,  "col": 6,  "mid": "#7A3B2E" },
+    "thatch":        { "row": 4,  "col": 9,  "mid": "#B79A5A" },
+    "rope":          { "row": 4,  "col": 12, "mid": "#A88B5C" },
+
+    "iron":          { "row": 5,  "col": 0,  "mid": "#5E6266" },
+    "steel":         { "row": 5,  "col": 3,  "mid": "#B9BEC2" },
+    "gold":          { "row": 5,  "col": 6,  "mid": "#D9A93A" },
+    "bronze":        { "row": 5,  "col": 9,  "mid": "#A8743A" },
+    "cloth_red":     { "row": 5,  "col": 12, "mid": "#8E2F2A" },
+
+    "cloth_blue":    { "row": 6,  "col": 0,  "mid": "#3F5A82" },
+    "paper":         { "row": 6,  "col": 3,  "mid": "#E6DCC2" },
+    "brick":         { "row": 6,  "col": 6,  "mid": "#7E786E" },
+    "leather":       { "row": 6,  "col": 9,  "mid": "#6A4630" },
+    "shield_face":   { "row": 6,  "col": 12, "mid": "#2E2A28" },
+
+    "cat_fur":       { "row": 8,  "col": 0,  "mid": "#8A7F72" },
+    "cat_stripe":    { "row": 8,  "col": 3,  "mid": "#3F3833" },
+    "cat_cream":     { "row": 8,  "col": 6,  "mid": "#E9E1D3" },
+    "cat_ear_inner": { "row": 8,  "col": 9,  "mid": "#D9A4A0" },
+    "cat_nose":      { "row": 8,  "col": 12, "mid": "#B8706A" },
+
+    "dog_fur":       { "row": 9,  "col": 0,  "mid": "#E09A4E" },
+    "dog_cream":     { "row": 9,  "col": 3,  "mid": "#F3E2C4" },
+    "dark":          { "row": 9,  "col": 6,  "mid": "#2B2220" },
+    "tongue":        { "row": 9,  "col": 9,  "mid": "#E88C8C" },
+    "eye_white":     { "row": 9,  "col": 12, "mid": "#F5F2EA" },
+
+    "eye_green":     { "row": 10, "col": 0,  "mid": "#6C8C4A" },
+    "daisy_petal":   { "row": 10, "col": 3,  "mid": "#F0EBDD" },
+    "daisy_center":  { "row": 10, "col": 6,  "mid": "#E8B32E" },
+    "stem":          { "row": 10, "col": 9,  "mid": "#3E8A35" },
+    "sapling_bark":  { "row": 10, "col": 12, "mid": "#B8693A" },
+
+    "sapling_leaf":  { "row": 11, "col": 0,  "mid": "#8CCB3A" },
+    "robe_red":      { "row": 11, "col": 3,  "mid": "#8A2E2A" },
+    "beard":         { "row": 11, "col": 6,  "mid": "#EEE8DC" },
+    "guardian_bark": { "row": 11, "col": 9,  "mid": "#8A7058" },
+    "guardian_leaf": { "row": 11, "col": 12, "mid": "#6E8A3A" },
+
+    "fire":          { "row": 12, "col": 0,  "mid": "#FF8A2A" },
+    "ember":         { "row": 12, "col": 3,  "mid": "#FF4A1A" },
+    "rune":          { "row": 12, "col": 6,  "mid": "#4AE0FF" },
+    "crack":         { "row": 12, "col": 9,  "mid": "#FF9A3A" },
+    "lantern":       { "row": 12, "col": 12, "mid": "#FFD27A" },
+
+    "ghost":         { "row": 13, "col": 0,  "mid": "#9A7CFF" },
+    "eye_glow":      { "row": 13, "col": 3,  "mid": "#B8A8FF" },
+    "lightning":     { "row": 13, "col": 6,  "mid": "#DDEBFF" },
+    "magic_red":     { "row": 13, "col": 9,  "mid": "#FF3A3A" },
+    "gold_glow":     { "row": 13, "col": 12, "mid": "#FFD24A" }
+  }
+}
