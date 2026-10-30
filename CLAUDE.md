@@ -286,6 +286,7 @@ ScriptableObject 的「類別」寫在 `Scripts/` 對應的系統資料夾，「
 - 登場前藏著的角色不能露出地面：守衛模型在 Rise 之前是關著的，小花在 Hidden／Peek 時模型關著（Peek 只動土包）。伏筆物件只放貼地的東西，不放長得像角色部位的模型。
 - 小樹精有實心碰撞（照 OIIA 貓：根物件的 kinematic Rigidbody＋CapsuleCollider，Default 層），大小在 `TrainingSaplingData.bodyRadius`／`bodyHeight`，由 PrologueActorsBuilder 寫入；`TrainingSapling.bodyCollider` 只在場上時開著（處決命中後要等 Defeat 才關）。重建小樹精 prefab 後要跑 Build Guardian Phase 2，召喚池小樹精的覆寫才會接回（Validate Prologue 會擋）。
 - 環形攻擊可以分段：`AttackArea.segments`／`segmentPhase`（世界角度，0 = 北、順時針）／`segmentHalfWidth`，判定、`GroundTelegraph.SetSegments` 的地面預兆與 AttackAreaFx 的根刺共用同一組角度，看到的空隙就是打不到的空隙。樹根環障每圈的刺數、刺半徑、錯開比例在 `RootRingData`。
+- 手寫 Shader Graph JSON 加節點時，節點 id 一定要加進 graph 的 `m_Nodes`：沒登記的節點連同它的連線會被丟掉，Custom Function 的那個輸入只會收到槽的預設值（C1 的 `Field`、`Hole0..2` 就是這樣一直是 0）。改完用 `ShaderGraphImporter.GetShaderText`（反射）看產生的程式碼，確認呼叫 Custom Function 時傳的是 `_Property_…` 而不是 `float4 (0, 0, 0, 0)`。
 
 ## 工作流程
 
