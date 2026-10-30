@@ -272,14 +272,11 @@ def _jitter_verts(verts, amount, rng, axes=(1, 1, 1)):
                         rng.uniform(-1, 1) * amount * axes[2]))
 
 
-def _snapshot(bm):
-    return set(bm.verts), set(bm.faces)
-
-
-def _finish_part(bm, before, matrix, cell, jitter, rng, size):
-    verts_before, faces_before = before
-    verts = [v for v in bm.verts if v not in verts_before]
-    faces = [f for f in bm.faces if f not in faces_before]
+def _finish_part(bm, verts, matrix, cell, jitter, rng, size):
+    """verts 是這個部件新建的頂點（用 bmesh.ops 的回傳值或自己建的清單；不要用「之前有哪些頂點」去比，
+    細分時釋放的頂點記憶體會被重用，舊集合會誤認新頂點）。面取這些頂點連到的面。"""
+    verts = list(verts)
+    faces = list(dict.fromkeys(f for v in verts for f in v.link_faces))
     _jitter_verts(verts, jitter * size if jitter else 0, rng)
     if matrix is not None:
         bmesh.ops.transform(bm, matrix=matrix, verts=verts)
@@ -299,19 +296,17 @@ def placement(location=(0, 0, 0), rotation=(0, 0, 0), scale=(1, 1, 1)):
 def add_box(bm, size=(1, 1, 1), location=(0, 0, 0), rotation=(0, 0, 0), cell=None,
             jitter=0.0, rng=None, base=False):
     """方塊；base=True 時 location 是底面中心。jitter 是各邊長的比例。回傳 (verts, faces)。"""
-    before = _snapshot(bm)
-    bmesh.ops.create_cube(bm, size=1.0)
+    verts = bmesh.ops.create_cube(bm, size=1.0)["verts"]
     sx, sy, sz = size
     m = placement(location, rotation) @ Matrix.Diagonal((sx, sy, sz, 1.0))
     if base:
         m = m @ Matrix.Translation((0, 0, 0.5))
-    return _finish_part(bm, before, m, cell, jitter, rng, 1.0)
+    return _finish_part(bm, verts, m, cell, jitter, rng, 1.0)
 
 
 def add_prism(bm, sides, radius, height, location=(0, 0, 0), rotation=(0, 0, 0), radius_top=None,
               cell=None, jitter=0.0, rng=None, caps=True, twist=0.0):
     """n 邊柱（底面中心在 location，沿 +Z 長 height）；radius_top 不同時是錐台、0 是尖錐。jitter 是半徑的比例。"""
-    before = _snapshot(bm)
     radius_top = radius if radius_top is None else radius_top
     rings = []
     for z, r, tw in ((0.0, radius, 0.0), (height, radius_top, twist)):
@@ -336,16 +331,16 @@ def add_prism(bm, sides, radius, height, location=(0, 0, 0), rotation=(0, 0, 0),
     if caps:
         bm.faces.new(list(reversed(bottom)))
     m = placement(location, rotation)
-    return _finish_part(bm, before, m, cell, jitter, rng, max(radius, radius_top))
+    return _finish_part(bm, bottom + top, m, cell, jitter, rng, max(radius, radius_top))
 
 
 def add_icosphere(bm, radius, subdivisions=1, location=(0, 0, 0), rotation=(0, 0, 0), scale=(1, 1, 1),
                   cell=None, jitter=0.0, rng=None):
     """icosphere（細分 1 次 80 面、2 次 320 面）；jitter 是半徑的比例。"""
-    before = _snapshot(bm)
-    bmesh.ops.create_icosphere(bm, subdivisions=subdivisions, radius=radius)
+    # bmesh 的 subdivisions=1 是沒細分的 20 面體，所以 +1
+    verts = bmesh.ops.create_icosphere(bm, subdivisions=subdivisions + 1, radius=radius)["verts"]
     m = placement(location, rotation, scale)
-    return _finish_part(bm, before, m, cell, jitter, rng, radius)
+    return _finish_part(bm, verts, m, cell, jitter, rng, radius)
 
 
 def add_rock(bm, radius, rng, location=(0, 0, 0), squash=0.7, cuts=2, cell="stone.m", jitter=0.12):
@@ -374,6 +369,54 @@ def add_plank(bm, length, width, thickness, location=(0, 0, 0), rotation=(0, 0, 
     return add_box(bm, (length, width, thickness), location, rotation, cell=cell, jitter=jitter, rng=rng)
 
 
+def add_tube(bm, points, radii, sides=6, cell=None, jitter=0.0, rng=None, caps=True):
+    """沿折線的管子（彎樹幹、樹枝、樹根）：每個點一圈 sides 邊，圈面垂直於路徑；半徑 0 的端點收成尖。
+    圈的方向用平行移動接續，不會扭轉。jitter 是各點半徑的比例。回傳 (verts, faces)。"""
+    pts = [Vector(p) for p in points]
+    n = len(pts)
+    if n < 2 or len(radii) != n:
+        raise ValueError("add_tube 需要至少 2 個點，且每個點一個半徑")
+    tangents = []
+    for i in range(n):
+        a, b = pts[max(i - 1, 0)], pts[min(i + 1, n - 1)]
+        tangents.append((b - a).normalized())
+    ref = Vector((1, 0, 0)) if abs(tangents[0].x) < 0.9 else Vector((0, 1, 0))
+    u = (ref - tangents[0] * ref.dot(tangents[0])).normalized()
+    rings = []
+    for i, (p, r, t) in enumerate(zip(pts, radii, tangents)):
+        if i:
+            u = (u - t * u.dot(t)).normalized()
+        v = t.cross(u)
+        if r <= 0:
+            vert = bm.verts.new(p)
+            _jitter_verts([vert], jitter * max(radii), rng)
+            rings.append([vert])
+            continue
+        ring = [bm.verts.new(p + (u * math.cos(2 * math.pi * k / sides) + v * math.sin(2 * math.pi * k / sides)) * r)
+                for k in range(sides)]
+        _jitter_verts(ring, jitter * r, rng)
+        rings.append(ring)
+    for a, b in zip(rings, rings[1:]):
+        if len(a) == 1 and len(b) == 1:
+            continue
+        if len(b) == 1:
+            for k in range(sides):
+                bm.faces.new((a[k], a[(k + 1) % sides], b[0]))
+        elif len(a) == 1:
+            for k in range(sides):
+                bm.faces.new((a[0], b[(k + 1) % sides], b[k]))
+        else:
+            for k in range(sides):
+                j = (k + 1) % sides
+                bm.faces.new((a[k], a[j], b[j], b[k]))
+    if caps:
+        if len(rings[0]) > 1:
+            bm.faces.new(list(reversed(rings[0])))
+        if len(rings[-1]) > 1:
+            bm.faces.new(rings[-1])
+    return _finish_part(bm, [v for ring in rings for v in ring], None, cell, 0, None, 1.0)
+
+
 def paint(obj, cell, where=None):
     """把物件上符合 where(face_center: Vector, normal: Vector) 的面改成 cell；where 省略時全部。"""
     index = cell_index(cell) if isinstance(cell, str) else cell
@@ -394,12 +437,34 @@ def shade_by_height(obj, group, low=0.25, high=0.75):
     paint(obj, f"{group}.l", lambda c, n: (c.z - z0) / span >= high)
 
 
+def shade_by_normal(obj, group, up=0.45, down=-0.15, where=None):
+    """依面的朝向分亮／中／暗：朝上（normal.z ≥ up）亮、朝下（< down）暗、其餘中階；where 限定範圍。
+    附圖的枝片、葉叢、石頭都是「上亮下暗」。"""
+    def pick(test):
+        return lambda c, n: (where is None or where(c, n)) and test(n.z)
+    paint(obj, f"{group}.m", pick(lambda z: down <= z < up))
+    paint(obj, f"{group}.l", pick(lambda z: z >= up))
+    paint(obj, f"{group}.d", pick(lambda z: z < down))
+
+
+def shade_faces(bm, faces, group, up=0.45, down=-0.15):
+    """shade_by_normal 的 bmesh 版：只處理這個部件的面（建模當下就分好，不用事後靠位置猜是哪個部件）。
+    面的繞序要朝外（kit 的 add_* 都是）。"""
+    layer = _layer(bm)
+    for f in faces:
+        f.normal_update()
+        z = f.normal.z
+        f[layer] = cell_index(f"{group}.{'l' if z >= up else 'd' if z < down else 'm'}")
+
+
 def make_object(name, bm, collection, origin=(0, 0, 0), parent=None):
     """bmesh → 物件。bmesh 座標是資產空間；origin 是物件原點（軸心）在資產空間的位置。"""
     mesh = bpy.data.meshes.get(name)
     if mesh is not None and mesh.users == 0:
         bpy.data.meshes.remove(mesh)
     mesh = bpy.data.meshes.new(name)
+    # 先把法線朝外，paint／shade_by_normal 才能依朝向選面（finalize 會再算一次）
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces[:])
     bmesh.ops.translate(bm, vec=-Vector(origin), verts=bm.verts)
     bm.to_mesh(mesh)
     bm.free()
@@ -639,9 +704,7 @@ def _bar_box(bm, a, b, thickness):
     length = d.length
     if length < 1e-6:
         return
-    before = _snapshot(bm)
-    bmesh.ops.create_cube(bm, size=1.0)
-    verts = [v for v in bm.verts if v not in before[0]]
+    verts = bmesh.ops.create_cube(bm, size=1.0)["verts"]
     rot = d.to_track_quat("Z", "Y").to_matrix().to_4x4()
     m = Matrix.Translation((a + b) / 2) @ rot @ Matrix.Diagonal((thickness, thickness, length, 1.0))
     bmesh.ops.transform(bm, matrix=m, verts=verts)

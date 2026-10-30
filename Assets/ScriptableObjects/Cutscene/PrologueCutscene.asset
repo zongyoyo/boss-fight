@@ -48,7 +48,7 @@ MonoBehaviour:
   witherTilt: 35
   waveHeight: 0.12
   vignetteIntensity: 0.85
-  battleVignette: 0.4
+  battleVignette: 0.22
   title: "\u5927\u6A39\u5B88\u885B"
   farewellLine: "\u2026\u2026\u53BB\u5427\uFF0C\u5192\u96AA\u8005\u3002"
   surpriseLine: "\u6B38\u2026\u2026\u4F60\u771F\u7684\u8D0F\u4E86\uFF1F"

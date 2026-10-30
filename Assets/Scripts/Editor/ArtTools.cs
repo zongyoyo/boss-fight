@@ -4,13 +4,16 @@ using System.Text;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 
 namespace BossFight.EditorTools
 {
     /// <summary>
     /// Tools > Art：美術管線（docs/Art/ART_STYLE.md）的 Unity 端工具。
     /// - Setup Art Assets：建資料夾、套用色票貼圖的匯入設定、建 M_Palette／M_Palette_Emissive（只在不存在時建，之後在資產調）、
-    ///   同步 ArtLibrary、重新匯入 FBX（材質依名稱換成專案裡的材質）。Blender 第一次輸出色票或改了 palette.json 後跑一次。
+    ///   建三個場景共用的基礎後處理 VP_LowPolyBase（只在不存在時建）、同步 ArtLibrary、重新匯入 FBX（材質依名稱換成專案裡的材質）。
+    ///   Blender 第一次輸出色票或改了 palette.json 後跑一次。
     /// - Sync Art Library：依 Assets/Art/Models 的 FBX 重建清單（平常匯入時會自動跑）。
     /// - Validate Art：檢查色票貼圖、兩個色票材質、每個 FBX 的匯入設定、軸向（Rotation 0、Scale 1）與材質都換成了專案資產。
     /// - Place Axis Test：在目前場景的 ScaleRef_2m 旁邊放軸向測試方塊（EditorOnly），沒有模型時放一個佔位方塊。
@@ -21,6 +24,7 @@ namespace BossFight.EditorTools
         public const string EmissiveTexture = "Assets/Art/Textures/T_Palette_Emissive.png";
         public const string PaletteMaterial = ArtImportPostprocessor.MaterialsRoot + "/M_Palette.mat";
         public const string EmissiveMaterial = ArtImportPostprocessor.MaterialsRoot + "/M_Palette_Emissive.mat";
+        public const string BaseVolumeProfile = "Assets/Art/Settings/VP_LowPolyBase.asset";
         const string AxisTestId = "SM_Test_AxisCube";
 
         [MenuItem("Tools/Art/Setup Art Assets")]
@@ -38,6 +42,7 @@ namespace BossFight.EditorTools
             if (palette == null) Debug.LogWarning($"[Art] 沒有 {PaletteTexture}：先在 Blender 跑 Art/Blender/palette/build_palette.py。");
             EnsurePaletteMaterial(PaletteMaterial, palette, null, Color.black);
             EnsurePaletteMaterial(EmissiveMaterial, palette, glow, Color.white);
+            EnsureBaseVolumeProfile();
 
             foreach (var change in ArtLibrary.Sync()) Debug.Log($"[Art] ArtLibrary：{change}");
             foreach (var guid in AssetDatabase.FindAssets("t:Model", new[] { ArtLibrary.ModelsRoot }))
@@ -75,6 +80,37 @@ namespace BossFight.EditorTools
             return mat;
         }
 
+        /// <summary>
+        /// 三個場景共用的基礎後處理（ART_STYLE「光照與後處理」）：Neutral 色調映射、對比與飽和 +10、Split Toning 亮部暖暗部藍、
+        /// 低強度高門檻的 Bloom（只讓發光的東西亮）、暗角 0.2。場景的 Volume 優先度 0 用它，場景自己的覆寫放在更高優先度。
+        /// 只在不存在時建立，之後在資產調。
+        /// </summary>
+        public static VolumeProfile EnsureBaseVolumeProfile()
+        {
+            var profile = AssetDatabase.LoadAssetAtPath<VolumeProfile>(BaseVolumeProfile);
+            if (profile != null) return profile;
+            DaoDunDogBuilder.EnsureFolder(BaseVolumeProfile.Substring(0, BaseVolumeProfile.LastIndexOf('/')));
+            profile = ScriptableObject.CreateInstance<VolumeProfile>();
+            AssetDatabase.CreateAsset(profile, BaseVolumeProfile);
+            profile.Add<Tonemapping>().mode.Override(TonemappingMode.Neutral);
+            var color = profile.Add<ColorAdjustments>();
+            color.contrast.Override(10f);
+            color.saturation.Override(10f);
+            var split = profile.Add<SplitToning>();
+            split.highlights.Override(new Color(0.6f, 0.53f, 0.42f));
+            split.shadows.Override(new Color(0.42f, 0.5f, 0.62f));
+            var bloom = profile.Add<Bloom>();
+            bloom.intensity.Override(0.3f);
+            bloom.threshold.Override(1.1f);
+            var vignette = profile.Add<Vignette>();
+            vignette.intensity.Override(0.2f);
+            vignette.smoothness.Override(0.4f);
+            foreach (var component in profile.components) AssetDatabase.AddObjectToAsset(component, profile);
+            EditorUtility.SetDirty(profile);
+            AssetDatabase.SaveAssets();
+            return profile;
+        }
+
         [MenuItem("Tools/Art/Sync Art Library")]
         public static void SyncFromMenu()
         {
@@ -108,6 +144,8 @@ namespace BossFight.EditorTools
             var emissive = AssetDatabase.LoadAssetAtPath<Material>(EmissiveMaterial);
             if (emissive == null) issues.Add($"沒有 {EmissiveMaterial}");
             else if (emissive.GetTexture("_EmissionMap") == null) issues.Add("M_Palette_Emissive 沒接 emission 貼圖");
+
+            if (AssetDatabase.LoadAssetAtPath<VolumeProfile>(BaseVolumeProfile) == null) issues.Add($"沒有 {BaseVolumeProfile}（跑 Tools > Art > Setup Art Assets）");
 
             var library = ArtLibrary.Load();
             int models = 0;

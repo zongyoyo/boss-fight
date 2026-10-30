@@ -11,7 +11,8 @@ namespace BossFight.Cutscene
 {
     /// <summary>
     /// 序章演出（守衛登場、轉階段、擊倒、勝利、休息區醒來）的 Timeline 表現接收者（CinematicValueTrack 綁這裡）：守衛模型的升起與樹冠枯萎、裂縫亮度、
-    /// 天色、全螢幕閃光與黑幕、後處理（獨立的 Volume 複本）、低通、粒子、玩家躺姿與推開。只改表現，不參與戰鬥與存檔；數值都在 PrologueCutsceneData。
+    /// 天色、全螢幕閃光與黑幕、後處理（景深用 Volume 複本；暗紅天色與暗角是執行期建立的兩層 Volume，權重 = 進度，
+    /// 從場景的基礎後處理〔VP_LowPolyBase〕漸變到演出值，平常不覆寫基礎值）、低通、粒子、玩家躺姿與推開。只改表現，不參與戰鬥與存檔；數值都在 PrologueCutsceneData。
     /// </summary>
     [DefaultExecutionOrder(950)]
     public class PrologueCinematicStage : MonoBehaviour, IPlayerBinding
@@ -41,8 +42,9 @@ namespace BossFight.Cutscene
         PlayerRig rig;
         VolumeProfile runtimeProfile;
         DepthOfField dof;
-        Vignette vignette;
-        ColorAdjustments colors;
+        Volume darkLayer, vignetteLayer;
+        ColorAdjustments darkColors;
+        Vignette darkVignette;
         MaterialPropertyBlock block;
         Vector3 modelPosition, crownScale;
         Color sunColor, fogColor, ambient;
@@ -66,7 +68,10 @@ namespace BossFight.Cutscene
                 // Volume.profile 的 getter 會逐一 Instantiate 子元件；只 Instantiate(profile) 會共用子資產。
                 runtimeProfile = volume.profile; runtimeProfile.hideFlags = HideFlags.DontSave;
                 foreach (var component in runtimeProfile.components) component.hideFlags = HideFlags.DontSave;
-                runtimeProfile.TryGet(out dof); runtimeProfile.TryGet(out vignette); runtimeProfile.TryGet(out colors);
+                runtimeProfile.TryGet(out dof);
+                // 暗紅天色與暗角各一層：Volume 權重 w 時結果是 lerp(底下的值, 演出值, w)，進度 0 就完全是基礎後處理
+                darkColors = Layer(ref darkLayer).Add<ColorAdjustments>();
+                darkVignette = Layer(ref vignetteLayer).Add<Vignette>();
             }
             initialized = true; ResetTransient();
             if (groundCracks != null) groundCracks.SetActive(false);
@@ -87,7 +92,7 @@ namespace BossFight.Cutscene
                     if (sun != null) { sun.color = Color.Lerp(sunColor, data.darkLightColor, t); sun.intensity = Mathf.Lerp(sunIntensity, data.darkLightIntensity, t); }
                     RenderSettings.fogColor = Color.Lerp(fogColor, data.darkFog, t);
                     RenderSettings.fogDensity = Mathf.Lerp(fogDensity, data.darkFogDensity, t);
-                    if (colors != null) { colors.saturation.Override(data.darkSaturation * t); colors.colorFilter.Override(Color.Lerp(Color.white, data.darkColorFilter, t)); }
+                    if (darkLayer != null) { darkColors.saturation.Override(data.darkSaturation); darkColors.colorFilter.Override(data.darkColorFilter); darkLayer.weight = t; }
                     break;
                 case CinematicValue.Rise:
                     rise = t;
@@ -104,7 +109,7 @@ namespace BossFight.Cutscene
                 case CinematicValue.Blur:
                     if (dof != null) { dof.active = t > 0f; dof.mode.Override(DepthOfFieldMode.Bokeh); dof.focusDistance.Override(Mathf.Lerp(data.blurStartFocus, data.blurFocus, t)); dof.aperture.Override(data.blurAperture); dof.focalLength.Override(data.blurFocalLength); }
                     break;
-                case CinematicValue.Vignette: if (vignette != null) vignette.intensity.Override(t * data.vignetteIntensity); break;
+                case CinematicValue.Vignette: if (vignetteLayer != null) { darkVignette.intensity.Override(data.vignetteIntensity); vignetteLayer.weight = t; } break;
                 case CinematicValue.LowPass:
                     for (int i = 0; i < filters.Length; i++) if (filters[i] != null) { filters[i].enabled = t > 0f || filterEnabled[i]; filters[i].cutoffFrequency = Mathf.Lerp(filterCutoffs[i], data.lowPassFrequency, t); }
                     break;
@@ -174,11 +179,30 @@ namespace BossFight.Cutscene
             if (sun != null) { sun.color = sunColor; sun.intensity = sunIntensity; }
             RenderSettings.fogColor = fogColor; RenderSettings.fogDensity = fogDensity; RenderSettings.ambientLight = ambient;
         }
+        /// <summary>在景深 Volume 的物件上加一層全域 Volume（同優先度、權重 0），回傳它的執行期 profile。</summary>
+        VolumeProfile Layer(ref Volume layer)
+        {
+            layer = volume.gameObject.AddComponent<Volume>();
+            layer.hideFlags = HideFlags.DontSave;
+            layer.isGlobal = true;
+            layer.priority = volume.priority;
+            layer.weight = 0f;
+            var profile = ScriptableObject.CreateInstance<VolumeProfile>();
+            profile.hideFlags = HideFlags.DontSave;
+            layer.sharedProfile = profile;
+            return profile;
+        }
+        static void DestroyProfile(VolumeProfile profile)
+        {
+            if (profile == null) return;
+            foreach (var component in profile.components) if (component != null) Destroy(component);
+            Destroy(profile);
+        }
         void OnDestroy()
         {
-            if (runtimeProfile == null) return;
-            foreach (var component in runtimeProfile.components) if (component != null) Destroy(component);
-            Destroy(runtimeProfile);
+            DestroyProfile(runtimeProfile);
+            if (darkLayer != null) DestroyProfile(darkLayer.sharedProfile);
+            if (vignetteLayer != null) DestroyProfile(vignetteLayer.sharedProfile);
         }
     }
 }

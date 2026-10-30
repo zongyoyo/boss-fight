@@ -39,7 +39,7 @@ namespace BossFight.Cutscene
         [Tooltip("樹冠完全枯萎時往前垂的角度（度）")][Range(0f, 90f)] public float witherTilt = 35f;
         [Tooltip("轉階段衝擊波環的厚度 (m)")][Min(0f)] public float waveHeight = 0.12f;
         [Tooltip("視野暗角上限")][Range(0f, 1f)] public float vignetteIntensity = 0.85f;
-        [Tooltip("登場後持續的戰鬥暗角比例")][Range(0f, 1f)] public float battleVignette = 0.4f;
+        [Tooltip("登場後持續的戰鬥暗角：暗角層的權重（0 = 場景的基礎暗角、1 = 視野暗角上限）")][Range(0f, 1f)] public float battleVignette = 0.4f;
         [Header("台詞與字卡")]
         [Tooltip("登場字卡") ] public string title = "大樹守衛";
         [Tooltip("守衛告別台詞（說話者是 GuardianBattleData.guardianName）")][TextArea] public string farewellLine = "……去吧，冒險者。";

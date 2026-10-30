@@ -44,17 +44,27 @@ namespace BossFight.Progression
         [Min(1f)] public float mountainRadius = 70f;
         [Tooltip("遠山數量")]
         [Min(1)] public int mountainCount = 24;
+
+        [Header("天色（Tools > Prologue > Apply Atmosphere 套到開著的序章場景）")]
         [Tooltip("午後陽光的俯角與方位角")]
         public Vector2 sunAngles = new Vector2(42f, -35f);
         [Tooltip("午後陽光顏色")]
         public Color sunColor = new Color(1f, 0.89f, 0.7f);
         [Tooltip("午後陽光強度")]
         [Min(0f)] public float sunIntensity = 1.4f;
-        [Tooltip("霧的顏色")]
+        [Tooltip("霧的顏色，也是漸層天空的地平線色（遠景退進天空裡）")]
         public Color fogColor = new Color(0.65f, 0.76f, 0.69f);
+        [Tooltip("漸層天空的天頂色")]
+        public Color skyTopColor = new Color(0.36f, 0.6f, 0.86f);
+        [Tooltip("漸層天空地平線以下的顏色")]
+        public Color skyBottomColor = new Color(0.45f, 0.52f, 0.45f);
+        [Tooltip("環境光（Trilight）天空色：陰影面偏藍")]
+        public Color ambientSky = new Color(0.65f, 0.74f, 0.78f);
+        [Tooltip("環境光（Trilight）地平線色")]
+        public Color ambientEquator = new Color(0.55f, 0.58f, 0.46f);
+        [Tooltip("環境光（Trilight）地面色")]
+        public Color ambientGround = new Color(0.25f, 0.3f, 0.2f);
         [Tooltip("午後薄霧濃度")]
         [Min(0f)] public float fogDensity = 0.006f;
-        [Tooltip("輕微 Bloom 強度")]
-        [Min(0f)] public float bloomIntensity = 0.15f;
     }
 }

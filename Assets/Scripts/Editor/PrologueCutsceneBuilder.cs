@@ -181,9 +181,8 @@ namespace BossFight.EditorTools
             if (profile == null)
             {
                 profile = ScriptableObject.CreateInstance<VolumeProfile>(); AssetDatabase.CreateAsset(profile, ProfilePath);
+                // 只放景深；暗紅天色與暗角由 PrologueCinematicStage 在執行期另建兩層 Volume（不覆寫場景的基礎後處理）
                 var dof = profile.Add<DepthOfField>(); dof.active = false;
-                var vignette = profile.Add<Vignette>(); vignette.intensity.Override(0f);
-                var colors = profile.Add<ColorAdjustments>(); colors.saturation.Override(0f);
                 foreach (var c in profile.components) AssetDatabase.AddObjectToAsset(c, profile);
                 EditorUtility.SetDirty(profile);
             }
@@ -487,7 +486,8 @@ namespace BossFight.EditorTools
             {
                 Require(stage, "data", "volume", "redFlash", "whiteFlash", "black", "title", "playerStage", "pause");
                 var profile = ((Volume)new SerializedObject(stage).FindProperty("volume").objectReferenceValue).sharedProfile;
-                if (!profile.TryGet<DepthOfField>(out _) || !profile.TryGet<Vignette>(out _) || !profile.TryGet<ColorAdjustments>(out _)) throw new InvalidOperationException("後處理不齊全");
+                if (!profile.TryGet<DepthOfField>(out _)) throw new InvalidOperationException("後處理不齊全");
+                if (profile.TryGet<Vignette>(out _) || profile.TryGet<ColorAdjustments>(out _)) throw new InvalidOperationException("PresentationVolume 不能有 Vignette／ColorAdjustments（會蓋掉場景的基礎後處理）");
                 if (new SerializedObject(stage).FindProperty("filters").arraySize == 0) throw new InvalidOperationException("未接低通");
             }
             var spawner = Object.FindAnyObjectByType<PlayerSpawner>();

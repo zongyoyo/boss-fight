@@ -73,7 +73,9 @@ Oct 30, 2026 · @Zucknight
 
 ## 光照與後處理
 
-附圖的質感有一半來自光照：同一個平面著色模型，放在平光下會很廉價，放在暖色斜光加藍色陰影下才會像 How to Fish。這一節在 Phase 1 風格切片時定案，三個場景共用一份基礎 Volume Profile，各場景只覆寫天空、霧色與主光角度。
+附圖的質感有一半來自光照：同一個平面著色模型，放在平光下會很廉價，放在暖色斜光加藍色陰影下才會像 How to Fish。這一節在 Phase 1 風格切片時定案，三個場景共用一份基礎 Volume Profile（`Assets/Art/Settings/VP_LowPolyBase.asset`），各場景只覆寫天空、霧色與主光角度。
+
+Phase 1 實際用的值（序章）：主光 #FFF0D8、強度 1.3、仰角 42°；陰影沿用 PC_RPAsset（Soft、4 級、50 m）；SSAO 沿用 PC_Renderer（0.4、半徑 0.3）；三色漸層天空（天頂藍、地平線 = 霧色、地平線以下灰綠，主光方向一圈柔光）；Trilight 環境光；指數平方霧 0.006；基礎後處理是 Neutral、對比 +10、飽和 +10、Split Toning（亮部 #998A6B、暗部 #6B7F9E）、Bloom 0.3／門檻 1.1、Vignette 0.2。
 
 | 項目 | 設定起點 | 目的 |
 | --- | --- | --- |
@@ -125,6 +127,8 @@ repo/
     Models/<類別>/*.fbx        ← 只有匯出腳本會寫入，Builder 永不寫入
     Textures/T_Palette.png、T_Palette_Emissive.png   ← build_palette.py 寫入
     Materials/M_Palette.mat、M_Palette_Emissive.mat  ← Tools > Art > Setup Art Assets 建立
+    Materials/Sky_<場景>.mat   ← 漸層天空（Shaders/SkyGradient.shader），場景的 Apply Atmosphere 建立
+    Settings/VP_LowPolyBase.asset ← 三個場景共用的基礎後處理，Setup Art Assets 建立
   Assets/ScriptableObjects/Art/ArtLibrary.asset       ← 模型 id → FBX，自動同步
 ```
 
@@ -134,6 +138,8 @@ repo/
 - 長腳本存成檔案，經 MCP 執行（寫法見 `Art/Blender/README.md`），不要把幾百行程式碼塞進對話。每個資產有自己的 Blender scene（同名），互不干擾。
 - 建模用 `bmesh` 與資料 API，少用 `bpy.ops`（ops 依賴編輯器狀態，最容易莫名失敗）。
 - 匯出統一走 `export_fbx(objs, relpath)`：只匯出該資產、套用修改器、三角化、Forward −Z／Up Y、在 Blender 端烤進座標軸轉換（Apply Transform）。物件的旋轉與縮放要先歸零（`apply_rotation_scale`），`check` 會擋。
+- 共用形體：`add_box`、`add_prism`（柱、錐台、尖錐）、`add_icosphere`（細分 1 次 = 80 面）、`add_rock`、`add_plank`、`add_tube`（沿折線的管子：彎樹幹、樹枝、樹根，半徑 0 收成尖）。上色可以在建模當下用 `shade_faces(bm, faces, 組名)` 依面的朝向分亮／中／暗（只處理那個部件的面），或事後用 `paint`／`shade_by_normal`／`shade_by_height`。
+- 同類資產一支腳本、變體寫在腳本的 `VARIANTS`（例：`assets/env/SM_Tree_Pine.py` 的 A），一次產生全部變體。
 - 色格存在網格的 int 面屬性 `cell`，`finalize` 時才把 UV 縮到色格中心、依色格分到 `M_Palette` 或 `M_Palette_Emissive` 槽；不走色票的獨立材質用 `finalize(obj, material="名稱")`，名稱就是 Unity 材質資產的名稱。
 
 ### Unity 端規則
@@ -147,6 +153,7 @@ repo/
 - `ArtLibrary`（`Scripts/Editor`，只給 Builder 用；資產在 `ScriptableObjects/Art/ArtLibrary.asset`）：id 是 FBX 檔名，`Assets/Art/Models` 有變動時自動同步。Builder 原本建基本形體的地方改成 `ArtLibrary.Spawn(id, parent, fallback)`：有模型就放模型（保留 prefab 連結），沒有就呼叫 fallback 建原本的佔位幾何。換模型可以一件一件來，遊戲隨時都能跑。
 - 選單 Tools > Art：Setup Art Assets（建資料夾與材質、套匯入設定、同步清單、重新匯入 FBX，最後跑檢查）、Sync Art Library、Validate Art（色票貼圖與材質設定、每個 FBX 的匯入設定、節點的旋轉與縮放、材質都換成了專案資產）、Place Axis Test（在目前場景放測試方塊，EditorOnly）。
 - 碰撞體與玩法層級（`ArenaWall` 等）仍由 Builder 用簡單碰撞體建立，不用 Mesh Collider。
+- 光照與後處理（Phase 1 定案的做法，數值見「光照與後處理」）：每個場景兩層全域 Volume，`BaseVolume`（優先度 0，共用 `VP_LowPolyBase`）與場景自己的覆寫（序章是 `AfternoonVolume`，優先度 1，目前是空的）。演出要壓暗或改色時，不要用固定值覆寫基礎設定，改成另一層 Volume、用權重從基礎值漸變過去（序章的 `PrologueCinematicStage` 就是這樣做）。序章的主光、天空、環境光、霧都在 `PrologueLayoutData`，Tools > Prologue > Apply Atmosphere 套到場景（原地更新主光，不重建）。
 - 現有程序網格（`Arena_*`、`Hub_Cone`…）只在 fallback 時才重建，不再覆寫正式模型。
 
 ## 單一資產的工作循環

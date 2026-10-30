@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using BossFight.Core;
 using BossFight.Progression;
 using UnityEditor;
@@ -17,6 +18,9 @@ namespace BossFight.EditorTools
         public const string LayoutPath = "Assets/ScriptableObjects/Progression/PrologueLayout.asset";
         const string ModelDir = "Assets/Models/Prologue";
         const string OptionsPath = "Assets/ScriptableObjects/Options/GameOptionsData.asset";
+        public const string SkyMaterialPath = "Assets/Art/Materials/Sky_PrologueAfternoon.mat";
+        const string SkyShader = "BossFight/Sky Gradient";
+        const string AfternoonProfilePath = ModelDir + "/AfternoonVolume.asset";
 
         [MenuItem("Tools/Prologue/Build Prologue")]
         public static void BuildFromMenu()
@@ -77,7 +81,7 @@ namespace BossFight.EditorTools
             BuildForest(level, data, bark, leaves);
             BuildWalls(level, data);
             BuildMountains(level, data, mountain);
-            BuildAtmosphere(data);
+            ApplyAtmosphere(data);
 
             var spawns = new GameObject("Spawns").transform;
             var start = Anchor(spawns, "Start", data.playerSpawn);
@@ -196,48 +200,80 @@ namespace BossFight.EditorTools
             }
         }
 
-        static void BuildAtmosphere(PrologueLayoutData data)
+        /// <summary>Tools > Prologue > Apply Atmosphere：只把 PrologueLayoutData 的天色套到開著的序章場景（不重建場景）並存檔。</summary>
+        [MenuItem("Tools/Prologue/Apply Atmosphere")]
+        public static void ApplyAtmosphereFromMenu()
         {
-            var sun = new GameObject("Directional Light").AddComponent<Light>();
-            sun.type = LightType.Directional;
+            if (EditorApplication.isPlayingOrWillChangePlaymode) return;
+            var scene = SceneManager.GetActiveScene();
+            if (scene.path != ScenePath)
+            {
+                Debug.LogError("[Prologue] 請先開啟 Prologue 場景。");
+                return;
+            }
+            ApplyAtmosphere(AssetDatabase.LoadAssetAtPath<PrologueLayoutData>(LayoutPath));
+            EditorSceneManager.SaveScene(scene);
+            AssetDatabase.SaveAssets();
+            Debug.Log("[Prologue] 已套用天色（主光、漸層天空、環境光、霧、後處理）。");
+        }
+
+        /// <summary>
+        /// 午後天色（docs/Art/ART_STYLE.md「光照與後處理」）：主光、三色漸層天空（地平線色 = 霧色）、Trilight 環境光、指數平方霧、
+        /// 兩層全域 Volume（BaseVolume 優先度 0 是三個場景共用的 VP_LowPolyBase，AfternoonVolume 優先度 1 放序章自己的覆寫）。
+        /// 場景裡已有的主光與 Volume 原地更新、不重建：序章演出（PrologueCinematicStage）引用這盞主光。
+        /// </summary>
+        public static void ApplyAtmosphere(PrologueLayoutData data)
+        {
+            var sun = UnityEngine.Object.FindObjectsByType<Light>(FindObjectsSortMode.None).FirstOrDefault(l => l.type == LightType.Directional);
+            if (sun == null)
+            {
+                sun = new GameObject("Directional Light").AddComponent<Light>();
+                sun.type = LightType.Directional;
+            }
             sun.shadows = LightShadows.Soft;
             sun.color = data.sunColor;
             sun.intensity = data.sunIntensity;
             sun.transform.rotation = Quaternion.Euler(data.sunAngles.x, data.sunAngles.y, 0f);
-            var skyPath = ModelDir + "/AfternoonSky.mat";
-            var sky = AssetDatabase.LoadAssetAtPath<Material>(skyPath);
+            var sky = AssetDatabase.LoadAssetAtPath<Material>(SkyMaterialPath);
             if (sky == null)
             {
-                sky = new Material(Shader.Find("Skybox/Procedural")) { name = "PrologueAfternoonSky" };
-                sky.SetColor("_SkyTint", new Color(0.58f, 0.73f, 0.85f));
-                sky.SetFloat("_Exposure", 1.15f);
-                AssetDatabase.CreateAsset(sky, skyPath);
+                sky = new Material(Shader.Find(SkyShader)) { name = "Sky_PrologueAfternoon" };
+                AssetDatabase.CreateAsset(sky, SkyMaterialPath);
             }
+            // 天空顏色以 PrologueLayoutData 為準，每次套用都寫回材質
+            sky.SetColor("_TopColor", data.skyTopColor);
+            sky.SetColor("_HorizonColor", data.fogColor);
+            sky.SetColor("_BottomColor", data.skyBottomColor);
+            EditorUtility.SetDirty(sky);
             RenderSettings.sun = sun;
             RenderSettings.skybox = sky;
             RenderSettings.ambientMode = AmbientMode.Trilight;
-            RenderSettings.ambientSkyColor = new Color(0.65f, 0.74f, 0.78f);
-            RenderSettings.ambientEquatorColor = new Color(0.55f, 0.58f, 0.46f);
-            RenderSettings.ambientGroundColor = new Color(0.25f, 0.3f, 0.2f);
+            RenderSettings.ambientSkyColor = data.ambientSky;
+            RenderSettings.ambientEquatorColor = data.ambientEquator;
+            RenderSettings.ambientGroundColor = data.ambientGround;
             RenderSettings.fog = true;
             RenderSettings.fogMode = FogMode.ExponentialSquared;
             RenderSettings.fogColor = data.fogColor;
             RenderSettings.fogDensity = data.fogDensity;
-            var profilePath = ModelDir + "/AfternoonVolume.asset";
-            var profile = AssetDatabase.LoadAssetAtPath<VolumeProfile>(profilePath);
-            if (profile == null)
+            var afternoon = AssetDatabase.LoadAssetAtPath<VolumeProfile>(AfternoonProfilePath);
+            if (afternoon == null)
             {
-                profile = ScriptableObject.CreateInstance<VolumeProfile>();
-                AssetDatabase.CreateAsset(profile, profilePath);
-                var bloom = profile.Add<Bloom>();
-                bloom.intensity.Override(data.bloomIntensity);
-                var color = profile.Add<ColorAdjustments>();
-                color.colorFilter.Override(new Color(1f, 0.97f, 0.91f));
-                foreach (var component in profile.components) AssetDatabase.AddObjectToAsset(component, profile);
-                EditorUtility.SetDirty(profile);
+                afternoon = ScriptableObject.CreateInstance<VolumeProfile>();
+                AssetDatabase.CreateAsset(afternoon, AfternoonProfilePath);
             }
-            var volume = new GameObject("AfternoonVolume").AddComponent<Volume>();
+            EnsureVolume("BaseVolume", 0f, ArtTools.EnsureBaseVolumeProfile());
+            EnsureVolume("AfternoonVolume", 1f, afternoon);
+            DynamicGI.UpdateEnvironment();
+            EditorSceneManager.MarkSceneDirty(sun.gameObject.scene);
+        }
+
+        static void EnsureVolume(string name, float priority, VolumeProfile profile)
+        {
+            var volume = SceneManager.GetActiveScene().GetRootGameObjects()
+                .Where(go => go.name == name).Select(go => go.GetComponent<Volume>()).FirstOrDefault(v => v != null);
+            if (volume == null) volume = new GameObject(name).AddComponent<Volume>();
             volume.isGlobal = true;
+            volume.priority = priority;
             volume.sharedProfile = profile;
         }
 
