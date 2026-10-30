@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using UnityEditor;
@@ -27,6 +27,32 @@ namespace BossFight.EditorTools
         public const string FoliageMaterial = ArtImportPostprocessor.MaterialsRoot + "/M_Palette_Foliage.mat";
         public const string BaseVolumeProfile = "Assets/Art/Settings/VP_LowPolyBase.asset";
         const string AxisTestId = "SM_Test_AxisCube";
+        const string PaletteJson = "Art/Blender/palette/palette.json";
+
+        static Dictionary<string, Vector2Int> paletteGroups;
+
+        /// <summary>
+        /// 色格「組名.l／.m／.d」在色票貼圖上的 UV（格子中心），給 Builder 程序產生的網格（地面）用，規則同 Blender 的 kit.cell_uv。
+        /// 色格座標讀 Art/Blender/palette/palette.json（每組佔同一列連續 3 格：亮、中、暗）。
+        /// </summary>
+        public static Vector2 PaletteUV(string cell)
+        {
+            if (paletteGroups == null)
+            {
+                paletteGroups = new Dictionary<string, Vector2Int>();
+                var json = System.IO.File.ReadAllText(System.IO.Path.Combine(Application.dataPath, "..", PaletteJson));
+                foreach (System.Text.RegularExpressions.Match m in System.Text.RegularExpressions.Regex.Matches(
+                             json, "\"(\\w+)\"\\s*:\\s*\\{\\s*\"row\"\\s*:\\s*(\\d+)\\s*,\\s*\"col\"\\s*:\\s*(\\d+)"))
+                    paletteGroups[m.Groups[1].Value] = new Vector2Int(int.Parse(m.Groups[3].Value), int.Parse(m.Groups[2].Value));
+            }
+            int dot = cell.LastIndexOf('.');
+            if (dot < 0 || !paletteGroups.TryGetValue(cell.Substring(0, dot), out var group))
+                throw new System.ArgumentException($"色票沒有 {cell}（看 {PaletteJson}）");
+            int tier = "lmd".IndexOf(cell[dot + 1]);
+            if (tier < 0) throw new System.ArgumentException($"色格 {cell} 的階要是 l、m、d");
+            const float grid = 16f; // palette.json 的 grid
+            return new Vector2((group.x + tier + 0.5f) / grid, 1f - (group.y + 0.5f) / grid);
+        }
 
         [MenuItem("Tools/Art/Setup Art Assets")]
         public static void Setup()

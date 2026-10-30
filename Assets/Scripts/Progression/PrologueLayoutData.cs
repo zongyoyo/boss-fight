@@ -35,11 +35,41 @@ namespace BossFight.Progression
         [Tooltip("隱形牆厚度 (m)")]
         [Min(0.1f)] public float wallThickness = 1f;
 
-        [Header("佔位視覺")]
-        [Tooltip("確定性佔位樹木與遠山的種子")]
+        [Header("佈景（Builder 用固定種子散佈；改完跑 Tools > Prologue > Build Scenery）")]
+        [Tooltip("樹、草、地面與遠山的亂數種子")]
         public int visualSeed = 25;
-        [Tooltip("樹高範圍 (m)")]
+        [Tooltip("佔位樹（沒有正式模型時）的樹高範圍 (m)")]
         public Vector2 treeHeight = new Vector2(6f, 9f);
+        [Tooltip("正式樹模型的縮放範圍")]
+        public Vector2 treeScale = new Vector2(0.85f, 1.2f);
+        [Tooltip("牆外的裝飾樹排數（沒有碰撞，往霧裡淡出）")]
+        [Min(0)] public int outerTreeRows = 4;
+        [Tooltip("裝飾樹的排距 (m)")]
+        [Min(0.5f)] public float outerRowSpacing = 3.5f;
+        [Tooltip("裝飾樹的同排間距 (m)")]
+        [Min(0.5f)] public float outerTreeSpacing = 4f;
+        [Tooltip("裝飾樹位置的隨機偏移 (m)")]
+        [Min(0f)] public float outerTreeJitter = 1f;
+        [Tooltip("地面網格的半徑 (m)，要蓋到遠山後面")]
+        [Min(1f)] public float groundRadius = 90f;
+        [Tooltip("地面網格空地內的格距 (m)，往外逐漸放大")]
+        [Min(0.5f)] public float groundCellSize = 1.6f;
+        [Tooltip("牆外地面起伏的高度 (m)；牆內一律平坦")]
+        [Min(0f)] public float groundRelief = 1.2f;
+        [Tooltip("往遠山腳下逐漸升高的高度 (m)")]
+        [Min(0f)] public float groundRise = 6f;
+        [Tooltip("菊花周圍泥土地的半徑 (m)")]
+        [Min(0f)] public float earthRadius = 2.6f;
+        [Tooltip("空地中央這個半徑內不放草（戰鬥預兆要看得清楚）(m)")]
+        [Min(0f)] public float grassInnerRadius = 13f;
+        [Tooltip("空地邊緣（grassInnerRadius 到牆）的草叢密度（叢 / m²）")]
+        [Min(0f)] public float edgeGrassDensity = 1.2f;
+        [Tooltip("牆外林帶的草叢密度（叢 / m²）")]
+        [Min(0f)] public float forestGrassDensity = 1f;
+        [Tooltip("出生點與教學角色周圍不放草與道具的半徑 (m)")]
+        [Min(0f)] public float actorClearance = 2.5f;
+        [Tooltip("牆外灌木、石頭、枯枝、樹樁、倒木的密度倍率（1 = Builder 預設）")]
+        [Min(0f)] public float propDensity = 1f;
         [Tooltip("遠山環的半徑 (m)，只作背景")]
         [Min(1f)] public float mountainRadius = 70f;
         [Tooltip("遠山數量")]

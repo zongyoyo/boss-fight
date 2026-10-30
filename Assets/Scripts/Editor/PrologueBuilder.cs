@@ -16,7 +16,7 @@ namespace BossFight.EditorTools
     {
         public const string ScenePath = "Assets/Scenes/Prologue.unity";
         public const string LayoutPath = "Assets/ScriptableObjects/Progression/PrologueLayout.asset";
-        const string ModelDir = "Assets/Models/Prologue";
+        public const string ModelDir = "Assets/Models/Prologue";
         const string OptionsPath = "Assets/ScriptableObjects/Options/GameOptionsData.asset";
         public const string SkyMaterialPath = "Assets/Art/Materials/Sky_PrologueAfternoon.mat";
         const string SkyShader = "BossFight/Sky Gradient";
@@ -62,25 +62,13 @@ namespace BossFight.EditorTools
                 data = ScriptableObject.CreateInstance<PrologueLayoutData>();
                 AssetDatabase.CreateAsset(data, LayoutPath);
             }
-            var grass = Material("Grass", new Color(0.32f, 0.48f, 0.24f));
             var earth = Material("Earth", new Color(0.62f, 0.53f, 0.34f));
-            var bark = Material("Bark", new Color(0.29f, 0.2f, 0.12f));
-            var leaves = new[] { Material("Leaves0", new Color(0.16f, 0.36f, 0.16f)),
-                                 Material("Leaves1", new Color(0.24f, 0.43f, 0.2f)),
-                                 Material("Leaves2", new Color(0.12f, 0.3f, 0.19f)) };
-            var mountain = Material("Mountain", new Color(0.42f, 0.49f, 0.48f));
             var level = new GameObject("Level").transform;
-            float groundRadius = data.clearingRadius + data.treeRows * data.rowSpacing + data.wallThickness;
-            var ground = Primitive("Ground", level, PrimitiveType.Cylinder, new Vector3(0f, -0.25f, 0f),
-                                   new Vector3(groundRadius * 2f, 0.25f, groundRadius * 2f), grass, false);
-            // 圓柱預設的 CapsuleCollider 會隨水平放大變成巨球，不能用於壓扁的地板。
-            // 地板固定不動，使用與可見圓盤相同的靜態網格碰撞，頂面維持在 y = 0。
-            ground.AddComponent<MeshCollider>().sharedMesh = ground.GetComponent<MeshFilter>().sharedMesh;
+            // 地面、森林、草叢、道具、遠山（美術 Phase 2）；地面網格的碰撞頂面在 y = 0
+            Debug.Log(PrologueSceneryBuilder.Build(level, data, FallbackMaterials()));
             Primitive("MentorSoil", level, PrimitiveType.Cylinder, Ground(data.mentorPosition) + Vector3.up * 0.015f,
                       new Vector3(2.5f, 0.01f, 2.5f), earth, false);
-            BuildForest(level, data, bark, leaves);
             BuildWalls(level, data);
-            BuildMountains(level, data, mountain);
             ApplyAtmosphere(data);
 
             var spawns = new GameObject("Spawns").transform;
@@ -112,31 +100,6 @@ namespace BossFight.EditorTools
             Debug.Log($"[Prologue] 已建立 {ScenePath}；空地半徑 {data.clearingRadius} m；Build Settings：Boot 0、Hub 1、BossArena 2、Prologue 3");
         }
 
-        static void BuildForest(Transform parent, PrologueLayoutData data, Material bark, Material[] leaves)
-        {
-            var root = new GameObject("Forest").transform;
-            root.SetParent(parent, false);
-            var random = new System.Random(data.visualSeed);
-            for (int row = 0; row < data.treeRows; row++)
-            {
-                float radius = data.clearingRadius + data.trunkRadius * 2f + row * data.rowSpacing;
-                int count = Mathf.CeilToInt(Mathf.PI * 2f * radius / data.treeSpacing);
-                for (int i = 0; i < count; i++)
-                {
-                    float angle = (i + 0.5f + row * 0.5f) / count * Mathf.PI * 2f;
-                    var position = new Vector3(Mathf.Sin(angle), 0f, Mathf.Cos(angle)) * radius;
-                    float height = Mathf.Lerp(data.treeHeight.x, data.treeHeight.y, (float)random.NextDouble());
-                    var tree = new GameObject($"Tree_{row}_{i:00}").transform;
-                    tree.SetParent(root, false);
-                    tree.position = position;
-                    Primitive("Trunk", tree, PrimitiveType.Cylinder, Vector3.up * height * 0.5f,
-                              new Vector3(data.trunkRadius * 2f, height * 0.5f, data.trunkRadius * 2f), bark, true);
-                    Primitive("Crown", tree, PrimitiveType.Sphere, Vector3.up * height * 0.8f,
-                              new Vector3(3.8f, height * 0.65f, 3.8f), leaves[(i + row) % leaves.Length], false);
-                }
-            }
-        }
-
         static void BuildWalls(Transform parent, PrologueLayoutData data)
         {
             var root = new GameObject("InvisibleWalls").transform;
@@ -160,44 +123,41 @@ namespace BossFight.EditorTools
             }
         }
 
-        static void BuildMountains(Transform parent, PrologueLayoutData data, Material material)
+        /// <summary>佈景沒有正式模型時用的佔位材質（只在不存在時建立）。</summary>
+        public static PrologueSceneryBuilder.Fallback FallbackMaterials() => new PrologueSceneryBuilder.Fallback
+        {
+            grass = Material("Grass", new Color(0.32f, 0.48f, 0.24f)),
+            bark = Material("Bark", new Color(0.29f, 0.2f, 0.12f)),
+            leaves = new[] { Material("Leaves0", new Color(0.16f, 0.36f, 0.16f)),
+                             Material("Leaves1", new Color(0.24f, 0.43f, 0.2f)),
+                             Material("Leaves2", new Color(0.12f, 0.3f, 0.19f)) },
+            mountain = Material("Mountain", new Color(0.42f, 0.49f, 0.48f)),
+        };
+
+        /// <summary>佔位遠山的八邊圓錐（沒有正式山模型時用；只在不存在時建立）。</summary>
+        public static Mesh MountainCone()
         {
             var meshPath = ModelDir + "/MountainCone.asset";
             var mesh = AssetDatabase.LoadAssetAtPath<Mesh>(meshPath);
-            if (mesh == null)
+            if (mesh != null) return mesh;
+            mesh = new Mesh { name = "MountainCone" };
+            const int sides = 8;
+            var vertices = new Vector3[sides + 1];
+            vertices[0] = Vector3.up;
+            var triangles = new int[sides * 3];
+            for (int i = 0; i < sides; i++)
             {
-                mesh = new Mesh { name = "MountainCone" };
-                const int sides = 8;
-                var vertices = new Vector3[sides + 1];
-                vertices[0] = Vector3.up;
-                var triangles = new int[sides * 3];
-                for (int i = 0; i < sides; i++)
-                {
-                    float a = i * Mathf.PI * 2f / sides;
-                    vertices[i + 1] = new Vector3(Mathf.Sin(a), 0f, Mathf.Cos(a));
-                    triangles[i * 3] = 0;
-                    triangles[i * 3 + 1] = i + 1;
-                    triangles[i * 3 + 2] = (i + 1) % sides + 1;
-                }
-                mesh.vertices = vertices;
-                mesh.triangles = triangles;
-                mesh.RecalculateNormals();
-                AssetDatabase.CreateAsset(mesh, meshPath);
+                float a = i * Mathf.PI * 2f / sides;
+                vertices[i + 1] = new Vector3(Mathf.Sin(a), 0f, Mathf.Cos(a));
+                triangles[i * 3] = 0;
+                triangles[i * 3 + 1] = i + 1;
+                triangles[i * 3 + 2] = (i + 1) % sides + 1;
             }
-            var root = new GameObject("Mountains").transform;
-            root.SetParent(parent, false);
-            var random = new System.Random(data.visualSeed);
-            for (int i = 0; i < data.mountainCount; i++)
-            {
-                float a = i * Mathf.PI * 2f / data.mountainCount;
-                var go = new GameObject($"Mountain_{i:00}", typeof(MeshFilter), typeof(MeshRenderer));
-                go.transform.SetParent(root, false);
-                go.transform.position = new Vector3(Mathf.Sin(a) * data.mountainRadius, -1f, Mathf.Cos(a) * data.mountainRadius);
-                go.transform.localScale = new Vector3(17f, 14f + (float)random.NextDouble() * 14f, 17f);
-                go.GetComponent<MeshFilter>().sharedMesh = mesh;
-                go.GetComponent<MeshRenderer>().sharedMaterial = material;
-                go.isStatic = true;
-            }
+            mesh.vertices = vertices;
+            mesh.triangles = triangles;
+            mesh.RecalculateNormals();
+            AssetDatabase.CreateAsset(mesh, meshPath);
+            return mesh;
         }
 
         /// <summary>Tools > Prologue > Apply Atmosphere：只把 PrologueLayoutData 的天色套到開著的序章場景（不重建場景）並存檔。</summary>

@@ -4,7 +4,7 @@
 6 邊樹幹，一層層往下垂的鋸齒狀枝片（下層大、上層小），枝片上亮下暗。
 軸心在樹幹底部中心；高度對照序章佔位樹（PrologueLayoutData.treeHeight 6–9 m、樹冠寬 3.8 m）。
 樹幹碰撞由 Unity 端加（半徑 PrologueLayoutData.trunkRadius），模型不帶碰撞。
-變體寫在 VARIANTS；Phase 1 只有 A，Phase 2 再加 B–D。
+變體寫在 VARIANTS：A 標準、B 高瘦、C 矮胖、D 小樹苗（前景與林緣用）。
 """
 import importlib
 import math
@@ -22,6 +22,12 @@ importlib.reload(kit)
 VARIANTS = {
     "A": dict(seed=11, height=8.0, trunk_radius=0.28, tiers=6, base_radius=2.0, top_radius=0.65,
               first_tier=1.5, points=8, droop=0.55, group="pine"),
+    "B": dict(seed=12, height=10.0, trunk_radius=0.3, tiers=7, base_radius=1.7, top_radius=0.5,
+              first_tier=1.9, points=7, droop=0.62, group="pine"),
+    "C": dict(seed=13, height=6.0, trunk_radius=0.3, tiers=5, base_radius=2.25, top_radius=0.8,
+              first_tier=0.9, points=8, droop=0.45, group="pine"),
+    "D": dict(seed=14, height=3.0, trunk_radius=0.11, tiers=4, base_radius=1.0, top_radius=0.38,
+              first_tier=0.45, points=6, droop=0.5, group="pine"),
 }
 
 
@@ -74,7 +80,7 @@ def build(variant, p):
     obj = kit.make_object(name, bm, col)
     kit.finalize(obj)
     width = p["base_radius"] * 2
-    report = kit.check([obj], budget=(300, 700), target_size=(width, width, h), size_tol=0.1, pivots={name: (0, 0, 0)})
+    report = kit.check([obj], budget=(150, 700), target_size=(width, width, h), size_tol=0.15, pivots={name: (0, 0, 0)})
     # 藍框：序章佔位樹（樹冠球寬 3.8 m、頂端約 1.125 × 樹高）
     report["sheet"] = kit.contact_sheet([obj], name, target_bbox=((-1.9, -1.9, 0), (1.9, 1.9, h * 1.05)))
     report["fbx"] = kit.export_fbx([obj], f"Env/{name}.fbx")

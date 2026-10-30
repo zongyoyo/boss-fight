@@ -337,16 +337,17 @@ def add_prism(bm, sides, radius, height, location=(0, 0, 0), rotation=(0, 0, 0),
 
 def add_icosphere(bm, radius, subdivisions=1, location=(0, 0, 0), rotation=(0, 0, 0), scale=(1, 1, 1),
                   cell=None, jitter=0.0, rng=None):
-    """icosphere（細分 1 次 80 面、2 次 320 面）；jitter 是半徑的比例。"""
+    """icosphere（細分 0 次 20 面、1 次 80 面、2 次 320 面）；jitter 是半徑的比例。"""
     # bmesh 的 subdivisions=1 是沒細分的 20 面體，所以 +1
     verts = bmesh.ops.create_icosphere(bm, subdivisions=subdivisions + 1, radius=radius)["verts"]
     m = placement(location, rotation, scale)
     return _finish_part(bm, verts, m, cell, jitter, rng, radius)
 
 
-def add_rock(bm, radius, rng, location=(0, 0, 0), squash=0.7, cuts=2, cell="stone.m", jitter=0.12):
-    """變形 icosphere 加幾刀平切面；底部壓平，頂面亮、底部暗由 shade_by_height 處理。"""
-    verts, faces = add_icosphere(bm, radius, 1, location=(0, 0, 0), scale=(1, 1, squash),
+def add_rock(bm, radius, rng, location=(0, 0, 0), squash=0.7, cuts=2, cell="stone.m", jitter=0.12, subdivisions=1):
+    """變形 icosphere 加幾刀平切面；底部壓平，頂面亮、底部暗由 shade_by_height 處理。
+    subdivisions=0 是 20 面體（碎石用）。"""
+    verts, faces = add_icosphere(bm, radius, subdivisions, location=(0, 0, 0), scale=(1, 1, squash),
                                  cell=cell, jitter=jitter, rng=rng)
     for _ in range(cuts):
         n = Vector((rng.uniform(-1, 1), rng.uniform(-1, 1), rng.uniform(0.2, 1))).normalized()

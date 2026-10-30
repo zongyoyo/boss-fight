@@ -2,7 +2,7 @@
 樹樁 SM_Stump_<變體>（ART_STYLE 第 8 節「共用環境套件」：樹樁 2、倒木 SM_Log 2 另一支腳本）。
 
 7 邊樹身、底部外張，3 條往外下插的根；截面是年輪：外圈樹皮、淺色環、中間色環、淺色心。
-軸心在底部中心。變體寫在 VARIANTS；Phase 1 只有 A。
+軸心在底部中心。變體寫在 VARIANTS：A 標準、B 矮小（6 邊、4 條根）。
 """
 import importlib
 import math
@@ -22,6 +22,9 @@ VARIANTS = {
               # 截面的環：(半徑比例, 下沉 m, 色格)，由外往內
               rings=[(0.82, 0.0, "bark.m"), (0.55, 0.012, "wood_cut.l"), (0.32, 0.02, "wood_cut.m")],
               heart="wood_cut.l"),
+    "B": dict(seed=52, radius=0.26, height=0.32, sides=6, roots=4, root_reach=0.45,
+              rings=[(0.8, 0.0, "bark.m"), (0.5, 0.01, "wood_cut.l")],
+              heart="wood_cut.m"),
 }
 
 
@@ -58,10 +61,10 @@ def build(variant, p):
     for k in range(p["roots"]):
         a = 2 * math.pi * (k + rng.uniform(-0.15, 0.15)) / p["roots"] + 0.4
         reach = p["root_reach"] * rng.uniform(0.85, 1.1)
-        start = (math.cos(a) * r * 0.75, math.sin(a) * r * 0.75, 0.24)
-        mid = (math.cos(a) * reach * 0.7, math.sin(a) * reach * 0.7, 0.08)
+        start = (math.cos(a) * r * 0.75, math.sin(a) * r * 0.75, h * 0.44)
+        mid = (math.cos(a) * reach * 0.7, math.sin(a) * reach * 0.7, h * 0.15)
         end = (math.cos(a) * reach, math.sin(a) * reach, 0.0)
-        _, faces = kit.add_tube(bm, [start, mid, end], [0.17, 0.12, 0.05], sides=4, cell="bark.m", jitter=0.08, rng=rng)
+        _, faces = kit.add_tube(bm, [start, mid, end], [r * 0.47, r * 0.33, r * 0.14], sides=4, cell="bark.m", jitter=0.08, rng=rng)
         kit.shade_faces(bm, faces, "bark", up=0.6, down=-0.3)
     obj = kit.make_object(name, bm, col)
     kit.finalize(obj)

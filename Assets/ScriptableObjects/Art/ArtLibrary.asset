@@ -13,15 +13,69 @@ MonoBehaviour:
   m_Name: ArtLibrary
   m_EditorClassIdentifier: Assembly-CSharp-Editor::BossFight.EditorTools.ArtLibrary
   entries:
+  - id: SM_Bush_A
+    model: {fileID: 919132149155446097, guid: 7ddfa07161681214f9c50d73dfe42457, type: 3}
+  - id: SM_Bush_B
+    model: {fileID: 919132149155446097, guid: bb0abfc3cd1ff6d45b4e9383fbbc2850, type: 3}
+  - id: SM_Bush_C
+    model: {fileID: 919132149155446097, guid: c5f82da5765c654459577784c2a64bde, type: 3}
   - id: SM_Grass_Clump_A
     model: {fileID: 919132149155446097, guid: 9b1517b11c429b44aa8e72ab5ee2c595, type: 3}
+  - id: SM_Grass_Clump_B
+    model: {fileID: 919132149155446097, guid: 80aef37be18a1c3448d7c78a4968d1d0, type: 3}
+  - id: SM_Grass_Clump_C
+    model: {fileID: 919132149155446097, guid: 40312c93aae143b499983b36095c2608, type: 3}
+  - id: SM_Grass_Clump_D
+    model: {fileID: 919132149155446097, guid: 6d26a1b8f88482b498ad7455d3abda59, type: 3}
+  - id: SM_Log_A
+    model: {fileID: 919132149155446097, guid: ceecc752a57acc741ba2a3563d73c6ec, type: 3}
+  - id: SM_Log_B
+    model: {fileID: 919132149155446097, guid: d06f388f3255b6846805d437a9c847a1, type: 3}
+  - id: SM_Mountain_A
+    model: {fileID: 919132149155446097, guid: 5e2810a1b9888f84ca2398d9437d4cae, type: 3}
+  - id: SM_Mountain_B
+    model: {fileID: 919132149155446097, guid: 91eca0cc16597144bb5d3a77b94d65f5, type: 3}
+  - id: SM_Mountain_C
+    model: {fileID: 919132149155446097, guid: e187dc2505f6ddf4fa4d90e81c1f41a6, type: 3}
   - id: SM_Rock_A
     model: {fileID: 919132149155446097, guid: 233ee85e7b7abb94db27ec9cf0a7e4e4, type: 3}
+  - id: SM_Rock_B
+    model: {fileID: 919132149155446097, guid: ddecec5f9a7b64645b0e1504dcb2c15c, type: 3}
+  - id: SM_Rock_C
+    model: {fileID: 919132149155446097, guid: c645336d1ec42e74db6a164d1c6654b9, type: 3}
+  - id: SM_Rock_D
+    model: {fileID: 919132149155446097, guid: d163f16812ad9594e87dd3520d5d9e91, type: 3}
+  - id: SM_Rock_E
+    model: {fileID: 919132149155446097, guid: 3e52e252d5507c248ae7f8cb157da698, type: 3}
+  - id: SM_Rock_F
+    model: {fileID: 919132149155446097, guid: 0523b989d7e6e4a48af6f6dbdaa9380c, type: 3}
   - id: SM_Stump_A
     model: {fileID: 919132149155446097, guid: ab03044d2b804a24183dd0b2984f06e4, type: 3}
+  - id: SM_Stump_B
+    model: {fileID: 919132149155446097, guid: 0387f542fdc2d75459dfae356bbaaf66, type: 3}
   - id: SM_Test_AxisCube
     model: {fileID: 919132149155446097, guid: 9b215ee2f8a885f478d1634a2100bee7, type: 3}
   - id: SM_Tree_Broad_A
     model: {fileID: 919132149155446097, guid: 50109ea7deda82447afb92e6da499860, type: 3}
+  - id: SM_Tree_Broad_B
+    model: {fileID: 919132149155446097, guid: fff5af2556cd6a64a889acde2b81eb6f, type: 3}
+  - id: SM_Tree_Broad_C
+    model: {fileID: 919132149155446097, guid: 30a0e1ef77885964ca2ea13fdfa6f85c, type: 3}
+  - id: SM_Tree_Dead_A
+    model: {fileID: 919132149155446097, guid: 232ef95c1cbecf54da1df3d32aa849f8, type: 3}
+  - id: SM_Tree_Dead_B
+    model: {fileID: 919132149155446097, guid: 60ca0d55e8a807e45adaa3514a4ec73c, type: 3}
   - id: SM_Tree_Pine_A
     model: {fileID: 919132149155446097, guid: 6b20a792fa39ad34a928a13b7159b26d, type: 3}
+  - id: SM_Tree_Pine_B
+    model: {fileID: 919132149155446097, guid: 074226650b7a03b4a887ab51fb10f4d0, type: 3}
+  - id: SM_Tree_Pine_C
+    model: {fileID: 919132149155446097, guid: eec6315307488004ab499917f4de3e46, type: 3}
+  - id: SM_Tree_Pine_D
+    model: {fileID: 919132149155446097, guid: 4ee70b119aad17c48aac3e26ae598ace, type: 3}
+  - id: SM_Twig_A
+    model: {fileID: 919132149155446097, guid: 56e444160f908854ca9baceda20b1699, type: 3}
+  - id: SM_Twig_B
+    model: {fileID: 919132149155446097, guid: d3af752596d0089479f364928ced0370, type: 3}
+  - id: SM_Twig_C
+    model: {fileID: 919132149155446097, guid: e3b543d96dc7e504681301b9147b9311, type: 3}
