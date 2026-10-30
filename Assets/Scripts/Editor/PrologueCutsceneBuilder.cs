@@ -347,19 +347,26 @@ namespace BossFight.EditorTools
         }
         // H7 的伏筆：守衛破土的位置地上幾道淡紅裂縫，守衛破土時收掉（PrologueCinematicStage 的 Rise）。
         // 試玩回饋：原本直立的焦黑樹根看起來像守衛模型穿出地面，拿掉，只留貼地的裂縫
+        // 美術 Phase 2：裂縫換成貼地的地裂模型 SM_Crack_A–C（泥土唇、暗紅邊、黑縫）；沒有模型時退回細長的紅色方塊
         static void BuildForeshadowCracks(PrologueCinematicStage stage, Transform parent, Vector3 center)
         {
             var roots = Node(parent, "ForeshadowCracks", center);
-            var glow = Mat("ForeshadowCrack", new Color(1.2f, 0.05f, 0.02f));
             for (int i = 0; i < 3; i++)
             {
-                var crack = GameObject.CreatePrimitive(PrimitiveType.Cube); crack.name = "Fissure_" + i; Object.DestroyImmediate(crack.GetComponent<Collider>());
-                crack.transform.SetParent(roots, false);
+                var crack = new GameObject("Fissure_" + i).transform;
+                crack.SetParent(roots, false);
                 var dir = Quaternion.Euler(0f, 160f + 20f * i, 0f) * Vector3.forward;
-                crack.transform.localRotation = Quaternion.LookRotation(dir);
-                crack.transform.localPosition = dir * 3.2f + Vector3.up * 0.03f;
-                crack.transform.localScale = new Vector3(0.08f, 0.02f, 2.2f);
-                crack.GetComponent<Renderer>().sharedMaterial = glow;
+                crack.localRotation = Quaternion.LookRotation(dir);
+                crack.localPosition = dir * 3.2f;
+                ArtLibrary.Spawn("SM_Crack_" + (char)('A' + i), crack, () =>
+                {
+                    var cube = GameObject.CreatePrimitive(PrimitiveType.Cube); cube.name = "Placeholder"; Object.DestroyImmediate(cube.GetComponent<Collider>());
+                    cube.transform.SetParent(crack, false);
+                    cube.transform.localPosition = Vector3.up * 0.03f;
+                    cube.transform.localScale = new Vector3(0.08f, 0.02f, 2.2f);
+                    cube.GetComponent<Renderer>().sharedMaterial = Mat("ForeshadowCrack", new Color(1.2f, 0.05f, 0.02f));
+                    return cube;
+                });
             }
             Set(stage, "foreshadowCracks", roots.gameObject);
         }

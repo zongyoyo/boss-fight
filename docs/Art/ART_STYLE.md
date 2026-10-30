@@ -295,6 +295,7 @@ Phase 2 的做法（`Scripts/Editor/PrologueSceneryBuilder`，Build Prologue 會
 - 草叢：空地中央 13 m 內不放（戰鬥預兆要看得清楚），空地邊緣是矮草，牆外林帶是中、高、帶花草；出生點與教學角色周圍留空；不投影。
 - 灌木、石頭、枯枝、樹樁、倒木只放在牆外，沒有碰撞；空地邊緣只有碎石。
 - 遠山：3 種山形，山肩外鼓、峰頂圓鈍（試過拉高成尖錐，太尖），峰高 70% 以上是雪（色票 `snow`，雪線每個面隨機上下）；放在半徑 60 m（比最外排裝飾樹遠一個山腳，樹不會插進山坡），高度約 22–36 m（`mountainScale`、`mountainHeight`）。
+- 守衛破土處的伏筆裂縫（`ForeshadowCracks`）換成地裂模型 `SM_Crack_A–C`（PrologueCutsceneBuilder 放）：不規則折線（不要左右交錯，交錯像閃電符號），泥土唇、暗紅發光邊（`ember` 暗階）、黑縫，貼地；Phase 5 的地裂類也從這支腳本取。
 - 截圖在 `Art/Blender/preview/Prologue_P2_*.png`；和參考圖的並排比對在 `Art/參考圖/`（不進版控）。
 
 - **森林**：全換成套件；鏡頭前景的草叢加密，做出附圖那種「穿過草叢看出去」的層次。

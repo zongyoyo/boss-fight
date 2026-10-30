@@ -19,6 +19,12 @@ MonoBehaviour:
     model: {fileID: 919132149155446097, guid: bb0abfc3cd1ff6d45b4e9383fbbc2850, type: 3}
   - id: SM_Bush_C
     model: {fileID: 919132149155446097, guid: c5f82da5765c654459577784c2a64bde, type: 3}
+  - id: SM_Crack_A
+    model: {fileID: 919132149155446097, guid: 2b92494234ce93048b9cb9f58d3c42a1, type: 3}
+  - id: SM_Crack_B
+    model: {fileID: 919132149155446097, guid: 02c00bf0db1c2d04fbaf4939bdc9d76c, type: 3}
+  - id: SM_Crack_C
+    model: {fileID: 919132149155446097, guid: 04e38255c7f9d1a47978a75d2c0f7727, type: 3}
   - id: SM_Grass_Clump_A
     model: {fileID: 919132149155446097, guid: 9b1517b11c429b44aa8e72ab5ee2c595, type: 3}
   - id: SM_Grass_Clump_B

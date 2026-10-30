@@ -7,10 +7,10 @@
 | `lib/lowpoly_kit.py` | 共用函式（說明在檔案開頭） |
 | `palette/palette.json` | 色格名稱 → 座標與顏色；`build_palette.py` 依它產生 `Assets/Art/Textures/T_Palette*.png` |
 | `assets/<類別>/<名稱>.py` | 一個資產一支腳本，跑完回傳檢查結果，並寫出合成圖、FBX、.blend |
-| `assets/env/` | 共用環境套件（針葉樹、闊葉樹、枯樹與枯枝、草叢、灌木、石頭、樹樁、倒木、遠山；變體寫在各腳本的 `VARIANTS`，一支腳本跑完所有變體） |
+| `assets/env/` | 共用環境套件（針葉樹、闊葉樹、枯樹與枯枝、草叢、灌木、石頭、樹樁、倒木、遠山、地裂；變體寫在各腳本的 `VARIANTS`，一支腳本跑完所有變體） |
 | `preview/<名稱>.png` | 四視角合成圖：左上正面、右上側面（從 +X 看）、左下背面、右下 3/4；紅柱是 2 m 比例尺，藍框是舊佔位物的包圍盒 |
 | `preview/StyleSlice_*.png` | Phase 1 風格切片的遊戲鏡頭截圖（before／after × game〔遊戲視角〕／wide〔低視角〕） |
-| `preview/Prologue_P2_*.png` | Phase 2 序章佈景的截圖（game、wide 同 Phase 1 的鏡頭；spawn 出生點、west 西側、overview 俯瞰） |
+| `preview/Prologue_P2_*.png` | Phase 2 序章佈景的截圖（game、wide 同 Phase 1 的鏡頭；spawn 出生點、west 西側、overview 俯瞰、cracks 守衛破土處的伏筆裂縫） |
 | `blend/<名稱>.blend` | 腳本跑完的存檔（資產自己的 scene），給人工小修；改了要回寫進腳本，下次重跑才不會被蓋掉 |
 | `refs/` | Hunyuan3D 參考網格（風格參考圖在 `Art/參考圖/`，不進版控） |
 
