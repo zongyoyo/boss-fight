@@ -12,7 +12,7 @@ namespace BossFight.EditorTools
     /// <summary>
     /// Tools > Art：美術管線（docs/Art/ART_STYLE.md）的 Unity 端工具。
     /// - Setup Art Assets：建資料夾、套用色票貼圖的匯入設定、建 M_Palette／M_Palette_Emissive（只在不存在時建，之後在資產調）、
-    ///   建三個場景共用的基礎後處理 VP_LowPolyBase（只在不存在時建）、同步 ArtLibrary、重新匯入 FBX（材質依名稱換成專案裡的材質）。
+    ///   建雙面的 M_Palette_Foliage（草、葉片）、三個場景共用的基礎後處理 VP_LowPolyBase（只在不存在時建）、同步 ArtLibrary、重新匯入 FBX（材質依名稱換成專案裡的材質）。
     ///   Blender 第一次輸出色票或改了 palette.json 後跑一次。
     /// - Sync Art Library：依 Assets/Art/Models 的 FBX 重建清單（平常匯入時會自動跑）。
     /// - Validate Art：檢查色票貼圖、兩個色票材質、每個 FBX 的匯入設定、軸向（Rotation 0、Scale 1）與材質都換成了專案資產。
@@ -24,6 +24,7 @@ namespace BossFight.EditorTools
         public const string EmissiveTexture = "Assets/Art/Textures/T_Palette_Emissive.png";
         public const string PaletteMaterial = ArtImportPostprocessor.MaterialsRoot + "/M_Palette.mat";
         public const string EmissiveMaterial = ArtImportPostprocessor.MaterialsRoot + "/M_Palette_Emissive.mat";
+        public const string FoliageMaterial = ArtImportPostprocessor.MaterialsRoot + "/M_Palette_Foliage.mat";
         public const string BaseVolumeProfile = "Assets/Art/Settings/VP_LowPolyBase.asset";
         const string AxisTestId = "SM_Test_AxisCube";
 
@@ -42,6 +43,14 @@ namespace BossFight.EditorTools
             if (palette == null) Debug.LogWarning($"[Art] 沒有 {PaletteTexture}：先在 Blender 跑 Art/Blender/palette/build_palette.py。");
             EnsurePaletteMaterial(PaletteMaterial, palette, null, Color.black);
             EnsurePaletteMaterial(EmissiveMaterial, palette, glow, Color.white);
+            // 草、葉片這類單片網格：同一張色票、雙面（法線在 Blender 端設成朝上，正反面一樣亮）
+            var foliage = EnsurePaletteMaterial(FoliageMaterial, palette, null, Color.black);
+            if (foliage.GetFloat("_Cull") != (float)CullMode.Off)
+            {
+                foliage.SetFloat("_Cull", (float)CullMode.Off);
+                foliage.doubleSidedGI = true;
+                EditorUtility.SetDirty(foliage);
+            }
             EnsureBaseVolumeProfile();
 
             foreach (var change in ArtLibrary.Sync()) Debug.Log($"[Art] ArtLibrary：{change}");
@@ -144,6 +153,9 @@ namespace BossFight.EditorTools
             var emissive = AssetDatabase.LoadAssetAtPath<Material>(EmissiveMaterial);
             if (emissive == null) issues.Add($"沒有 {EmissiveMaterial}");
             else if (emissive.GetTexture("_EmissionMap") == null) issues.Add("M_Palette_Emissive 沒接 emission 貼圖");
+            var foliageMat = AssetDatabase.LoadAssetAtPath<Material>(FoliageMaterial);
+            if (foliageMat == null) issues.Add($"沒有 {FoliageMaterial}");
+            else if (foliageMat.GetFloat("_Cull") != (float)CullMode.Off) issues.Add("M_Palette_Foliage 不是雙面（Render Face 要 Both）");
 
             if (AssetDatabase.LoadAssetAtPath<VolumeProfile>(BaseVolumeProfile) == null) issues.Add($"沒有 {BaseVolumeProfile}（跑 Tools > Art > Setup Art Assets）");
 

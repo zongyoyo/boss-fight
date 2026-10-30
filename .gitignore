@@ -90,3 +90,6 @@ InitTestScene*.unity*
 # Blender 腳本的 Python 快取
 __pycache__/
 *.pyc
+
+# 美術參考圖（使用者要求不進版控）
+Art/參考圖/

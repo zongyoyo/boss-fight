@@ -43,8 +43,8 @@
 | `Assets/Models` | 模型、網格、材質；`Models/Arena`、`Models/DaoDunDog`、`Models/TrainingDummy`、`Models/OiiaCat`、`Models/Hazards`、`Models/Cutscene`、`Models/Hub` 由 Builder 自動產生，重建會覆寫網格；`Models/UI` 是 BattleUIBuilder 產生的 UI 圖（處決標記的圓環），`Models/UI/Equipment` 是 ProgressionBuilder 產生的裝備佔位圖示（T22），都只在不存在時產生 |
 | `Assets/Settings` | URP 與 Volume 設定（範本自帶）；`PC_Renderer` 加了 Decal Renderer Feature（T4，地面範圍提示用） |
 | `docs/` | 企劃書；`docs/Art/` 是美術改造計畫與角色接口規格 |
-| `Art/` | 放在 Assets 外的美術原始檔：`Art/草圖/<角色>/` 角色草稿；`Art/Blender/` 是建模腳本（`lib/lowpoly_kit.py`、`palette/`、`assets/`、合成圖 `preview/`、`.blend`），怎麼跑見 `Art/Blender/README.md` |
-| `Assets/Art` | 正式模型：`Models/<類別>/*.fbx`（只有 Blender 的匯出腳本寫入，Builder 永不寫入）、色票 `Textures/T_Palette*.png`、`Materials/M_Palette*.mat`；漸層天空 `Shaders/SkyGradient.shader` 與 `Materials/Sky_*.mat`；三個場景共用的基礎後處理 `Settings/VP_LowPolyBase.asset`；清單在 `ScriptableObjects/Art/ArtLibrary.asset` |
+| `Art/` | 放在 Assets 外的美術原始檔：`Art/草圖/<角色>/` 角色草稿；`Art/參考圖/` 風格參考圖（.gitignore 排除，不 commit、不 push）；`Art/Blender/` 是建模腳本（`lib/lowpoly_kit.py`、`palette/`、`assets/`、合成圖 `preview/`、`.blend`），怎麼跑見 `Art/Blender/README.md` |
+| `Assets/Art` | 正式模型：`Models/<類別>/*.fbx`（只有 Blender 的匯出腳本寫入，Builder 永不寫入）、色票 `Textures/T_Palette*.png`、`Materials/M_Palette*.mat`（`M_Palette_Foliage` 是雙面的，給草與葉片）；漸層天空 `Shaders/SkyGradient.shader` 與 `Materials/Sky_*.mat`；三個場景共用的基礎後處理 `Settings/VP_LowPolyBase.asset`；清單在 `ScriptableObjects/Art/ArtLibrary.asset` |
 
 ScriptableObject 的「類別」寫在 `Scripts/` 對應的系統資料夾，「資產」放在 `ScriptableObjects/`。
 

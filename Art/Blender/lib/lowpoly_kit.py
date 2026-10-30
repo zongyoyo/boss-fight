@@ -47,6 +47,7 @@ EMISSIVE_PNG = os.path.join(TEXTURES_DIR, "T_Palette_Emissive.png")
 
 MAT_PALETTE = "M_Palette"
 MAT_EMISSIVE = "M_Palette_Emissive"
+MAT_FOLIAGE = "M_Palette_Foliage"  # 同一張色票、雙面（草、葉片這類單片網格）
 CELL_ATTR = "cell"
 UV_EPS = 1e-4
 
@@ -490,9 +491,10 @@ def add_empty(name, collection, location=(0, 0, 0), parent=None):
 
 # ---------------------------------------------------------------- 收尾
 
-def finalize(obj, material=None):
+def finalize(obj, material=None, base_material=MAT_PALETTE):
     """三角化、清散落頂點、法線朝外、平面著色、UV 縮到色格中心、指定材質槽。
-    material 有給時整個物件用那個獨立材質（不走色票）。"""
+    material 有給時整個物件用那個獨立材質（不走色票）；base_material 換掉一般色票的材質名稱
+    （例：草用 MAT_FOLIAGE，Unity 端是雙面的色票材質）。"""
     mesh = obj.data
     bm = bmesh.new()
     bm.from_mesh(mesh)
@@ -517,6 +519,13 @@ def finalize(obj, material=None):
             poly.material_index = 0
     else:
         base, glow = palette_materials()
+        if base_material != MAT_PALETTE:
+            variant = bpy.data.materials.get(base_material)
+            if variant is None:
+                variant = base.copy()
+                variant.name = base_material
+            variant.use_backface_culling = False
+            base = variant
         attr = mesh.attributes[CELL_ATTR]
         emissive = [is_emissive(attr.data[p.index].value) for p in mesh.polygons]
         mesh.materials.append(base)
@@ -528,6 +537,14 @@ def finalize(obj, material=None):
         poly.use_smooth = False
     mesh.update()
     return obj
+
+
+def normals_up(obj):
+    """把整個網格的頂點法線都設成朝上（自訂法線，FBX 會帶過去）。給草叢這類單片網格：
+    光照跟地面一致、正反面一樣亮，明暗交給投影；面還是平面著色（色格照面分）。finalize 之後呼叫。"""
+    mesh = obj.data
+    mesh.normals_split_custom_set([(0.0, 0.0, 1.0)] * len(mesh.loops))
+    mesh.update()
 
 
 def apply_rotation_scale(obj):
@@ -586,7 +603,7 @@ def check(objs, budget=None, target_size=None, size_tol=0.05, pivots=None, pivot
         uv_layer = mesh.uv_layers.active
         if uv_layer is None:
             issues.append(f"{obj.name}: 沒有 UV")
-        elif MAT_PALETTE in mat_names or MAT_EMISSIVE in mat_names:
+        elif MAT_PALETTE in mat_names or MAT_EMISSIVE in mat_names or MAT_FOLIAGE in mat_names:
             bad = 0
             for p in mesh.polygons:
                 expect = cell_uv(attr.data[p.index].value) if attr else None

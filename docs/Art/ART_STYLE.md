@@ -60,7 +60,7 @@ Oct 30, 2026 · @Zucknight
 | 中型道具 | 100–600 | 鐵砧、營火、圓木座椅、傳送門 |
 | 樹 | 150–700 | 針葉樹、闊葉樹、枯樹 |
 | 石頭 | 30–200 | 碎石到大岩 |
-| 草叢 | 20–60 | 每簇 6–12 片葉 |
+| 草叢 | 20–60 | 每簇約 20 片扁葉 |
 | 特效網格 | 20–300 | 刀光、衝擊環、閃電 |
 | 遠景 | 50–300 | 遠山 |
 
@@ -69,7 +69,7 @@ Oct 30, 2026 · @Zucknight
 - 靜態網格 `SM_<類別>_<名稱>_<變體>`（例：`SM_Tree_Pine_A`）；角色 `CH_<名稱>`。
 - 角色部件名稱沿用現有 prefab 的層級名（`Head`、`Ear_L`…），Builder 靠這些名字找到 pivot 接線（執行期不用名字找，細節見 `docs/Art/CHARACTER_INTERFACE.md`）。
 - Blender 物件名就是 Unity 物件名，匯出後不再改名。
-- 材質：`M_Palette`、`M_Palette_Emissive`，其餘特殊材質保留原名。
+- 材質：`M_Palette`、`M_Palette_Emissive`、雙面的 `M_Palette_Foliage`（草、葉片這類單片網格），其餘特殊材質保留原名。
 
 ## 光照與後處理
 
@@ -114,6 +114,7 @@ Hunyuan3D 的參考網格怎麼用：放進 Blender 的 `REF` collection，半�
 ```text
 repo/
   Art/草圖/<角色>/              ← 你畫的角色草稿（每個角色一個資料夾）
+  Art/參考圖/                   ← 風格參考圖（How to fish/…）與並排比對圖；.gitignore 排除，不進版控
   Art/Blender/                 ← 放在 Assets 外，Unity 不會去匯入 .blend
     README.md                  ← 怎麼跑腳本（MCP 與命令列）
     lib/lowpoly_kit.py         ← 共用函式：偏移圓柱、岩石、木板、指定色格、平面著色、檢查、四視角合成圖、匯出
@@ -122,7 +123,7 @@ repo/
     preview/<名稱>.png         ← 四視角合成圖（左上正面、右上側面、左下背面、右下 3/4）
     palette/palette.json       ← 色格名稱 → 座標與顏色
     palette/build_palette.py   ← 依 palette.json 產生兩張色票貼圖
-    refs/                      ← 參考圖、Hunyuan3D 參考網格
+    refs/                      ← Hunyuan3D 參考網格
   Assets/Art/
     Models/<類別>/*.fbx        ← 只有匯出腳本會寫入，Builder 永不寫入
     Textures/T_Palette.png、T_Palette_Emissive.png   ← build_palette.py 寫入
@@ -149,7 +150,7 @@ repo/
   - `Assets/Art/Models` 的 FBX：Scale Factor 1、Normals = Import、不要切線、Animation Type = None、Read/Write 關、不加碰撞體、不烤 Bake Axis Conversion。
   - 材質**依名稱對應**（使用者同意，取代「Materials = None、由 Builder 指派」）：匯入後把每個材質換成專案裡同名的材質資產（先找 `Assets/Art/Materials`，再找 `Assets/Models` 的獨立材質槽，例如 `OiiaCat_Collar`）；找不到時 Console 警告。FBX 裡會留一份沒人用的內嵌材質（Unity 在內嵌模式不呼叫 OnAssignMaterialModel，只能匯入後再換）。
 - 軸向修正只在 Blender 端做（Apply Transform），Unity 不開 Bake Axis Conversion。Phase 0 的 `SM_Test_AxisCube` 驗證過：Rotation 0、Scale 1、高 1 m、Blender −Y 的正面在 Unity 朝 +Z、模型自己的右手邊（Blender −X）在 Unity +X（沒有鏡像），每個面的法線分開（硬邊）。
-- `M_Palette`：URP Lit、Smoothness 0、Metallic 0、GPU Instancing，開 Emission 但不接 emission 貼圖、顏色黑（閃白與預兆閃光才有作用）；`M_Palette_Emissive` 多接 `T_Palette_Emissive`、Emission 白。由 Tools > Art > Setup Art Assets 建立（只在不存在時建，之後在資產調）。
+- `M_Palette`：URP Lit、Smoothness 0、Metallic 0、GPU Instancing，開 Emission 但不接 emission 貼圖、顏色黑（閃白與預兆閃光才有作用）；`M_Palette_Emissive` 多接 `T_Palette_Emissive`、Emission 白；`M_Palette_Foliage` 同 `M_Palette` 但雙面（Render Face Both），草叢的法線在 Blender 端用 `normals_up` 全部朝上，正反面一樣亮、光照跟地面一致（`finalize(obj, base_material=MAT_FOLIAGE)`）。由 Tools > Art > Setup Art Assets 建立（只在不存在時建，之後在資產調）。
 - `ArtLibrary`（`Scripts/Editor`，只給 Builder 用；資產在 `ScriptableObjects/Art/ArtLibrary.asset`）：id 是 FBX 檔名，`Assets/Art/Models` 有變動時自動同步。Builder 原本建基本形體的地方改成 `ArtLibrary.Spawn(id, parent, fallback)`：有模型就放模型（保留 prefab 連結），沒有就呼叫 fallback 建原本的佔位幾何。換模型可以一件一件來，遊戲隨時都能跑。
 - 選單 Tools > Art：Setup Art Assets（建資料夾與材質、套匯入設定、同步清單、重新匯入 FBX，最後跑檢查）、Sync Art Library、Validate Art（色票貼圖與材質設定、每個 FBX 的匯入設定、節點的旋轉與縮放、材質都換成了專案資產）、Place Axis Test（在目前場景放測試方塊，EditorOnly）。
 - 碰撞體與玩法層級（`ArenaWall` 等）仍由 Builder 用簡單碰撞體建立，不用 Mesh Collider。
@@ -278,7 +279,7 @@ Phase 6 與 7 互不相依，可依開發進度對調；每個階段結束都把
 | 針葉樹 `SM_Tree_Pine` | 4 | 300–700 | 6 邊樹幹，4–6 層往下垂的鋸齒狀枝片，下層大上層小；枝片上亮下暗 |
 | 闊葉樹 `SM_Tree_Broad` | 3 | 200–500 | 微彎樹幹，2–4 團多面體葉叢 |
 | 枯樹／枯枝 `SM_Tree_Dead`、`SM_Twig` | 2＋3 | 50–200 | 附圖前景那種細黑枯枝，給畫面加層次 |
-| 草叢 `SM_Grass_Clump` | 4（矮、中、高、帶花） | 20–60 | 6–12 片細長三角葉，葉根暗、葉尖亮 |
+| 草叢 `SM_Grass_Clump` | 4（矮、中、高、帶花） | 20–60 | 約 20 片扁葉（一片 2 面）、頂端斜切的鈍頭，中間高外圈矮往外散；每片隨機亮／中／暗一階，不做葉尖變色（Phase 1 試過尖錐＋黃葉尖，太尖、顏色怪）；雙面材質、法線朝上 |
 | 灌木 `SM_Bush` | 3 | 60–150 | 低矮多面體團，填樹與石頭之間的空隙 |
 | 石頭 `SM_Rock` | 6（碎石、中石、大岩各 2） | 30–200 | 變形 icosphere 加切面，頂面亮、底部暗 |
 | 樹樁、倒木 `SM_Stump`、`SM_Log` | 2＋2 | 60–200 | 年輪截面用淺色格；營火座椅也用 `SM_Log` |

@@ -5,7 +5,7 @@
   "tiers": { "light": 0.22, "dark": 0.6 },
   "emissive_rows": [12, 13],
   "groups": {
-    "grass":         { "row": 0,  "col": 0,  "l": "#A2BC52", "mid": "#86A84A", "d": "#4F7037" },
+    "grass":         { "row": 0,  "col": 0,  "l": "#93B84E", "mid": "#78A446", "d": "#557F38" },
     "leaf":          { "row": 0,  "col": 3,  "l": "#86AE48", "mid": "#58823A", "d": "#33552E" },
     "pine":          { "row": 0,  "col": 6,  "l": "#5A8A4C", "mid": "#356240", "d": "#1F3E33" },
     "moss":          { "row": 0,  "col": 9,  "l": "#9DB955", "mid": "#6E8E3C", "d": "#45602F" },

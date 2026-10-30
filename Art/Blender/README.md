@@ -11,7 +11,7 @@
 | `preview/<名稱>.png` | 四視角合成圖：左上正面、右上側面（從 +X 看）、左下背面、右下 3/4；紅柱是 2 m 比例尺，藍框是舊佔位物的包圍盒 |
 | `preview/StyleSlice_*.png` | Phase 1 風格切片的遊戲鏡頭截圖（before／after × game〔遊戲視角〕／wide〔低視角〕） |
 | `blend/<名稱>.blend` | 腳本跑完的存檔（資產自己的 scene），給人工小修；改了要回寫進腳本，下次重跑才不會被蓋掉 |
-| `refs/` | 參考圖、Hunyuan3D 參考網格 |
+| `refs/` | Hunyuan3D 參考網格（風格參考圖在 `Art/參考圖/`，不進版控） |
 
 ## 怎麼跑
 
