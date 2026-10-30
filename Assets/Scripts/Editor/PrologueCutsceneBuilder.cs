@@ -88,7 +88,7 @@ namespace BossFight.EditorTools
             Set(stage, "guardianOrigin", actor); Set(stage, "guardianModel", actor.Find("Model")); Set(stage, "guardianCrown", actor.Find("Model/Crown"));
             Array(stage, "cracks", actor.GetComponentsInChildren<Renderer>(true).Where(r => r.name.StartsWith("Crack_")).ToArray());
             BuildGroundFx(stage, root.transform, actor.position);
-            BuildForeshadowCracks(stage, root.transform, actor.position);
+            BuildBaseCracks(stage, root.transform, actor);
             var playerStage = Node(root.transform, "PlayerStage", PlayerSpawnerBuilder.Preview().transform.position);
             Set(stage, "playerStage", playerStage);
             var mentor = Object.FindAnyObjectByType<DaisyMentor>();
@@ -345,20 +345,31 @@ namespace BossFight.EditorTools
             Cue(tl, CutsceneCue.MoundPeek, end * 0.66); Cue(tl, CutsceneCue.MoundPeek, end * 0.82);
             Audio(tl, "Birds", 0, end);
         }
-        // H7 的伏筆：守衛破土的位置地上幾道淡紅裂縫，守衛破土時收掉（PrologueCinematicStage 的 Rise）。
-        // 試玩回饋：原本直立的焦黑樹根看起來像守衛模型穿出地面，拿掉，只留貼地的裂縫
-        // 美術 Phase 2：裂縫換成貼地的地裂模型 SM_Crack_A–C（泥土唇、暗紅邊、黑縫）；沒有模型時退回細長的紅色方塊
-        static void BuildForeshadowCracks(PrologueCinematicStage stage, Transform parent, Vector3 center)
+        // 守衛腳下一圈輻射狀的地裂（使用者決定：跟守衛一起出現，沒有守衛時不顯示；原本是破土前的 H7 伏筆，破土時收掉）。
+        // 地裂模型 SM_Crack_A–C（泥土唇、暗紅邊、黑縫）從樹幹邊往外，夾在 8 條樹根之間；沒有模型時退回細長的紅色方塊。
+        // 純視覺的版面參數：條數、起點半徑、長度縮放
+        const int BaseCrackCount = 8;
+        const float BaseCrackStart = 1f;
+        static void BuildBaseCracks(PrologueCinematicStage stage, Transform parent, Transform guardian)
         {
-            var roots = Node(parent, "ForeshadowCracks", center);
-            for (int i = 0; i < 3; i++)
+            var roots = Node(parent, "BaseCracks", guardian.position);
+            roots.rotation = guardian.rotation;
+            var random = new System.Random(BaseCrackCount);
+            for (int i = 0; i < BaseCrackCount; i++)
             {
                 var crack = new GameObject("Fissure_" + i).transform;
                 crack.SetParent(roots, false);
-                var dir = Quaternion.Euler(0f, 160f + 20f * i, 0f) * Vector3.forward;
+                // 樹根在 0°、45°…，地裂放在兩條根中間，再隨機偏一點
+                float angle = (i + 0.5f) * 360f / BaseCrackCount + ((float)random.NextDouble() - 0.5f) * 14f;
+                float scale = 0.75f + (float)random.NextDouble() * 0.45f;
+                string id = "SM_Crack_" + (char)('A' + random.Next(3));
+                var model = ArtLibrary.Load()?.Get(id);
+                float length = model != null ? model.GetComponentInChildren<MeshFilter>().sharedMesh.bounds.size.z : 2.2f;
+                var dir = Quaternion.Euler(0f, angle, 0f) * Vector3.forward;
                 crack.localRotation = Quaternion.LookRotation(dir);
-                crack.localPosition = dir * 3.2f;
-                ArtLibrary.Spawn("SM_Crack_" + (char)('A' + i), crack, () =>
+                crack.localPosition = dir * (BaseCrackStart + length * scale * 0.5f);
+                crack.localScale = Vector3.one * scale;
+                ArtLibrary.Spawn(id, crack, () =>
                 {
                     var cube = GameObject.CreatePrimitive(PrimitiveType.Cube); cube.name = "Placeholder"; Object.DestroyImmediate(cube.GetComponent<Collider>());
                     cube.transform.SetParent(crack, false);
@@ -368,7 +379,7 @@ namespace BossFight.EditorTools
                     return cube;
                 });
             }
-            Set(stage, "foreshadowCracks", roots.gameObject);
+            Set(stage, "baseCracks", roots.gameObject);
         }
         static void Slow(TimelineAsset tl, double total, float seconds)
         { float stop = seconds / (float)total; Value(tl, CinematicValue.Slow, 0, total, Curve((0, 1), (stop, 1), (stop + 0.0001f, 0), (1, 0))); }

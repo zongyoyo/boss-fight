@@ -31,9 +31,9 @@ namespace BossFight.Cutscene
         [SerializeField] ParticleSystem debris, birds;
         [SerializeField] Transform wave;
         [SerializeField] GameObject groundCracks;
-        [Tooltip("守衛破土處地上的淡紅裂縫（H7 伏筆）；守衛破土（Rise > 0）時收掉")]
-        [FormerlySerializedAs("foreshadowRoots")]
-        [SerializeField] GameObject foreshadowCracks;
+        [Tooltip("守衛腳下一圈輻射狀的地裂；跟著守衛模型出現與消失（沒有守衛時不顯示）")]
+        [FormerlySerializedAs("foreshadowCracks"), FormerlySerializedAs("foreshadowRoots")]
+        [SerializeField] GameObject baseCracks;
         [SerializeField] AudioLowPassFilter[] filters = new AudioLowPassFilter[0];
         [SerializeField] GamePause pause;
         [SerializeField] HitStop hitStop;
@@ -97,7 +97,6 @@ namespace BossFight.Cutscene
                 case CinematicValue.Rise:
                     rise = t;
                     if (guardianModel != null) guardianModel.gameObject.SetActive(t > 0f);
-                    if (foreshadowCracks != null) foreshadowCracks.SetActive(t <= 0f);
                     break;
                 case CinematicValue.GroundCrack: if (groundCracks != null) groundCracks.SetActive(t > 0f); break;
                 case CinematicValue.Wither: wither = t; break;
@@ -142,6 +141,9 @@ namespace BossFight.Cutscene
         {
             if (!initialized) return;
             if (guardianModel != null) guardianModel.localPosition = modelPosition + Vector3.down * (data.buriedDepth * (1f - rise));
+            // 地裂跟著守衛模型：模型由 Rise 與 GuardianPhaseController 開關，這裡每幀對齊，誰開關都一樣
+            if (baseCracks != null && guardianModel != null && baseCracks.activeSelf != guardianModel.gameObject.activeInHierarchy)
+                baseCracks.SetActive(guardianModel.gameObject.activeInHierarchy);
             if (guardianCrown != null && wither > 0f)
             {
                 guardianCrown.localScale = Vector3.Scale(crownScale, Vector3.Lerp(Vector3.one, data.witherScale, wither));
