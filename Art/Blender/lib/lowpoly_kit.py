@@ -529,11 +529,12 @@ def finalize(obj, material=None, base_material=MAT_PALETTE):
             base = variant
         attr = mesh.attributes[CELL_ATTR]
         emissive = [is_emissive(attr.data[p.index].value) for p in mesh.polygons]
-        mesh.materials.append(base)
-        if any(emissive):
-            mesh.materials.append(glow)
+        # 只放用到的槽：整個網格都是發光色格時只有 M_Palette_Emissive（不留空的第 0 槽）
+        slots = ([base] if not all(emissive) else []) + ([glow] if any(emissive) else [])
+        for mat in slots:
+            mesh.materials.append(mat)
         for poly, e in zip(mesh.polygons, emissive):
-            poly.material_index = 1 if e else 0
+            poly.material_index = slots.index(glow if e else base)
     for poly in mesh.polygons:
         poly.use_smooth = False
     mesh.update()
@@ -580,12 +581,17 @@ def _signed_volume(mesh):
     return vol
 
 
-def check(objs, budget=None, target_size=None, size_tol=0.05, pivots=None, pivot_tol=0.01):
+def check(objs, budget=None, target_size=None, size_tol=0.05, pivots=None, pivot_tol=0.01, allow_smooth=False):
     """ART_STYLE「單一資產的工作循環」第 5 步的自動檢查。回傳 dict（ok、issues 與各項數字），不印整個場景。
-    budget：(最少, 最多) 三角面；target_size：(寬 X, 深 Y, 高 Z) m；pivots：{物件名: (x, y, z)} 資產空間的軸心。"""
+    budget：(最少, 最多) 三角面；target_size：(寬 X, 深 Y, 高 Z) m；pivots：{物件名: (x, y, z)} 資產空間的軸心。
+    allow_smooth：平滑著色＋專屬貼圖的角色（OIIA 貓，Phase 3 使用者決定）不檢查平面著色。"""
     issues = []
     tris = 0
     objects = {}
+    # make_object 剛設的 location 要等 depsgraph 更新才會進 matrix_world（軸心與包圍盒都讀它）
+    for scene in {s for obj in objs for s in obj.users_scene}:
+        for layer in scene.view_layers:
+            layer.update()
     for obj in objs:
         if obj.type != "MESH":
             continue
@@ -596,7 +602,7 @@ def check(objs, budget=None, target_size=None, size_tol=0.05, pivots=None, pivot
         info = {"tris": n}
         if any(len(p.vertices) != 3 for p in mesh.polygons):
             issues.append(f"{obj.name}: 還有沒三角化的面（先跑 finalize）")
-        if any(p.use_smooth for p in mesh.polygons):
+        if not allow_smooth and any(p.use_smooth for p in mesh.polygons):
             issues.append(f"{obj.name}: 有平滑著色的面")
         mat_names = [m.name if m else None for m in mesh.materials]
         info["materials"] = mat_names
