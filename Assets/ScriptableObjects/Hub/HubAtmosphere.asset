@@ -12,7 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9854a1808d15dfa4696ddc9783f5ecce, type: 3}
   m_Name: HubAtmosphere
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Hub.HubAtmosphereData
-  skybox: {fileID: 2100000, guid: 51a9e3aa62dbeac4e875981755638f98, type: 2}
+  skybox: {fileID: 2100000, guid: b50e594146d7d2140b5a6076988f7cc7, type: 2}
+  skyTopColor: {r: 0.3, g: 0.32, b: 0.5, a: 1}
+  skyBottomColor: {r: 0.3, g: 0.25, b: 0.24, a: 1}
   sunColor: {r: 1, g: 0.66, b: 0.42, a: 1}
   sunIntensity: 0.9
   sunAngles: {x: 16, y: 250}
@@ -27,6 +29,8 @@ MonoBehaviour:
   fireRange: 9
   fireFlicker: 0.25
   fireFlickerSpeed: 6
+  flameFlicker: 0.18
+  flameFlickerSpeed: 5
   forgeColor: {r: 1, g: 0.42, b: 0.15, a: 1}
   forgeIntensity: 3
   forgeRange: 5

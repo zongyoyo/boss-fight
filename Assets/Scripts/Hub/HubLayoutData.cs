@@ -105,6 +105,71 @@ namespace BossFight.Hub
         [Tooltip("小路寬 (m)")]
         [Min(0.1f)] public float pathWidth = 2f;
 
+        [Serializable]
+        public struct PropPlacement
+        {
+            [Tooltip("模型 id（ArtLibrary，例如 SM_Barrel）")]
+            public string id;
+            [Tooltip("位置 (x, z)")]
+            public Vector2 position;
+            [Tooltip("朝向（度）：模型正面朝這個方向")]
+            public float yaw;
+            [Min(0.1f)] public float scale;
+
+            public PropPlacement(string id, Vector2 position, float yaw, float scale = 1f)
+            {
+                this.id = id;
+                this.position = position;
+                this.yaw = yaw;
+                this.scale = scale;
+            }
+        }
+
+        [Header("佈景（美術 Phase 6，HubSceneryBuilder；純視覺）")]
+        [Tooltip("佈景散佈的亂數種子")]
+        public int visualSeed = 6;
+        [Tooltip("地面網格的外半徑 (m)，以休息區中心量")]
+        [Min(20f)] public float groundRadius = 70f;
+        [Tooltip("地面三角格的邊長 (m)；平地以外越往外越大")]
+        [Min(0.5f)] public float groundCellSize = 1.5f;
+        [Tooltip("牆外地面起伏的幅度 (m)")]
+        [Min(0f)] public float groundRelief = 1.2f;
+        [Tooltip("地面在最外緣升高多少 (m)")]
+        [Min(0f)] public float groundRise = 5f;
+        [Tooltip("前幾排（有碰撞的）樹後面，再種幾排沒有碰撞的裝飾樹")]
+        [Range(0, 8)] public int outerTreeRows = 5;
+        [Tooltip("第一排裝飾樹離邊界多遠 (m)")]
+        [Min(0f)] public float outerRowStart = 7.2f;
+        [Tooltip("裝飾樹排與排的間距 (m)")]
+        [Min(0.5f)] public float outerRowSpacing = 3.2f;
+        [Tooltip("裝飾樹同一排的間距 (m)")]
+        [Min(0.5f)] public float outerTreeSpacing = 3.4f;
+        [Tooltip("樹模型的縮放範圍")]
+        public Vector2 treeScale = new Vector2(0.9f, 1.25f);
+        [Tooltip("可走範圍裡的矮草密度（叢 / m²）；小路、空地、站點周圍不放")]
+        [Min(0f)] public float grassDensity = 0.2f;
+        [Tooltip("牆外林帶的草叢密度（叢 / m²）")]
+        [Min(0f)] public float forestGrassDensity = 0.3f;
+        [Tooltip("牆外道具（灌木、石頭、枯枝、樹樁、倒木）的密度倍率")]
+        [Min(0f)] public float propDensity = 1f;
+        [Tooltip("出生點、站位點、擺好的小道具周圍多遠不放草 (m)")]
+        [Min(0f)] public float sceneryClearance = 1.5f;
+        [Tooltip("擺在村子裡的小道具（告示板、木桶、木箱、柴堆、柵欄），沒有碰撞，不要擋到小路與站位點")]
+        public PropPlacement[] props =
+        {
+            new PropPlacement("SM_NoticeBoard", new Vector2(-5f, 11.2f), 156f),
+            new PropPlacement("SM_Barrel", new Vector2(3.8f, 12.1f), 20f),
+            new PropPlacement("SM_Barrel", new Vector2(4.5f, 12.8f), 75f, 0.9f),
+            new PropPlacement("SM_Crate_A", new Vector2(3.9f, 13.8f), 10f),
+            new PropPlacement("SM_Woodpile", new Vector2(-3.9f, 14.6f), 0f),
+            new PropPlacement("SM_Barrel", new Vector2(10.9f, 9.1f), 140f),
+            new PropPlacement("SM_Crate_A", new Vector2(11.9f, 9.4f), 35f),
+            new PropPlacement("SM_Crate_B", new Vector2(12.7f, 9.1f), 60f),
+            new PropPlacement("SM_Woodpile", new Vector2(-12.6f, -7.2f), 45f),
+            new PropPlacement("SM_Fence", new Vector2(-7.6f, -12f), 20f),
+            new PropPlacement("SM_Fence", new Vector2(2.6f, -12f), -20f),
+        };
+
         [Header("出生點")]
         [Tooltip("啟動遊戲時的出生點（營火旁）(x, z)")]
         public Vector2 startSpawn = new Vector2(-7f, -6.5f);

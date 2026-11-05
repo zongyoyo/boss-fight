@@ -22,6 +22,8 @@ namespace BossFight.EditorTools
     /// 3. 出生點 Start（營火旁，啟動遊戲時）與 Portal（傳送門前，從 Boss 戰回來時）、PlayerSpawner（預設生成在 Start）與鏡頭（CameraRigBuilder）、
     ///    GameOptions、AudioManager（沒有音樂）、Hub 物件（HubManager、InteractionScanner）、ESC 選單（PauseMenuBuilder 的休息區版：繼續、設定、退出遊戲）、
     ///    互動提示與站點面板（HubUIBuilder）、SceneFlow（PauseMenuBuilder.Wire 最後建）。休息區不建 HUD。
+    /// 4. 美術 Phase 6：最後由 HubSceneryBuilder 建正式模型的佈景（Level/Scenery：地面網格、樹、站點模型、小道具、草叢），佔位外觀只關 Renderer、碰撞留著；
+    ///    再套用黃昏的漸層天空與基礎後處理（HubSceneryBuilder.ApplyAtmosphere）。只改佈景時跑 Tools > Hub > Build Scenery。
     /// 也把 Build Settings 設成 Boot 0、Hub 1、BossArena 2、Prologue 3（SetBuildScenes）。佔位模型的尺寸、顏色是純視覺參數；玩法相關的位置與距離都在 HubLayoutData。
     /// </summary>
     public static class HubBuilder
@@ -30,10 +32,10 @@ namespace BossFight.EditorTools
         const string BattleScenePath = "Assets/Scenes/BossArena.unity";
         const string OptionsDataPath = "Assets/ScriptableObjects/Options/GameOptionsData.asset";
         public const string DataDir = "Assets/ScriptableObjects/Hub";
-        const string LayoutPath = DataDir + "/HubLayout.asset";
-        const string AtmospherePath = DataDir + "/HubAtmosphere.asset";
+        internal const string LayoutPath = DataDir + "/HubLayout.asset";
+        internal const string AtmospherePath = DataDir + "/HubAtmosphere.asset";
         const string StoryPath = DataDir + "/HubStory.asset";
-        const string MatDir = "Assets/Models/Hub/Materials";
+        internal const string MatDir = "Assets/Models/Hub/Materials";
         const string MeshDir = "Assets/Models/Hub/Meshes";
         const int StationCameraIdlePriority = 0; // 比自由視角（10）與沒在用的鎖定鏡頭（9）低
         const string SwapFxPath = "Assets/Prefabs/Hazards/Fx_HitSpark.prefab"; // 營火換角色時的煙（佔位）
@@ -159,6 +161,10 @@ namespace BossFight.EditorTools
             if (AssetDatabase.LoadAssetAtPath<BossFight.Cutscene.PrologueCutsceneData>(PrologueCutsceneBuilder.DataPath) != null) PrologueCutsceneBuilder.BuildHub();
             SceneFlowBuilder.Build();
             PlayerSpawnerBuilder.Wire();
+
+            // 正式模型的佈景（美術 Phase 6）：佔位外觀關掉、碰撞留著；漸層天空與基礎後處理
+            Debug.Log(HubSceneryBuilder.Build(level, stations, layout, atmosphereData));
+            HubSceneryBuilder.ApplyAtmosphere(atmosphereData);
 
             EditorSceneManager.SaveScene(scene, ScenePath);
             AssetDatabase.SaveAssets();
@@ -551,12 +557,12 @@ namespace BossFight.EditorTools
             return station;
         }
 
-        static Vector3 StandPosition(HubLayoutData.Station s) => HubLayoutData.Ground(s.position) + HubLayoutData.Direction(s.facing) * s.standDistance;
+        internal static Vector3 StandPosition(HubLayoutData.Station s) => HubLayoutData.Ground(s.position) + HubLayoutData.Direction(s.facing) * s.standDistance;
 
         // ---------- 折線 ----------
 
         // 每段往外的法線（依折線方向判斷外側）
-        static Vector2[] EdgeNormals(Vector2[] poly)
+        internal static Vector2[] EdgeNormals(Vector2[] poly)
         {
             bool ccw = SignedArea(poly) > 0f;
             var normals = new Vector2[poly.Length];
@@ -569,7 +575,7 @@ namespace BossFight.EditorTools
         }
 
         // 整條折線往外推 distance（頂點沿兩段法線的角平分線，尖角的延伸量有上限）
-        static Vector2[] Offset(Vector2[] poly, float distance)
+        internal static Vector2[] Offset(Vector2[] poly, float distance)
         {
             var normals = EdgeNormals(poly);
             int n = poly.Length;
@@ -596,7 +602,7 @@ namespace BossFight.EditorTools
             return area * 0.5f;
         }
 
-        static bool Inside(Vector2[] poly, Vector2 p)
+        internal static bool Inside(Vector2[] poly, Vector2 p)
         {
             bool inside = false;
             for (int i = 0, j = poly.Length - 1; i < poly.Length; j = i++)
