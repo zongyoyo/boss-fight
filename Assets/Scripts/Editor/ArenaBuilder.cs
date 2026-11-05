@@ -25,7 +25,9 @@ namespace BossFight.EditorTools
             var d = g.data;
             EditorGUILayout.HelpBox(
                 $"競技區半徑 {d.radius:0.#} m（直徑 {d.radius * 2f:0.#} m），外牆高 {d.wallHeight:0.#} m\n" +
-                $"含觀眾席外徑 {d.RimOuterRadius * 2f:0.#} m，最外圈牆頂高 {d.RimTopHeight:0.#} m",
+                (d.forestScenery
+                    ? $"暗林佈景：撞牆圈、近林 {d.nearForest.x:0.#}–{d.nearForest.y:0.#} m、遠林到 {d.farForest.y:0.#} m"
+                    : $"含觀眾席外徑 {d.RimOuterRadius * 2f:0.#} m，最外圈牆頂高 {d.RimTopHeight:0.#} m"),
                 MessageType.Info);
 
             if (GUILayout.Button("重建競技場", GUILayout.Height(32)))
@@ -105,7 +107,8 @@ namespace BossFight.EditorTools
             float h = d.wallHeight;
             int seg = d.segments;
             float gateW = Mathf.Min(d.gateWidth, R);
-            bool hasStands = d.standTiers > 0;
+            bool forest = d.forestScenery; // 暗林：不建看台、最外圈外牆與外圍地面，外觀交給 ArenaSceneryBuilder
+            bool hasStands = !forest && d.standTiers > 0;
 
             // 1. 沙地（延伸到圍牆底下）
             var mb = new MeshBuilder();
@@ -140,13 +143,16 @@ namespace BossFight.EditorTools
             }
 
             // 4. 最外圈外牆
-            mb = new MeshBuilder();
-            mb.TubeArc(d.StandsOuterRadius, d.RimOuterRadius, d.StandsTopHeight, 0f, d.RimTopHeight, 0f, 360f, seg,
-                inner: true, outer: true, top: true, caps: false);
-            AddMeshObject(root, "RimWall", mb, "Arena_RimWall", stone);
+            if (!forest)
+            {
+                mb = new MeshBuilder();
+                mb.TubeArc(d.StandsOuterRadius, d.RimOuterRadius, d.StandsTopHeight, 0f, d.RimTopHeight, 0f, 360f, seg,
+                    inner: true, outer: true, top: true, caps: false);
+                AddMeshObject(root, "RimWall", mb, "Arena_RimWall", stone);
+            }
 
             // 5. 外圍地面
-            if (d.outerGroundMargin > 0f)
+            if (!forest && d.outerGroundMargin > 0f)
             {
                 mb = new MeshBuilder();
                 mb.RingTop(d.RimOuterRadius, d.RimOuterRadius + d.outerGroundMargin, 0f, seg);
@@ -192,6 +198,9 @@ namespace BossFight.EditorTools
             refCap.transform.localPosition = ps.transform.localPosition + side * 1.5f + Vector3.up;
             refCap.GetComponent<MeshRenderer>().sharedMaterial = refMat;
             refCap.SetActive(false);
+
+            // 9. 暗林佈景（沒有正式模型時維持上面的外觀）
+            if (forest) Debug.Log(ArenaSceneryBuilder.Build(g));
 
             Undo.CollapseUndoOperations(undoGroup);
             AssetDatabase.SaveAssets();

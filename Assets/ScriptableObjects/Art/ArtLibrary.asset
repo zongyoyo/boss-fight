@@ -13,6 +13,20 @@ MonoBehaviour:
   m_Name: ArtLibrary
   m_EditorClassIdentifier: Assembly-CSharp-Editor::BossFight.EditorTools.ArtLibrary
   entries:
+  - id: SM_Arena_Puddle_A
+    model: {fileID: 919132149155446097, guid: 19d9560562aaa4c4b9276106a88ecac6, type: 3}
+  - id: SM_Arena_Puddle_B
+    model: {fileID: 919132149155446097, guid: 4cfd8b9ab125cf04f83cf08d9d2d0091, type: 3}
+  - id: SM_Arena_RootFlat_A
+    model: {fileID: 919132149155446097, guid: cf98caa8dedfaff47bf1886ab580da63, type: 3}
+  - id: SM_Arena_RootFlat_B
+    model: {fileID: 919132149155446097, guid: b5593f5123538524998fddaf80472cf2, type: 3}
+  - id: SM_Arena_Slab_A
+    model: {fileID: 919132149155446097, guid: e05a5fd80f3cb64489ffdd6ce7687b3b, type: 3}
+  - id: SM_Arena_Slab_B
+    model: {fileID: 919132149155446097, guid: a797f75d3c247e6459b611c163101892, type: 3}
+  - id: SM_Arena_Slab_C
+    model: {fileID: 919132149155446097, guid: b50abe0d406d2a34b98b5fc42f810652, type: 3}
   - id: SM_Bush_A
     model: {fileID: 919132149155446097, guid: 7ddfa07161681214f9c50d73dfe42457, type: 3}
   - id: SM_Bush_B
@@ -25,6 +39,10 @@ MonoBehaviour:
     model: {fileID: 919132149155446097, guid: 02c00bf0db1c2d04fbaf4939bdc9d76c, type: 3}
   - id: SM_Crack_C
     model: {fileID: 919132149155446097, guid: 04e38255c7f9d1a47978a75d2c0f7727, type: 3}
+  - id: SM_DizzyStar
+    model: {fileID: 919132149155446097, guid: e4fd675b50883224f882af5cbfe892d9, type: 3}
+  - id: SM_Gate_Thorns
+    model: {fileID: 919132149155446097, guid: b676678fb4cb16d4fa16b8c57f5706b4, type: 3}
   - id: SM_Grass_Clump_A
     model: {fileID: 919132149155446097, guid: 9b1517b11c429b44aa8e72ab5ee2c595, type: 3}
   - id: SM_Grass_Clump_B
@@ -43,6 +61,18 @@ MonoBehaviour:
     model: {fileID: 919132149155446097, guid: 91eca0cc16597144bb5d3a77b94d65f5, type: 3}
   - id: SM_Mountain_C
     model: {fileID: 919132149155446097, guid: e187dc2505f6ddf4fa4d90e81c1f41a6, type: 3}
+  - id: SM_Rim_Log_A
+    model: {fileID: 919132149155446097, guid: 9ee5dfe95ada4c54ab644689bf174631, type: 3}
+  - id: SM_Rim_Log_B
+    model: {fileID: 919132149155446097, guid: c1a7580f648a3a44c839110384bfe7fc, type: 3}
+  - id: SM_Rim_Rock_A
+    model: {fileID: 919132149155446097, guid: 0670b4d4760d3d545bc3393e2c778ccf, type: 3}
+  - id: SM_Rim_Rock_B
+    model: {fileID: 919132149155446097, guid: 7fdc41aae9b1775489fd32dce0524ae7, type: 3}
+  - id: SM_Rim_Root_A
+    model: {fileID: 919132149155446097, guid: 47eaabed69156db43a55b4fb073d1fb5, type: 3}
+  - id: SM_Rim_Root_B
+    model: {fileID: 919132149155446097, guid: 0cb6021012a5f064f8148ae9416daa32, type: 3}
   - id: SM_Rock_A
     model: {fileID: 919132149155446097, guid: 233ee85e7b7abb94db27ec9cf0a7e4e4, type: 3}
   - id: SM_Rock_B
@@ -71,6 +101,12 @@ MonoBehaviour:
     model: {fileID: 919132149155446097, guid: 232ef95c1cbecf54da1df3d32aa849f8, type: 3}
   - id: SM_Tree_Dead_B
     model: {fileID: 919132149155446097, guid: 60ca0d55e8a807e45adaa3514a4ec73c, type: 3}
+  - id: SM_Tree_Gnarled_A
+    model: {fileID: 919132149155446097, guid: 9439f722e22d85f4f9843045925037c6, type: 3}
+  - id: SM_Tree_Gnarled_B
+    model: {fileID: 919132149155446097, guid: a38f8d35fda56c946868317530c8eed1, type: 3}
+  - id: SM_Tree_Gnarled_C
+    model: {fileID: 919132149155446097, guid: c5976509fa550824ba0fb085529c3d41, type: 3}
   - id: SM_Tree_Pine_A
     model: {fileID: 919132149155446097, guid: 6b20a792fa39ad34a928a13b7159b26d, type: 3}
   - id: SM_Tree_Pine_B

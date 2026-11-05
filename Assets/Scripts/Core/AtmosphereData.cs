@@ -23,6 +23,10 @@ namespace BossFight.Core
             public Color ambientSky;
             public Color ambientEquator;
             public Color ambientGround;
+            [Tooltip("霧色（指數平方霧）；取天空地平線附近的顏色，遠林才會融進天空")]
+            public Color fogColor;
+            [Tooltip("霧的濃度（指數平方）：0.042 時 15 m 外約剩 67%、20 m 約 50%、30 m 約 20%；0 = 不開霧")]
+            [Min(0f)] public float fogDensity;
         }
 
         [Tooltip("開場前：暴風雨前的黃昏")]

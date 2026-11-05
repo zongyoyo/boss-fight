@@ -901,6 +901,8 @@ namespace BossFight.EditorTools
                 ambientSky = new Color(0.55f, 0.5f, 0.47f),
                 ambientEquator = new Color(0.4f, 0.36f, 0.33f),
                 ambientGround = new Color(0.2f, 0.18f, 0.16f),
+                fogColor = new Color(0.42f, 0.38f, 0.36f),
+                fogDensity = 0.016f,
             };
             // 暴風雨：T0 的雷雲天空盒與環境光，主光源調暗、偏藍
             data.storm = new AtmosphereData.Look
@@ -911,6 +913,9 @@ namespace BossFight.EditorTools
                 ambientSky = new Color(0.34f, 0.37f, 0.45f),
                 ambientEquator = new Color(0.22f, 0.23f, 0.27f),
                 ambientGround = new Color(0.1f, 0.1f, 0.11f),
+                // 暗林（美術 Phase 7）：近林看得清、30 m 外的遠林只剩剪影
+                fogColor = new Color(0.17f, 0.19f, 0.23f),
+                fogDensity = 0.042f,
             };
             DaoDunDogBuilder.EnsureFolder(AtmospherePath.Substring(0, AtmospherePath.LastIndexOf('/')));
             AssetDatabase.CreateAsset(data, AtmospherePath);

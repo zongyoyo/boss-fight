@@ -482,7 +482,7 @@ namespace BossFight.EditorTools
 
         // ---------------------------------------------------------------- 共用
 
-        static Mesh SaveMesh(Mesh mesh, string path)
+        internal static Mesh SaveMesh(Mesh mesh, string path)
         {
             mesh.name = System.IO.Path.GetFileNameWithoutExtension(path); // 主物件名稱要和檔名相同
             var existing = AssetDatabase.LoadAssetAtPath<Mesh>(path);
@@ -499,7 +499,7 @@ namespace BossFight.EditorTools
             return existing;
         }
 
-        static string Pick((string id, float weight)[] kinds, System.Random random)
+        internal static string Pick((string id, float weight)[] kinds, System.Random random)
         {
             float total = kinds.Sum(k => k.weight), x = (float)random.NextDouble() * total;
             foreach (var (id, weight) in kinds)
@@ -510,9 +510,9 @@ namespace BossFight.EditorTools
             return kinds[kinds.Length - 1].id;
         }
 
-        static float Jitter(System.Random random) => (float)random.NextDouble() * 2f - 1f;
+        internal static float Jitter(System.Random random) => (float)random.NextDouble() * 2f - 1f;
 
-        static Vector2 RingPoint(System.Random random, float inner, float outer)
+        internal static Vector2 RingPoint(System.Random random, float inner, float outer)
         {
             float r = Mathf.Sqrt(Mathf.Lerp(inner * inner, outer * outer, (float)random.NextDouble()));
             float a = (float)random.NextDouble() * Mathf.PI * 2f;
@@ -521,14 +521,14 @@ namespace BossFight.EditorTools
 
         static bool Near(Vector2 p, List<Vector2> points, float radius) => points.Any(q => (p - q).sqrMagnitude < radius * radius);
 
-        static bool NearTrunk(Vector2 p, List<Vector3> trunks, float radius)
+        internal static bool NearTrunk(Vector2 p, List<Vector3> trunks, float radius)
         {
             foreach (var t in trunks)
                 if ((p.x - t.x) * (p.x - t.x) + (p.y - t.z) * (p.y - t.z) < radius * radius) return true;
             return false;
         }
 
-        static Transform Holder(Transform parent, string name, Vector3 position, float yaw, float scale)
+        internal static Transform Holder(Transform parent, string name, Vector3 position, float yaw, float scale)
         {
             var holder = new GameObject(name).transform;
             holder.SetParent(parent, false);
@@ -537,7 +537,7 @@ namespace BossFight.EditorTools
             return holder;
         }
 
-        static void MarkStatic(Transform root)
+        internal static void MarkStatic(Transform root)
         {
             foreach (var t in root.GetComponentsInChildren<Transform>(true)) t.gameObject.isStatic = true;
         }

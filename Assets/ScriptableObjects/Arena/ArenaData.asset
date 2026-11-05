@@ -25,9 +25,33 @@ MonoBehaviour:
     angle: 0
   playerSpawnDistance: 8
   magicCircleRadius: 5
+  transitionPushRadius: 10
   standTiers: 12
   tierDepth: 1.2
   tierRise: 0.6
   rimWallHeight: 3
   rimWallThickness: 1
   outerGroundMargin: 60
+  forestScenery: 1
+  visualSeed: 7
+  groundRadius: 70
+  groundCellSize: 1.6
+  groundRelief: 1.6
+  groundRise: 6
+  rimSpacing: 3.4
+  rimScale: {x: 0.95, y: 1.2}
+  nearForest: {x: 15.5, y: 30}
+  nearTreeSpacing: 4.2
+  farForest: {x: 30, y: 60}
+  farTreeSpacing: 4.6
+  treeScale: {x: 0.9, y: 1.3}
+  introCameraArc: {x: 178, y: 217}
+  introSightArc: {x: 193, y: 217}
+  introCameraRadius: 24
+  introCameraHeight: 17
+  slabRingRadius: 5.7
+  slabCount: 18
+  puddleCount: 7
+  floorRootCount: 12
+  forestGrassDensity: 0.3
+  propDensity: 1

@@ -3,7 +3,7 @@ using UnityEngine;
 namespace BossFight.Core
 {
     /// <summary>
-    /// 競技場的天色：主光源、環境光（Trilight）、天空盒與雷雲，依暴風進度在 AtmosphereData 的「平靜」與「暴風雨」之間插值。
+    /// 競技場的天色：主光源、環境光（Trilight）、霧、天空盒與雷雲，依暴風進度在 AtmosphereData 的「平靜」與「暴風雨」之間插值。
     /// 開場第 3 鏡由 Timeline 的 StormTrack 把進度從 0 推到 1；沒有開場時（或開場結束後）維持 1。
     /// 雷雲是子物件，場景裡擺的位置就是聚集後的位置；進度 0 時往外推到 cloudScatter 倍遠、縮小，進度 1 時回到原位。
     /// 天空盒用執行期的複本插值，不會改到材質資產。全是視覺效果，沒有判定。
@@ -70,6 +70,11 @@ namespace BossFight.Core
             RenderSettings.ambientSkyColor = Color.Lerp(a.ambientSky, b.ambientSky, t);
             RenderSettings.ambientEquatorColor = Color.Lerp(a.ambientEquator, b.ambientEquator, t);
             RenderSettings.ambientGroundColor = Color.Lerp(a.ambientGround, b.ambientGround, t);
+            float fog = Mathf.Lerp(a.fogDensity, b.fogDensity, t);
+            RenderSettings.fog = fog > 0f;
+            RenderSettings.fogMode = FogMode.ExponentialSquared;
+            RenderSettings.fogDensity = fog;
+            RenderSettings.fogColor = Color.Lerp(a.fogColor, b.fogColor, t);
             sky.Lerp(a.skybox, b.skybox, t);
 
             for (int i = 0; i < cloudHome.Length; i++)
