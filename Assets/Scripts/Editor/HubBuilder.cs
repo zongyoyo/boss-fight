@@ -169,6 +169,7 @@ namespace BossFight.EditorTools
             EditorSceneManager.SaveScene(scene, ScenePath);
             AssetDatabase.SaveAssets();
             SetBuildScenes();
+            TitleBuilder.RebuildIfExists(); // 標題畫面的背景是休息區佈景的複本（T32），跟著重建後再開回休息區
             Debug.Log($"[Hub] 休息區已建立：{ScenePath}（{interactables.Count} 個站點）；Build Settings：Boot 0、Hub 1、BossArena 2、Prologue 3");
         }
 

@@ -130,6 +130,7 @@ namespace BossFight.EditorTools
             ApplyAtmosphere(atmosphere);
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
+            TitleBuilder.RebuildIfExists(); // 標題畫面的背景是這份佈景的複本（T32）
         }
 
         [MenuItem("Tools/Hub/Apply Atmosphere")]
