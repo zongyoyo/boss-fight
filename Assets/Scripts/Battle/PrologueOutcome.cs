@@ -73,7 +73,12 @@ namespace BossFight.Battle
         bool modeResolved, challenge;
         int attempt;
 
-        void Awake() => ResolveMode();
+        void Awake()
+        {
+            ResolveMode();
+            // 重複挑戰不是序章劇情：開發者模式的「略過序章」不能把玩家送回休息區（GameOptions.Start 會送一次設定，所以在 Awake 關掉）
+            if (challenge && sceneFlow != null) sceneFlow.SuspendPrologueSkip();
+        }
 
         // 換場景進來的出生點是這隻 Boss 的傳送門出生點 = 重複挑戰（SceneFlow 在 Start 才取走，所以 Awake 階段看得到）
         void ResolveMode()

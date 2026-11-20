@@ -77,6 +77,12 @@ namespace BossFight.Progression
             if (!holdArrivalFade) RevealArrival();
         }
 
+        /// <summary>
+        /// 這次不是序章劇情（T34：從傳送門來的大樹守衛重複挑戰）：不理「略過序章」。要在 GameOptions.Start 送出設定之前呼叫（呼叫方的 Awake），
+        /// 否則開發者模式勾了「略過序章」時，一進序章就被送回休息區。
+        /// </summary>
+        public void SuspendPrologueSkip() => prologueSkippable = false;
+
         /// <summary>T30 醒來演出可在 OnArrived 中保留黑幕，再以 RevealArrival 交還淡入。</summary>
         public void HoldArrivalFade() => holdArrivalFade = true;
         /// <summary>醒來 Timeline 已鋪好自己的黑幕後同步移交；Start 不再自動淡入。</summary>
