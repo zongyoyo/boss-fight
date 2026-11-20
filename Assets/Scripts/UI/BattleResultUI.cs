@@ -19,6 +19,7 @@ namespace BossFight.UI
     /// 按鈕呼叫 BattleManager.Retry（重新載入場景，之後開場可以長按跳過）；出現時把按鈕設為選取，Enter／手把 A 也能按。
     /// 右邊的「返回休息區」呼叫 BattleManager.ReturnToHub（不先確認，跟重試一樣直接走；勝敗共用）。
     /// 序章（prologue 有接）：只顯示「返回休息區」並置中，不顯示通關時間與挑戰次數。
+    /// 序章的重複挑戰（T34，PrologueOutcome.IsChallenge）：跟 Boss 戰一樣顯示重試／再挑戰與返回休息區並排、通關時間與挑戰次數，按鈕呼叫 PrologueOutcome.Retry／ReturnToHub。
     /// Boss 名稱來自開場字卡（CutsceneDirector.OnTitleCard），沒有時用 BattleUIData.fallbackBossName。按鈕下面不放按鍵提示（勝敗都一樣）。
     /// </summary>
     [DisallowMultipleComponent]
@@ -140,7 +141,18 @@ namespace BossFight.UI
                 retryLabel.text = data.defeatButton;
             }
             if (hubLabel != null) hubLabel.text = data.returnToHubButton;
-            if (prologue != null)
+            if (prologue != null && prologue.IsChallenge)
+            {
+                // 重複挑戰：重試與返回休息區左右並排（Builder 把重試留在左邊、返回休息區移到中間；換回右邊對稱的位置）
+                retryButton.gameObject.SetActive(true);
+                if (hubButton != null)
+                {
+                    var retryRt = (RectTransform)retryButton.transform;
+                    var rt = (RectTransform)hubButton.transform;
+                    rt.anchoredPosition = new Vector2(-retryRt.anchoredPosition.x, rt.anchoredPosition.y);
+                }
+            }
+            else if (prologue != null)
             {
                 // 序章只有「返回休息區」一顆按鈕：置中（BattleUIData.singleButtonX）
                 retryButton.gameObject.SetActive(false);
@@ -154,7 +166,8 @@ namespace BossFight.UI
             shownAt = Time.unscaledTime;
             group.interactable = true;
             group.blocksRaycasts = true;
-            if (eventSystem != null) eventSystem.SetSelectedGameObject(prologue != null ? hubButton.gameObject : retryButton.gameObject);
+            bool single = prologue != null && !prologue.IsChallenge;
+            if (eventSystem != null) eventSystem.SetSelectedGameObject(single ? hubButton.gameObject : retryButton.gameObject);
         }
 
         void ShowFirstClearRewards(IReadOnlyList<RewardData> rewards)
@@ -182,6 +195,7 @@ namespace BossFight.UI
 
         void Retry()
         {
+            if (prologue != null) { prologue.Retry(); return; }
             if (battle != null) battle.Retry();
         }
 

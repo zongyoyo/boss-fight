@@ -133,7 +133,7 @@ namespace BossFight.EditorTools
             // 有開場演出：教學等開場播完才開始；地鳴與低吼從守衛破土的位置發出
             Bool(tutorial, "autoStart", false); Set(tutorial, "roarSource", actor);
             Array(stage, "noise", root.GetComponentsInChildren<CinemachineBasicMultiChannelPerlin>(true));
-            WireAudio(stage); PlayerSpawnerBuilder.Wire(); EditorSceneManager.MarkSceneDirty(root.scene);
+            WireAudio(stage); PlayerSpawnerBuilder.Wire(); GuardianChallengeBuilder.Wire(); EditorSceneManager.MarkSceneDirty(root.scene);
             void Add(string name, Vector3 position, Transform look, float fov, Transform parent = null, bool local = false, float roll = 0f)
             { shots[name] = Shot(parent != null ? parent : root.transform, name, position, look, fov, local, roll); }
         }

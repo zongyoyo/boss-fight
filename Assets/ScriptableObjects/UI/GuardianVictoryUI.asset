@@ -50,8 +50,7 @@ MonoBehaviour:
   victorySubtitle: 
   defeatTitle: "\u83DC"
   defeatSubtitle: "\u5C31\u591A\u7DF4"
-  defeatHint: "\u771F\u6253\u4E0D\u904E\u6211\u5011\u9078\u55AE\u88E1\u6709\u7C21\u55AE\u6A21\u5F0F\u5594
-    :))"
+  defeatHint: 
   defeatStatsSeparator: "\u3000\u3000"
   victoryButton: "\u518D\u6311\u6230"
   defeatButton: "\u91CD\u8A66"

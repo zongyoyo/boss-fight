@@ -13,6 +13,8 @@ namespace BossFight.UI
     /// 清單照 Portal.OnBossesChanged（T24 起讀 GameDatabase.bosses）一隻 Boss 一列（rowTemplate 複製，擊敗過的照 defeatedBossFormat），
     /// 選到的那一列在下方顯示 BossDefinition.portalDescription；點了跳確認框 → Portal.Depart(boss) 換場景（黑幕淡出期間面板維持開著、不再收輸入）。
     /// 返回讀 UI/Cancel（Esc、手把 B）：確認框開著時回到清單，否則呼叫 HubManager.CloseStation。面板下方的返回提示依 InputHintDevice 換鍵鼠或手把的字。
+    /// T34：列的底色照 BossDefinition.portalRowColor（alpha 0 = 樣板的顏色）；上鎖的列（BossEntry.locked）不能選，列上的 PortalLockUI 顯示鎖與鎖鏈；
+    /// BossEntry.playUnlock 的列在面板出現後播解鎖演出，播完才變成可以選（並選到它）。
     /// 由 HubUIBuilder 建立與接線。
     /// </summary>
     [DisallowMultipleComponent]
@@ -45,6 +47,8 @@ namespace BossFight.UI
 
         readonly List<Button> rows = new List<Button>();
         readonly List<BossDefinition> rowBosses = new List<BossDefinition>();
+        readonly List<int> pendingUnlocks = new List<int>();
+        ColorBlock templateColors;
         InputAction cancelAction;
         BossDefinition chosen, described;
         bool visible, confirming, departing;
@@ -55,6 +59,7 @@ namespace BossFight.UI
             var actions = InputSystem.actions;
             if (actions != null) cancelAction = actions.FindAction("UI/Cancel", false);
             rowTemplate.gameObject.SetActive(false);
+            templateColors = rowTemplate.colors;
             confirmYesButton.onClick.AddListener(Depart);
             confirmNoButton.onClick.AddListener(HideConfirm);
             SetVisible(false);
@@ -115,13 +120,45 @@ namespace BossFight.UI
             described = null;
             Select(DefaultSelectable());
             ShowDescription(SelectedBoss());
+            foreach (int index in pendingUnlocks)
+            {
+                var lockUi = LockOf(rows[index]);
+                if (lockUi != null) lockUi.PlayUnlock(() => FinishUnlock(index));
+                else FinishUnlock(index);
+            }
+            pendingUnlocks.Clear();
         }
+
+        // 解鎖演出播完：這一列可以選了，選到它
+        void FinishUnlock(int index)
+        {
+            if (index >= rows.Count || !visible) return;
+            rows[index].interactable = true;
+            if (!confirming && !departing)
+            {
+                chosenRow = index;
+                Select(rows[index]);
+            }
+        }
+
+        static PortalLockUI LockOf(Button row) => row.GetComponentInChildren<PortalLockUI>(true);
 
         void HandleStationClosed(Interactable target)
         {
             if (target != portal) return;
             confirming = false;
             SetVisible(false);
+            pendingUnlocks.Clear();
+            // 演出播到一半就關掉：直接當作播完（存檔在打開時已經記過）
+            for (int i = 0; i < rows.Count; i++)
+            {
+                var lockUi = LockOf(rows[i]);
+                if (lockUi != null && lockUi.IsPlaying)
+                {
+                    lockUi.Stop();
+                    rows[i].interactable = true;
+                }
+            }
             if (eventSystem != null) eventSystem.SetSelectedGameObject(null);
         }
 
@@ -144,10 +181,37 @@ namespace BossFight.UI
                 if (!used) continue;
                 var boss = entries[i].boss;
                 rows[i].name = "Row_" + boss.id;
+                ApplyRowColors(rows[i], boss, entries[i].locked || entries[i].playUnlock);
+                rows[i].interactable = !entries[i].locked && !entries[i].playUnlock;
+                var lockUi = LockOf(rows[i]);
+                if (lockUi != null) lockUi.SetLocked(entries[i].locked || entries[i].playUnlock);
+                if (entries[i].playUnlock) pendingUnlocks.Add(i);
                 rows[i].GetComponentInChildren<Text>(true).text = entries[i].defeated && data != null
                     ? string.Format(data.defeatedBossFormat, boss.displayName)
                     : boss.displayName;
             }
+        }
+
+        // 自訂底色的列：一般、選到、按下、上鎖都從那個顏色算；沒有自訂就用樣板的顏色
+        void ApplyRowColors(Button row, BossDefinition boss, bool locked)
+        {
+            var colors = templateColors;
+            if (boss.portalRowColor.a > 0f && data != null)
+            {
+                var baseColor = boss.portalRowColor;
+                var highlight = Color.Lerp(baseColor, Color.white, data.customRowHighlightBlend);
+                highlight.a = baseColor.a;
+                colors.normalColor = baseColor;
+                colors.highlightedColor = colors.selectedColor = highlight;
+                colors.pressedColor = baseColor * 0.8f;
+                colors.disabledColor = baseColor * data.lockedRowTint;
+            }
+            else if (data != null)
+            {
+                colors.disabledColor = templateColors.normalColor * data.lockedRowTint;
+            }
+            colors.colorMultiplier = 1f;
+            row.colors = colors;
         }
 
         void HandleDeviceChanged(bool gamepad)
@@ -175,7 +239,7 @@ namespace BossFight.UI
 
         void ShowConfirm(int index)
         {
-            if (index >= rowBosses.Count || rowBosses[index] == null) return;
+            if (index >= rowBosses.Count || rowBosses[index] == null || !rows[index].interactable) return;
             chosenRow = index;
             chosen = rowBosses[index];
             confirming = true;
@@ -206,10 +270,10 @@ namespace BossFight.UI
         Selectable DefaultSelectable()
         {
             if (confirming) return confirmNoButton;
-            if (chosenRow < rows.Count && rows[chosenRow].gameObject.activeSelf) return rows[chosenRow];
+            if (chosenRow < rows.Count && rows[chosenRow].gameObject.activeSelf && rows[chosenRow].interactable) return rows[chosenRow];
             foreach (var row in rows)
             {
-                if (row.gameObject.activeSelf) return row;
+                if (row.gameObject.activeSelf && row.interactable) return row;
             }
             return null;
         }

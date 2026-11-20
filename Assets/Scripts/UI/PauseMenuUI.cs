@@ -44,6 +44,8 @@ namespace BossFight.UI
     /// 暫停時的輸入鎖定由 HubManager 處理；站點介面開著（含關掉的那一幀，Esc 是拿來關介面的）時不開選單；秘技記在 HubManager（一樣是 BattleSession）。
     /// 關掉時把選取還給開選單前的物件（勝敗畫面的按鈕）。
     /// 返回標題畫面（T33）：每個場景的主選單都有，先確認；確定後跟返回休息區一樣藏起選單、維持暫停，由 SceneFlow.ReturnToTitle 換場景。
+    /// 序章（T34，prologue 有接）：主選單多建重新挑戰、返回休息區兩顆，只在重複挑戰（PrologueOutcome.IsChallenge）時顯示，否則藏起來、視窗縮短、下面的按鈕往上補；
+    /// 確定後跟返回休息區一樣維持暫停，經 PrologueOutcome.Retry／ReturnToHub（SceneFlow）換場景。
     /// 標題畫面（T33，settingsOnly）：Esc 不開選單、不暫停；標題的「設定」呼叫 OpenSettings 直接開設定頁，在設定頁返回就關掉（送 OnClosed）；不顯示重置存檔（標題畫面用欄位的刪除）。
     /// </summary>
     [DisallowMultipleComponent]
@@ -54,6 +56,8 @@ namespace BossFight.UI
         [SerializeField] GamePause pause;
         [Tooltip("重新挑戰、返回休息區")]
         [SerializeField] BattleManager battle;
+        [Tooltip("序章（T34）：重複挑戰時的重新挑戰、返回休息區；其他場景留空")]
+        [SerializeField] PrologueOutcome prologue;
         [Tooltip("休息區：站點介面開著時不開選單、秘技的解鎖；Boss 戰留空")]
         [SerializeField] HubManager hub;
         [Tooltip("重置存檔後回休息區")]
@@ -207,6 +211,7 @@ namespace BossFight.UI
             developerPosition = ((RectTransform)developerButton.transform).anchoredPosition;
             resetSavePosition = ((RectTransform)resetSaveButton.transform).anchoredPosition;
             ApplyDeveloperVisible();
+            ApplyPrologueButtons();
             if (noticeText != null) noticeText.enabled = false;
 
             SetVisible(false);
@@ -431,7 +436,8 @@ namespace BossFight.UI
 #endif
                 return;
             }
-            if (confirmAction == ConfirmAction.ReturnToHub || confirmAction == ConfirmAction.ResetSave || confirmAction == ConfirmAction.ReturnToTitle)
+            bool prologueRetry = confirmAction == ConfirmAction.Retry && prologue != null;
+            if (confirmAction == ConfirmAction.ReturnToHub || confirmAction == ConfirmAction.ResetSave || confirmAction == ConfirmAction.ReturnToTitle || prologueRetry)
             {
                 // 維持暫停：黑幕淡出時畫面停住，全黑時 SceneFlow 才解除暫停、換場景
                 leaving = true;
@@ -445,6 +451,12 @@ namespace BossFight.UI
                 {
                     if (sceneFlow != null) sceneFlow.ReturnToTitle();
                 }
+                else if (prologue != null)
+                {
+                    // 序章的重複挑戰（T34）：重新挑戰與返回休息區都經 SceneFlow 換場景
+                    if (prologueRetry) prologue.Retry();
+                    else prologue.ReturnToHub();
+                }
                 else if (battle != null)
                 {
                     battle.ReturnToHub();
@@ -453,6 +465,32 @@ namespace BossFight.UI
             }
             if (pause != null) pause.SetPaused(false);
             if (battle != null) battle.Retry(); // 和勝敗畫面的按鈕同一條路：重新載入場景，開場可以長按跳過；新的難度在新場景的 BattleManager.Awake 套用
+        }
+
+        // 序章（T34）：不是重複挑戰時藏起重新挑戰、返回休息區，視窗縮短、其他按鈕照原本的間距往上補（以視窗中心對稱縮）
+        void ApplyPrologueButtons()
+        {
+            if (prologue == null || retryButton == null || hubButton == null) return;
+            bool challenge = prologue.IsChallenge;
+            retryButton.gameObject.SetActive(challenge);
+            hubButton.gameObject.SetActive(challenge);
+            if (challenge) return;
+            var column = new List<Button> { resumeButton, settingsButton, retryButton, hubButton };
+            if (titleButton != null) column.Add(titleButton);
+            column.Add(quitButton);
+            var first = ((RectTransform)column[0].transform).anchoredPosition;
+            float gap = ((RectTransform)column[1].transform).anchoredPosition.y - first.y; // 往下是負的
+            const int hidden = 2;
+            var window = (RectTransform)mainPage.transform;
+            window.sizeDelta += new Vector2(0f, hidden * gap);
+            float y = first.y + hidden * gap * 0.5f;
+            foreach (var button in column)
+            {
+                if (!button.gameObject.activeSelf) continue;
+                var rt = (RectTransform)button.transform;
+                rt.anchoredPosition = new Vector2(rt.anchoredPosition.x, y);
+                y += gap;
+            }
         }
 
         // ---------- 難度 ----------

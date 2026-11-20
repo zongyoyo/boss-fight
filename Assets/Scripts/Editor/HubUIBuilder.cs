@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.IO;
 using BossFight.Core;
 using BossFight.Hub;
 using BossFight.UI;
@@ -18,12 +19,17 @@ namespace BossFight.EditorTools
     /// 連線樣板、剩餘點數、重置與確認框、說明與「學習」、Debug 的「給技能點」）、
     /// 較大的鐵匠鋪面板（BlacksmithUI，T22：左邊裝備欄、右邊裝備格子〔EquipmentCellUI 樣板〕、下方說明與數值差異、右上角 Debug 的「解鎖全部裝備」）。
     /// 接上 HubManager、InteractionScanner、Campfire、Blacksmith、VillageChief、Portal、EventSystem、GameOptions 物件上的 InputHintDevice 與按鍵名稱。版面、顏色在建立時照 HubUIData 寫進場景，改了要重跑。
+    /// T34：挑戰清單的樣板列上多一層鎖（PortalLockUI：中央金色鎖、四條鎖鏈拉到四個角、碎片樣板）；鎖、鎖鏈、碎片的佔位圖在 Models/UI（Ui_Padlock、Ui_ChainLink、Ui_Shard，只在不存在時產生）。
     /// </summary>
     public static class HubUIBuilder
     {
         const string DataPath = HubBuilder.DataDir + "/HubUIData.asset";
         const string InputNamesPath = "Assets/ScriptableObjects/UI/InputNameData.asset";
         const string CanvasName = "HubUI";
+        const string UiArtDir = "Assets/Models/UI";
+        const string PadlockPath = UiArtDir + "/Ui_Padlock.png";
+        const string ChainPath = UiArtDir + "/Ui_ChainLink.png";
+        const string ShardPath = UiArtDir + "/Ui_Shard.png";
 
         // 版面（Canvas 單位，參考解析度 1920×1080）
         static readonly Vector2 PanelSize = new Vector2(760f, 560f);
@@ -134,6 +140,7 @@ namespace BossFight.EditorTools
             bossLayout.childControlWidth = bossLayout.childControlHeight = false;
             bossLayout.childForceExpandWidth = bossLayout.childForceExpandHeight = false;
             var bossTemplate = MenuButton("RowTemplate", bossRows, "", Vector2.zero, ButtonSize);
+            BuildPortalLock(bossTemplate.transform, ButtonSize);
             bossTemplate.gameObject.SetActive(false);
             var description = Label("Description", list, "", 28, FontStyle.Normal, data.textColor, TextAnchor.UpperCenter);
             Place(description.rectTransform, new Vector2(0.5f, 0f), new Vector2(0f, 75f), new Vector2(PanelSize.x - 100f, 110f));
@@ -612,6 +619,134 @@ namespace BossFight.EditorTools
             rt.anchorMin = Vector2.zero;
             rt.anchorMax = Vector2.one;
             rt.offsetMin = rt.offsetMax = Vector2.zero;
+        }
+
+        // ---------- 傳送門的鎖（T34） ----------
+
+        // 樣板列上的鎖：Lock（PortalLockUI，蓋滿整列）底下 Shake（震動的容器：四條鎖鏈、中央的鎖）與停用的碎片樣板
+        static void BuildPortalLock(Transform row, Vector2 rowSize)
+        {
+            var root = Rect("Lock", row);
+            Stretch(root);
+            var shake = Rect("Shake", root);
+            Stretch(shake);
+            var chainSprite = GetUiSprite(ChainPath, 32, 16, DrawChainLink);
+            var chains = new RectTransform[4];
+            var corners = new[] { new Vector2(-1f, 1f), new Vector2(1f, 1f), new Vector2(-1f, -1f), new Vector2(1f, -1f) };
+            for (int i = 0; i < corners.Length; i++)
+            {
+                var corner = Vector2.Scale(corners[i], rowSize * 0.5f);
+                var chain = Img("Chain" + i, shake, chainSprite, data.chainColor);
+                chain.type = Image.Type.Tiled;
+                chain.pixelsPerUnitMultiplier = chainSprite.rect.height / data.chainWidth; // 一節的高度 = 鏈子的粗細
+                var rt = chain.rectTransform;
+                rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f);
+                rt.pivot = new Vector2(0f, 0.5f);
+                rt.anchoredPosition = Vector2.zero;
+                rt.sizeDelta = new Vector2(corner.magnitude, data.chainWidth);
+                rt.localRotation = Quaternion.Euler(0f, 0f, Mathf.Atan2(corner.y, corner.x) * Mathf.Rad2Deg);
+                chains[i] = rt;
+            }
+            var padlock = Img("Padlock", shake, GetUiSprite(PadlockPath, 64, 76, DrawPadlock), data.lockColor);
+            Place(padlock.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, data.lockSize);
+            var shard = Img("ShardTemplate", root, GetUiSprite(ShardPath, 24, 24, DrawShard), data.lockColor);
+            Place(shard.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(16f, 16f));
+            shard.gameObject.SetActive(false);
+            shake.gameObject.SetActive(false);
+
+            var ui = root.gameObject.AddComponent<PortalLockUI>();
+            var so = new SerializedObject(ui);
+            so.FindProperty("data").objectReferenceValue = data;
+            so.FindProperty("shakeRoot").objectReferenceValue = shake;
+            so.FindProperty("padlock").objectReferenceValue = padlock.rectTransform;
+            var list = so.FindProperty("chains");
+            list.arraySize = chains.Length;
+            for (int i = 0; i < chains.Length; i++) list.GetArrayElementAtIndex(i).objectReferenceValue = chains[i];
+            so.FindProperty("shardTemplate").objectReferenceValue = shard;
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        // 白色系的 UI 佔位圖（Image 的顏色上色）；只在不存在時產生。draw 收像素中心的座標（左下 0,0）
+        static Sprite GetUiSprite(string path, int width, int height, System.Func<Vector2, Color> draw)
+        {
+            var sprite = AssetDatabase.LoadAssetAtPath<Sprite>(path);
+            if (sprite != null) return sprite;
+            DaoDunDogBuilder.EnsureFolder(UiArtDir);
+            var tex = new Texture2D(width, height, TextureFormat.RGBA32, false);
+            var pixels = new Color[width * height];
+            for (int y = 0; y < height; y++)
+                for (int x = 0; x < width; x++)
+                    pixels[y * width + x] = draw(new Vector2(x + 0.5f, y + 0.5f));
+            tex.SetPixels(pixels);
+            File.WriteAllBytes(path, tex.EncodeToPNG());
+            UnityEngine.Object.DestroyImmediate(tex);
+            AssetDatabase.ImportAsset(path);
+            var importer = (TextureImporter)AssetImporter.GetAtPath(path);
+            importer.textureType = TextureImporterType.Sprite;
+            importer.alphaIsTransparency = true;
+            importer.mipmapEnabled = false;
+            importer.wrapMode = TextureWrapMode.Repeat; // 鎖鏈用 Tiled
+            importer.SaveAndReimport();
+            return AssetDatabase.LoadAssetAtPath<Sprite>(path);
+        }
+
+        static float Edge(float distance) => Mathf.Clamp01(0.5f - distance); // 距離（像素，裡面為負）→ 覆蓋率
+
+        static float RoundBox(Vector2 p, Vector2 center, Vector2 half, float radius)
+        {
+            var q = new Vector2(Mathf.Abs(p.x - center.x), Mathf.Abs(p.y - center.y)) - half + Vector2.one * radius;
+            return new Vector2(Mathf.Max(q.x, 0f), Mathf.Max(q.y, 0f)).magnitude + Mathf.Min(Mathf.Max(q.x, q.y), 0f) - radius;
+        }
+
+        // 鎖（64×76）：上半是 U 形鎖環，下半是圓角鎖身，中間深色鑰匙孔；邊緣暗一點
+        static Color DrawPadlock(Vector2 p)
+        {
+            var bodyCenter = new Vector2(32f, 24f);
+            float body = RoundBox(p, bodyCenter, new Vector2(28f, 22f), 6f);
+            var arcCenter = new Vector2(32f, 50f);
+            float ring = p.y >= arcCenter.y
+                ? Mathf.Abs((p - arcCenter).magnitude - 17f) - 5f
+                : Mathf.Abs(Mathf.Abs(p.x - 32f) - 17f) - 5f; // 鎖環往下直直插進鎖身
+            float hole = Mathf.Min((p - new Vector2(32f, 28f)).magnitude - 5f, RoundBox(p, new Vector2(32f, 18f), new Vector2(2.5f, 8f), 1f));
+            float shackle = p.y > 30f ? Edge(ring) : 0f;
+            float b = Edge(body);
+            float alpha = Mathf.Max(shackle, b);
+            if (alpha <= 0f) return Color.clear;
+            float shade = b > 0f ? Mathf.Lerp(0.72f, 1f, Mathf.Clamp01(-body / 4f)) : 0.88f;
+            shade = Mathf.Lerp(shade, 0.22f, Edge(hole) * b);
+            return new Color(shade, shade, shade, alpha);
+        }
+
+        // 一節鎖鏈（32×16，Tiled 重複）：左邊是正面看的橢圓環，右邊是側面看的扁環
+        static Color DrawChainLink(Vector2 p)
+        {
+            var c = new Vector2(12f, 8f);
+            var d = new Vector2((p.x - c.x) / 11f, (p.y - c.y) / 6.5f);
+            float oval = Mathf.Abs(d.magnitude - 0.72f) * 7f - 2f;
+            float side = RoundBox(p, new Vector2(27f, 8f), new Vector2(6f, 2.2f), 2f);
+            float a = Mathf.Max(Edge(oval), Edge(side));
+            if (a <= 0f) return Color.clear;
+            float shade = Edge(side) > Edge(oval) ? 0.8f : Mathf.Lerp(0.75f, 1f, p.y / 16f);
+            return new Color(shade, shade, shade, a);
+        }
+
+        // 碎片（24×24）：不規則的三角形，亮邊
+        static Color DrawShard(Vector2 p)
+        {
+            Vector2 a = new Vector2(3f, 4f), b = new Vector2(21f, 7f), c = new Vector2(9f, 21f);
+            float inside = Mathf.Max(Side(p, a, b), Mathf.Max(Side(p, b, c), Side(p, c, a)));
+            float alpha = Edge(inside);
+            if (alpha <= 0f) return Color.clear;
+            float shade = Mathf.Lerp(1f, 0.7f, Mathf.Clamp01(-inside / 4f));
+            return new Color(shade, shade, shade, alpha);
+        }
+
+        // 到 a→b 這條邊的有號距離（逆時針的三角形裡面為負）
+        static float Side(Vector2 p, Vector2 a, Vector2 b)
+        {
+            var e = (b - a).normalized;
+            var n = new Vector2(e.y, -e.x);
+            return Vector2.Dot(p - a, n);
         }
 
         // ---------- 工具 ----------

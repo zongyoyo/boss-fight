@@ -92,7 +92,12 @@ namespace BossFight.EditorTools
                 d.id = "tree_guardian";
                 d.displayName = "大樹守衛";
                 d.sceneName = "Prologue";
-                d.showInPortal = false;
+                // T34：完成「轉暈那隻小笨貓！」後可以從傳送門重複挑戰（血紅色的列；出生點 = 序章認出重複挑戰的 id）
+                d.showInPortal = true;
+                d.unlockQuest = AssetDatabase.LoadAssetAtPath<QuestData>("Assets/ScriptableObjects/Progression/Quests/SpinTheCat.asset");
+                d.portalRowColor = new Color(0.45f, 0.04f, 0.05f, 1f);
+                d.portalArrival = "GuardianChallenge";
+                d.portalDescription = "序章森林裡的古老守衛。被吵醒的大樹，再去會會它吧。";
                 d.firstClearRewards.Clear();
             });
             var database = AssetDatabase.LoadAssetAtPath<GameDatabase>("Assets/ScriptableObjects/Progression/GameDatabase.asset");

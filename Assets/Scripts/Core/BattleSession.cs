@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace BossFight.Core
@@ -6,8 +7,9 @@ namespace BossFight.Core
     /// 這次執行（開遊戲到關遊戲）的挑戰紀錄：第幾次挑戰、看過開場沒有、看過轉階段沒有，以及 ESC 選單的秘技解鎖了開發者模式開關沒有。
     /// 重新載入場景（重試）時保留，關掉遊戲就歸零。
     /// 只有 BattleManager 讀寫；其他系統要知道就訂閱 BattleManager 的事件，或由它用參數傳過去（例如 CutsceneDirector.Play 的 canSkip）。
+    /// T34 起另有傳送門重複挑戰（大樹守衛）的兩個值，依 Boss id 分開記：第幾次挑戰、看過登場演出沒有；只有序章的 PrologueOutcome／PrologueCutsceneFlow 在挑戰模式讀寫。
     /// 這是 CLAUDE.md「不用 static」規則的例外：場景重新載入後元件都是新的，跨場景的資料總要放在某個活得比場景久的地方；
-    /// 這裡只放這四個值，不放任何元件引用。進 Play 模式時（包含關掉 Domain Reload 的情況）會清空。
+    /// 這裡只放這些值（數字、布林、Boss id），不放任何元件引用。進 Play 模式時（包含關掉 Domain Reload 的情況）會清空。
     /// </summary>
     public static class BattleSession
     {
@@ -31,6 +33,27 @@ namespace BossFight.Core
 
         public static void MarkDeveloperOptionsUnlocked() => DeveloperOptionsUnlocked = true;
 
+        // ---------- 傳送門重複挑戰（T34，依 Boss id） ----------
+
+        static readonly Dictionary<string, int> challengeAttempts = new Dictionary<string, int>();
+        static readonly HashSet<string> challengeEntranceSeen = new HashSet<string>();
+
+        /// <summary>開始一次重複挑戰，回傳這次執行的第幾次（1 起算）。</summary>
+        public static int BeginChallengeAttempt(string bossId)
+        {
+            challengeAttempts.TryGetValue(bossId ?? string.Empty, out int count);
+            challengeAttempts[bossId ?? string.Empty] = ++count;
+            return count;
+        }
+
+        /// <summary>這次執行這隻 Boss 的第幾次重複挑戰；還沒開始過是 0。</summary>
+        public static int ChallengeAttempt(string bossId) => challengeAttempts.TryGetValue(bossId ?? string.Empty, out int count) ? count : 0;
+
+        /// <summary>這隻 Boss 的登場演出已經在重複挑戰裡開始播過（之後可以長按跳過）。</summary>
+        public static bool IsChallengeEntranceSeen(string bossId) => challengeEntranceSeen.Contains(bossId ?? string.Empty);
+
+        public static void MarkChallengeEntranceSeen(string bossId) => challengeEntranceSeen.Add(bossId ?? string.Empty);
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         static void ResetOnLaunch()
         {
@@ -38,6 +61,8 @@ namespace BossFight.Core
             IntroSeen = false;
             TransitionSeen = false;
             DeveloperOptionsUnlocked = false;
+            challengeAttempts.Clear();
+            challengeEntranceSeen.Clear();
         }
     }
 }

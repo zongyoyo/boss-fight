@@ -177,7 +177,7 @@ namespace BossFight.UI
             new StatLabel { stat = PlayerStatId.ExecutionDamage, label = "處決傷害", format = "0.#" },
         };
 
-        [Header("傳送門")]
+        [Header("傳送門（T34 起有上鎖的列與自訂底色）")]
         [Tooltip("挑戰清單裡擊敗過的 Boss：{0} = BossDefinition.displayName")]
         public string defeatedBossFormat = "{0}（已擊敗）";
         [Tooltip("挑戰清單每列的間距（Canvas 單位）")]
@@ -186,6 +186,42 @@ namespace BossFight.UI
         public string departConfirmFormat = "要出發挑戰 {0} 嗎？";
         public string departYes = "出發";
         public string departNo = "取消";
+        [Tooltip("自訂底色（BossDefinition.portalRowColor）的列：選到時往白色混多少")]
+        [Range(0f, 1f)] public float customRowHighlightBlend = 0.3f;
+        [Tooltip("上鎖的列：底色乘上這個顏色（不能選）")]
+        public Color lockedRowTint = new Color(0.6f, 0.6f, 0.6f, 1f);
+
+        [Header("傳送門解鎖（T34）")]
+        [Tooltip("鎖與鎖鏈的顏色")]
+        public Color lockColor = new Color(1f, 0.8f, 0.25f, 1f);
+        public Color chainColor = new Color(0.9f, 0.68f, 0.18f, 1f);
+        [Tooltip("鎖的大小、鎖鏈的粗細（Canvas 單位；HubUIBuilder 建立時用）")]
+        public Vector2 lockSize = new Vector2(56f, 66f);
+        [Min(1f)] public float chainWidth = 12f;
+        [Tooltip("打開清單後等多久才開始震（秒，真實時間）")]
+        [Min(0f)] public float portalUnlockDelay = 0.4f;
+        [Tooltip("震動多久後碎裂（秒）")]
+        [Min(0.01f)] public float portalUnlockShakeTime = 0.9f;
+        [Tooltip("震動幅度（Canvas 單位，結尾最大）、一開始是最大的幾成、每秒抖幾下、鎖左右搖的角度")]
+        [Min(0f)] public float portalUnlockShakeAmplitude = 7f;
+        [Range(0f, 1f)] public float portalUnlockShakeStart = 0.2f;
+        [Min(0f)] public float portalUnlockShakeFrequency = 22f;
+        [Min(0f)] public float portalUnlockShakeTilt = 10f;
+        [Tooltip("碎片數量：鎖、每條鎖鏈")]
+        [Min(0)] public int portalLockShards = 12;
+        [Min(0)] public int portalChainShards = 6;
+        [Tooltip("碎片的大小倍率（最小、最大）")]
+        public Vector2 portalShardScale = new Vector2(0.5f, 1.1f);
+        [Tooltip("碎片往外噴的速度（最小、最大，Canvas 單位/秒）、往上加的速度、旋轉（度/秒）")]
+        public Vector2 portalShardSpeed = new Vector2(120f, 420f);
+        [Min(0f)] public float portalShardLift = 380f;
+        [Min(0f)] public float portalShardSpin = 540f;
+        [Tooltip("重力（Canvas 單位/秒²）")]
+        [Min(0f)] public float portalShardGravity = 2600f;
+        [Tooltip("掉到這一列下方多遠就收掉（Canvas 單位；要超過畫面下緣，參考解析度 1080 高）")]
+        [Min(0f)] public float portalShardFallDistance = 1300f;
+        [Tooltip("碎片最多存在多久（秒），到了就算演出結束")]
+        [Min(0.1f)] public float portalShardLifetime = 2.5f;
 
         [Header("村長的對話框（T24）")]
         [Tooltip("逐字出現的速度（字/秒）")]

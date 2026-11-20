@@ -61,6 +61,8 @@ namespace BossFight.Core
         public List<string> acceptedQuests = new List<string>();
         [Tooltip("回報完的任務（id）")]
         public List<string> completedQuests = new List<string>();
+        [Tooltip("傳送門清單播過解鎖演出（鎖鏈碎裂）的 Boss（id，T34）")]
+        public List<string> portalUnlocksSeen = new List<string>();
         [Tooltip("最後一次存檔的本機時間（ISO 8601，標題畫面的存檔欄位顯示，T31）")]
         public string lastSaved = "";
     }
@@ -509,6 +511,20 @@ namespace BossFight.Core
             return true;
         }
 
+        // ---------- 傳送門（T34） ----------
+
+        /// <summary>傳送門清單播過這隻 Boss 的解鎖演出。</summary>
+        public static bool IsPortalUnlockSeen(string bossId) => !string.IsNullOrEmpty(bossId) && Data.portalUnlocksSeen.Contains(bossId);
+
+        /// <summary>記住播過解鎖演出並存檔；已經記過時不做事、回傳 false。</summary>
+        public static bool MarkPortalUnlockSeen(string bossId)
+        {
+            if (string.IsNullOrEmpty(bossId) || IsPortalUnlockSeen(bossId)) return false;
+            Data.portalUnlocksSeen.Add(bossId);
+            Save();
+            return true;
+        }
+
         // ---------- 整份存檔 ----------
 
         /// <summary>清空目前欄位的存檔（ESC 選單的「重置存檔」）並寫檔。</summary>
@@ -594,6 +610,7 @@ namespace BossFight.Core
             }
             if (loaded.acceptedQuests == null) loaded.acceptedQuests = new List<string>();
             if (loaded.completedQuests == null) loaded.completedQuests = new List<string>();
+            if (loaded.portalUnlocksSeen == null) loaded.portalUnlocksSeen = new List<string>();
             if (loaded.lastSaved == null) loaded.lastSaved = string.Empty;
             return loaded;
         }

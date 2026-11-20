@@ -77,6 +77,7 @@ namespace BossFight.EditorTools
                 return null;
             }
             bool settingsOnly = battle == null && hub == null && prologue == null; // 標題畫面（T33）：只開設定頁、不暫停
+            var prologueOutcome = battle == null ? Object.FindAnyObjectByType<PrologueOutcome>() : null; // 序章（T34）：重複挑戰的重新挑戰、返回休息區
 
             Undo.SetCurrentGroupName("Build Pause Menu");
             int undoGroup = Undo.GetCurrentGroup();
@@ -134,6 +135,7 @@ namespace BossFight.EditorTools
             so.FindProperty("settingsOnly").boolValue = settingsOnly;
             so.FindProperty("battle").objectReferenceValue = battle;
             so.FindProperty("hub").objectReferenceValue = hub;
+            so.FindProperty("prologue").objectReferenceValue = prologueOutcome;
             so.FindProperty("audioManager").objectReferenceValue = Object.FindAnyObjectByType<AudioManager>();
             so.FindProperty("eventSystem").objectReferenceValue = eventSystem;
             so.FindProperty("group").objectReferenceValue = group;
@@ -141,7 +143,8 @@ namespace BossFight.EditorTools
             // ---------- 主選單 ----------
             // Boss 戰 7 顆（繼續、設定、難度、重新挑戰、返回休息區、返回標題畫面、退出）；休息區與序章少了難度、重新挑戰、返回休息區三顆。
             // 視窗高度依按鈕數，上下留白不變。標題畫面（settingsOnly）不會打開主選單，照休息區的建（PauseMenuUI 需要這幾顆按鈕）。
-            int mainCount = battle != null ? 7 : 4;
+            // 序章（T34）多建重新挑戰、返回休息區（只在重複挑戰時顯示；其他時候 PauseMenuUI 藏起來、視窗縮回 4 顆的高度）
+            int mainCount = battle != null ? 7 : prologueOutcome != null ? 6 : 4;
             float mainExtra = mainCount - 6; // 以 6 顆的版面為準
             var main = Window("Main", root.transform, new Vector2(620f, 690f + ButtonGap + ButtonGap * mainExtra), data.pauseTitle);
             float mainTop = 175f + ButtonGap * 0.5f + ButtonGap * mainExtra * 0.5f;
@@ -157,6 +160,17 @@ namespace BossFight.EditorTools
                 Set(so, "hubButton", mainButtons[4]);
                 Set(so, "titleButton", mainButtons[5]);
                 Set(so, "quitButton", mainButtons[6]);
+            }
+            else if (prologueOutcome != null)
+            {
+                var mainButtons = ButtonColumn(main, mainTop, data.resumeLabel, data.settingsLabel, data.retryLabel,
+                                               data.returnToHubLabel, data.returnToTitleLabel, data.quitLabel);
+                Set(so, "resumeButton", mainButtons[0]);
+                Set(so, "settingsButton", mainButtons[1]);
+                Set(so, "retryButton", mainButtons[2]);
+                Set(so, "hubButton", mainButtons[3]);
+                Set(so, "titleButton", mainButtons[4]);
+                Set(so, "quitButton", mainButtons[5]);
             }
             else
             {
@@ -334,6 +348,7 @@ namespace BossFight.EditorTools
                 var so = new SerializedObject(menu);
                 so.FindProperty("battle").objectReferenceValue = battle;
                 so.FindProperty("hub").objectReferenceValue = hub;
+                so.FindProperty("prologue").objectReferenceValue = battle == null ? Object.FindAnyObjectByType<PrologueOutcome>() : null;
                 so.FindProperty("audioManager").objectReferenceValue = audio;
                 so.FindProperty("options").objectReferenceValue = options;
                 so.FindProperty("pause").objectReferenceValue = so.FindProperty("settingsOnly").boolValue ? null : pause; // 標題畫面不暫停

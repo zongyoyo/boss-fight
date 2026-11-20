@@ -14,6 +14,8 @@ namespace BossFight.Battle
     /// 序章的上層演出協調（T30）：開場（玩家起身、帶過空地）→ 教學；教學結尾鑽回 → 守衛登場 → 開戰；活過萬根齊發 → 轉階段演出 → 二階段；擊倒、勝利演出 → 單次提交結局。
     /// Timeline 只送 CutsceneCue，這裡接對白、角色與戰鬥；台詞與說話者讀 GuardianBattleData／TutorialData／PrologueCutsceneData。
     /// 也是序章這場戰鬥給開發者工具的入口（IBattleDebugTarget）。
+    /// T34 重複挑戰（PrologueOutcome.IsChallenge）：不播序章開場與教學（中止教學），一開始就播守衛登場，播完照常開戰；
+    /// 這次執行看過一次登場（BattleSession，依 Boss id）之後可以長按跳過，跳過時套上登場結尾的天色與守衛外觀再開戰。
     /// </summary>
     public class PrologueCutsceneFlow : MonoBehaviour, IBattleDebugTarget
     {
@@ -74,6 +76,11 @@ namespace BossFight.Battle
         void Start()
         {
             if (guardian.Stage != GuardianStage.Dormant || sceneFlow.IsLoading) return;
+            if (outcome.IsChallenge)
+            {
+                StartChallenge();
+                return;
+            }
             // 開場與教學只在序章一開始跑一次；沒接開場演出就直接開始教學
             if (opening != null) Begin(Kind.Opening, opening);
             else tutorial.StartApproach();
@@ -112,6 +119,18 @@ namespace BossFight.Battle
             SetDebugState(BattleState.Intro);
         }
 
+        // 重複挑戰：教學整段略過，直接播登場（看過一次之後可以長按跳過）
+        void StartChallenge()
+        {
+            entered = true;
+            tutorial.Abort();
+            string id = outcome.Definition.id;
+            bool canSkip = BattleSession.IsChallengeEntranceSeen(id);
+            BattleSession.MarkChallengeEntranceSeen(id); // 開始播就算看過，中途離開下次也能跳過
+            Begin(Kind.Entrance, entrance, canSkip);
+            SetDebugState(BattleState.Intro);
+        }
+
         void Transition()
         {
             powered = false;
@@ -126,7 +145,7 @@ namespace BossFight.Battle
             Begin(Kind.Victory, victory);
         }
 
-        void Begin(Kind next, CutsceneDirector seq)
+        void Begin(Kind next, CutsceneDirector seq, bool canSkip = false)
         {
             if (current != null && current.IsPlaying) current.Cancel();
             session.SetInputLocked(this, true);
@@ -137,7 +156,7 @@ namespace BossFight.Battle
             stage.AlignToPlayer();
             dialogue.Hide();
             if (next != Kind.Transition) audioManager.StopMusic();
-            seq.Play(false);
+            seq.Play(canSkip);
         }
 
         void Cue(CutsceneCue cue)
@@ -183,7 +202,7 @@ namespace BossFight.Battle
         void Finished(bool skipped)
         {
             if (kind == Kind.None || sceneFlow.IsLoading) return;
-            if (skipped)
+            if (skipped && kind != Kind.Entrance)
             {
                 Cancelled();
                 return;
@@ -197,6 +216,8 @@ namespace BossFight.Battle
             }
             else if (kind == Kind.Entrance)
             {
+                // 跳過（T34 重複挑戰）時 Timeline 停在結尾前，自訂軌道的值不一定留著：照登場結尾補上
+                if (skipped) ApplyEntranceEnd();
                 stage.ResetTransient();
                 StartGuardianBattle();
             }
@@ -291,12 +312,18 @@ namespace BossFight.Battle
             if (kind == Kind.Entrance || kind == Kind.Opening) Cancelled();
             entered = true;
             tutorial.Abort();
-            stage.Apply(CinematicValue.Rise, 1f);
-            stage.Apply(CinematicValue.GroundCrack, 1f);
-            stage.Apply(CinematicValue.Darkness, 1f);
+            ApplyEntranceEnd();
             stage.ResetTransient();
             StartGuardianBattle();
             return guardian.Stage == GuardianStage.Phase1;
+        }
+
+        // 登場演出結尾的狀態：守衛升起、地裂、天色變暗
+        void ApplyEntranceEnd()
+        {
+            stage.Apply(CinematicValue.Rise, 1f);
+            stage.Apply(CinematicValue.GroundCrack, 1f);
+            stage.Apply(CinematicValue.Darkness, 1f);
         }
 
         void HandleStage(GuardianStage value)
@@ -307,7 +334,7 @@ namespace BossFight.Battle
                 case GuardianStage.RootBarrage: SetDebugState(BattleState.Ultimate); break;
                 case GuardianStage.AwaitingPhase2: SetDebugState(BattleState.Transition); break;
                 case GuardianStage.Phase2: SetDebugState(BattleState.Phase2); break;
-                case GuardianStage.Stopped: SetDebugState(outcome.IsKnockdownPending ? BattleState.Defeat : BattleState.Victory); break;
+                case GuardianStage.Stopped: SetDebugState(outcome.IsKnockdownPending || outcome.IsChallengeDefeat ? BattleState.Defeat : BattleState.Victory); break;
             }
         }
 
@@ -331,7 +358,7 @@ namespace BossFight.Battle
         bool IBattleDebugTarget.DebugUltimateBeforeTransition => true;
         string IBattleDebugTarget.DebugUltimateName => guardian.Barrage != null ? guardian.Barrage.DisplayName : "萬根齊發";
         Difficulty IBattleDebugTarget.DebugDifficulty => Difficulty.Hard;
-        int IBattleDebugTarget.DebugAttempt => 1;
+        int IBattleDebugTarget.DebugAttempt => outcome.IsChallenge ? outcome.Attempt : 1;
         bool IBattleDebugTarget.DebugIsOver => outcome.HasOutcome;
         BossMove IBattleDebugTarget.DebugPendingMove => guardian.RootBarrageRequested ? guardian.Barrage : null;
         string IBattleDebugTarget.DebugNextPhaseHint => "下一階段（開戰→萬根→二階段）";
@@ -364,9 +391,14 @@ namespace BossFight.Battle
             return "F6：守衛血量歸零（越過血量鎖），播勝利演出";
         }
 
-        // F5：重新載入序章（從教學開頭）
+        // F5：重新載入序章（從教學開頭）；重複挑戰（T34）時照挑戰的重試，經 SceneFlow 重新進挑戰
         void IBattleDebugTarget.DebugRetry()
         {
+            if (outcome.IsChallenge)
+            {
+                outcome.Retry();
+                return;
+            }
             Time.timeScale = 1f; // 慢動作或畫面停頓中按下時不要把 timeScale 帶到新場景
             SceneManager.LoadScene(gameObject.scene.name);
         }

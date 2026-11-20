@@ -32,6 +32,7 @@ namespace BossFight.Cutscene
     /// 沒有標記時跳到結尾（轉階段）：先在結尾前一點點 Evaluate 一次、停住，套用結尾的狀態（Hold 的片段：法陣全紅、Boss 電光、音樂重播、玩家被推到外圈），
     /// 等下一幀所有 Update 跑完（玩家在輸入還鎖著時走到被推開的位置）才在 LateUpdate 結束。
     /// Timeline 用遊戲時間播，暫停（ESC 選單、F12 面板，timeScale 0）時演出停住，長按跳過也不累積。
+    /// 序章的演出（manualClock、externalControl）T34 起也能長按跳過（重複挑戰的守衛登場）：跳過算正常結束，上層收到 OnCutsceneFinished(true)。
     /// 有接 CutsceneStage 時，開始播之前先依玩家與場地中心的位置擺好演出鏡頭（轉階段時玩家在哪裡都有可能）。
     /// 播完時把自由視角擺到玩家背後、面向 Boss，解除輸入鎖定，送出 OnCutsceneFinished；BattleManager 收到後讓 Boss 開打或進入下一個階段。
     /// 玩家由 PlayerSpawner 生成後交給 BindPlayer（T18），同時把 Timeline 的走位軌道改綁到生成的角色。
@@ -159,10 +160,10 @@ namespace BossFight.Cutscene
         {
             if (manualClock && IsPlaying)
             {
-                bool held = (pause != null && pause.IsPaused) || (hitStop != null && hitStop.IsStopped) || Time.timeScale <= 0f;
-                if (held && director.state == PlayState.Playing) director.Pause();
-                else if (!held && director.state == PlayState.Paused) director.Resume();
-                return;
+                bool frozen = (pause != null && pause.IsPaused) || (hitStop != null && hitStop.IsStopped) || Time.timeScale <= 0f;
+                if (frozen && director.state == PlayState.Playing) director.Pause();
+                else if (!frozen && director.state == PlayState.Paused && stopAfterFrame < 0) director.Resume();
+                if (frozen) return; // 暫停、畫面停頓中不累積長按跳過
             }
             if (!CanSkip || Time.timeScale <= 0f) return; // 暫停中不累積（選單裡按 Space 改鍵不會跳過開場）
 
@@ -182,6 +183,8 @@ namespace BossFight.Cutscene
             OnSkipAvailableChanged?.Invoke(false);
 
             double target = SkipTargetTime();
+            // 由上層收尾的演出（序章，T34 重複挑戰的守衛登場）：跳過也算正常結束，stopped 時送 OnCutsceneFinished(true) 而不是中止
+            if (externalControl) normalEnd = true;
             if (target >= director.duration)
             {
                 // 跳到結尾前一點點，套用結尾的狀態後停住；玩家要在輸入還鎖著時照 ScriptedMoveTo 走到被推開的位置，下一幀的 LateUpdate 才結束

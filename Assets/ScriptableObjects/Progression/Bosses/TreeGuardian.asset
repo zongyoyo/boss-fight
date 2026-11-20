@@ -15,6 +15,9 @@ MonoBehaviour:
   id: tree_guardian
   displayName: "\u5927\u6A39\u5B88\u885B"
   sceneName: Prologue
-  portalDescription:
-  showInPortal: 0
+  portalDescription: "\u5E8F\u7AE0\u68EE\u6797\u88E1\u7684\u53E4\u8001\u5B88\u885B\u3002\u88AB\u5435\u9192\u7684\u5927\u6A39\uFF0C\u518D\u53BB\u6703\u6703\u5B83\u5427\u3002"
+  showInPortal: 1
+  unlockQuest: {fileID: 11400000, guid: 3d0f3bb03c8358340a873c8c603cfaf3, type: 2}
+  portalRowColor: {r: 0.45, g: 0.04, b: 0.05, a: 1}
+  portalArrival: GuardianChallenge
   firstClearRewards: []

@@ -26,6 +26,8 @@ MonoBehaviour:
   - kind: 3
     verb: "\u51FA\u767C"
     title: "\u9078\u64C7\u6311\u6230"
+  chiefNewQuestVerb: "\u63A5\u4EFB\u52D9"
+  chiefTurnInVerb: "\u56DE\u5831\u4EFB\u52D9"
   promptColor: {r: 1, g: 1, b: 1, a: 1}
   promptFontSize: 34
   promptY: 150
@@ -150,6 +152,27 @@ MonoBehaviour:
   departConfirmFormat: "\u8981\u51FA\u767C\u6311\u6230 {0} \u55CE\uFF1F"
   departYes: "\u51FA\u767C"
   departNo: "\u53D6\u6D88"
+  customRowHighlightBlend: 0.3
+  lockedRowTint: {r: 0.6, g: 0.6, b: 0.6, a: 1}
+  lockColor: {r: 1, g: 0.8, b: 0.25, a: 1}
+  chainColor: {r: 0.9, g: 0.68, b: 0.18, a: 1}
+  lockSize: {x: 56, y: 66}
+  chainWidth: 12
+  portalUnlockDelay: 0.4
+  portalUnlockShakeTime: 0.9
+  portalUnlockShakeAmplitude: 7
+  portalUnlockShakeStart: 0.2
+  portalUnlockShakeFrequency: 22
+  portalUnlockShakeTilt: 10
+  portalLockShards: 12
+  portalChainShards: 6
+  portalShardScale: {x: 0.5, y: 1.1}
+  portalShardSpeed: {x: 120, y: 420}
+  portalShardLift: 380
+  portalShardSpin: 540
+  portalShardGravity: 2600
+  portalShardFallDistance: 1300
+  portalShardLifetime: 2.5
   dialogueCharsPerSecond: 30
   dialogueContinueMark: "\u25BC"
   dialogueContinueBob: 6

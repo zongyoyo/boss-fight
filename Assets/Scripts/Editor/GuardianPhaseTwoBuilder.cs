@@ -381,6 +381,7 @@ namespace BossFight.EditorTools
                 data = Object.Instantiate(AssetDatabase.LoadAssetAtPath<BattleUIData>(GuardianBuilder.UIPath));
                 data.victoryTitle = "擊敗大樹守衛";
                 data.victorySubtitle = "";
+                data.defeatHint = ""; // 序章沒有難度頁（T34 重複挑戰的戰敗畫面不推薦簡單模式）
                 AssetDatabase.CreateAsset(data, ResultDataPath);
             }
             BattleUIBuilder.BuildStandalonePrologueResult(root.transform, data, outcome, Object.FindAnyObjectByType<EventSystem>());
