@@ -30,11 +30,11 @@ namespace BossFight.UI
     /// <summary>
     /// ESC 選單（T13）：Player/Pause（Esc、手把 Start）開關，開場、轉階段、勝敗畫面時都能開。開著時 GamePause 暫停遊戲；
     /// 玩家與鏡頭的輸入、游標由 BattleManager 看 GamePause 處理，Debug 面板由 DeveloperMode 藏起來。
-    /// 頁面：主選單（繼續、設定、難度、重新挑戰、返回休息區、退出遊戲）→ 設定（按鍵設定、音量設定、開發者模式、重置存檔）→ 按鍵設定（鍵鼠、控制器，KeyBindingPageUI）／音量設定（主音量、音樂、音效）；
+    /// 頁面：主選單（繼續、設定、難度、重新挑戰、返回休息區、退出遊戲）→ 設定（按鍵設定、音量設定、重置存檔、開發者模式、略過序章）→ 按鍵設定（鍵鼠、控制器，KeyBindingPageUI）／音量設定（主音量、音樂、音效）；
     /// 難度（困難、簡單，標出目前的難度；選另一個先確認，確定後存進 GameOptions 並重新挑戰，新的難度在重新載入的場景才套用）。
     /// 返回：Esc、Start、手把 B（UI/Cancel）回上一層，在主選單就關閉；改鍵等待按鍵時不算。重新挑戰、返回休息區、退出遊戲、換難度、重置存檔先問一次。
     /// 返回休息區（BattleManager.ReturnToHub）與重置存檔（SceneFlow.ResetProfile：清空存檔、從序章重新開始）確定後藏起選單、維持暫停，黑幕淡出完由 SceneFlow 解除暫停再換場景。
-    /// 重置存檔只在開發者模式開著時顯示（開關下面），沒顯示時「返回」補到它的位置。
+    /// 重置存檔一律顯示（排在音量設定下面，使用者決定：發布版的玩家也要能從序章重來）；開發者模式開關與「略過序章」排在它下面，沒顯示時「返回」往上補。
     /// 設定值都在 GameOptions：訂閱它的事件更新滑桿與開關，改的時候呼叫它的 Set。
     /// 開發者模式開關：只在有 Debug 程式的 build（Editor、Development Build 或定義了 BOSSFIGHT_DEV_TOOLS）才可能出現，而且要開發者模式已經開著，
     /// 或這次執行在選單裡輸入過秘技（PauseMenuData.developerUnlockCode，↑↑↓↓←←→→ A B；記在 BattleManager／BattleSession，重試後還在）；
@@ -155,7 +155,7 @@ namespace BossFight.UI
         ConfirmAction confirmAction;
         Difficulty difficulty, pendingDifficulty;
         float nextPreviewTime;
-        Vector2 settingsBackPosition, developerPosition, resetSavePosition;
+        Vector2 settingsBackPosition, developerPosition, resetSavePosition, skipPosition;
 
         // 秘技：最近的輸入（最多 code 的長度）、目前對到第幾個、輸入中暫時取消的選取
         readonly List<MenuCodeInput> codeInputs = new List<MenuCodeInput>();
@@ -210,6 +210,7 @@ namespace BossFight.UI
             settingsBackPosition = ((RectTransform)settingsBackButton.transform).anchoredPosition;
             developerPosition = ((RectTransform)developerButton.transform).anchoredPosition;
             resetSavePosition = ((RectTransform)resetSaveButton.transform).anchoredPosition;
+            skipPosition = skipPrologueToggle != null ? ((RectTransform)skipPrologueToggle.transform).anchoredPosition : settingsBackPosition;
             ApplyDeveloperVisible();
             ApplyPrologueButtons();
             if (noticeText != null) noticeText.enabled = false;
@@ -547,15 +548,23 @@ namespace BossFight.UI
             ApplyDeveloperVisible();
         }
 
-        // 開發者模式開關、重置存檔沒顯示時，「返回」往上補到空出來的位置
-        // 標題畫面（settingsOnly）不顯示重置存檔（用欄位的刪除）
+        // 重置存檔一律顯示（發布版的玩家也要能從序章重來），排在音量設定下面（Builder 建的開發者模式那一格）；
+        // 開發者模式開關出現時排在它下面，開著時再加「略過序章」；「返回」補到最後一列的下一格。
+        // 標題畫面（settingsOnly）不顯示重置存檔（用欄位的刪除），下面的列往上補。
         void ApplyDeveloperVisible()
         {
-            bool reset = developerVisible && developerMode;
+            bool reset = !settingsOnly;
+            bool skip = developerVisible && developerMode && skipPrologueToggle != null;
+            resetSaveButton.gameObject.SetActive(reset);
             developerButton.gameObject.SetActive(developerVisible);
-            resetSaveButton.gameObject.SetActive(reset && !settingsOnly);
-            if (skipPrologueToggle != null) skipPrologueToggle.gameObject.SetActive(reset);
-            ((RectTransform)settingsBackButton.transform).anchoredPosition = reset ? settingsBackPosition : developerVisible ? resetSavePosition : developerPosition;
+            if (skipPrologueToggle != null) skipPrologueToggle.gameObject.SetActive(skip);
+            // Builder 建的列位置（由上往下）：開發者模式那一格、重置存檔那一格、略過序章、返回
+            var rows = new[] { developerPosition, resetSavePosition, skipPosition, settingsBackPosition };
+            int row = 0;
+            if (reset) ((RectTransform)resetSaveButton.transform).anchoredPosition = rows[row++];
+            if (developerVisible) ((RectTransform)developerButton.transform).anchoredPosition = rows[row++];
+            if (skip) ((RectTransform)skipPrologueToggle.transform).anchoredPosition = rows[row++];
+            ((RectTransform)settingsBackButton.transform).anchoredPosition = rows[row];
         }
 
         // ---------- 秘技 ----------

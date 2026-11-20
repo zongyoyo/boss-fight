@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: "OIIA \u8C93"
   sceneName: BossArena
   portalDescription: "\u68EE\u6797\u6DF1\u8655\u4E00\u908A\u5531\u6B4C\u4E00\u908A\u8F49\u5708\u7684\u602A\u8C93\u3002\u8F49\u5F97\u8D8A\u5FEB\uFF0C\u96F7\u96E8\u8D8A\u5927\u3002"
+  showInPortal: 1
   firstClearRewards:
   - kind: 0
     amount: 3

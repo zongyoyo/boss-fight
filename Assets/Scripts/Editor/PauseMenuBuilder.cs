@@ -182,7 +182,7 @@ namespace BossFight.EditorTools
             }
 
             // ---------- 設定 ----------
-            // 開發者模式、重置存檔沒顯示時 PauseMenuUI 把「返回」往上補
+            // 執行時 PauseMenuUI 重排：重置存檔一律顯示、移到第 3 格，開發者模式開關移到第 4 格；沒顯示的列由「返回」往上補
             var settings = Window("Settings", root.transform, new Vector2(620f, 600f + ButtonGap * 2f), data.settingsLabel);
             var settingButtons = ButtonColumn(settings, 130f + ButtonGap, data.controlsLabel, data.volumeLabel,
                                               string.Format(data.developerModeFormat, data.onText), data.resetSaveLabel, data.backLabel);
