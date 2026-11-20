@@ -61,11 +61,36 @@ namespace BossFight.Core
         public List<string> acceptedQuests = new List<string>();
         [Tooltip("回報完的任務（id）")]
         public List<string> completedQuests = new List<string>();
+        [Tooltip("最後一次存檔的本機時間（ISO 8601，標題畫面的存檔欄位顯示，T31）")]
+        public string lastSaved = "";
+    }
+
+    /// <summary>一個存檔欄位的摘要（T31，標題畫面顯示用）：不切換欄位、不改檔案，直接讀那一格的檔案。</summary>
+    public class ProfileSlotInfo
+    {
+        /// <summary>第幾格（0 起算）。</summary>
+        public int slot;
+        /// <summary>這一格有存檔檔案。</summary>
+        public bool exists;
+        /// <summary>檔案在，但讀不出來（壞檔；真的載入時才會備份並開新檔）。</summary>
+        public bool corrupt;
+        /// <summary>讀到的內容；沒有檔案或壞檔時 null。</summary>
+        public ProfileData data;
+        /// <summary>最後存檔時間；沒有記錄（T31 以前的存檔）時 null。</summary>
+        public DateTime? lastSaved;
+
+        /// <summary>空欄位：沒有檔案（壞檔不算空，載入會開新檔）。</summary>
+        public bool IsEmpty => !exists;
     }
 
     /// <summary>
-    /// 存檔：Application.persistentDataPath/save.json（JsonUtility）。有變動就存，離開遊戲（Application.quitting）再存一次。
-    /// 讀檔失敗（壞檔、不是 JSON）時把壞檔改名成 save.bak.json（覆蓋舊的備份），開新檔並在 Console 警告。
+    /// 存檔（T31 起四個欄位）：Application.persistentDataPath/save_slot1..4.json（JsonUtility）。有變動就存（目前欄位），離開遊戲（Application.quitting）再存一次。
+    /// 編輯器另用 save_editor_slot1..4.json：跟同一台電腦上的發布版分開，編輯器測試不會出現在打包版的欄位裡。
+    /// 舊的單一存檔：編輯器第一次用到欄位時有 save_editor.json，沒有任何編輯器欄位就搬成欄位 1，已經有欄位就改名成 save_editor.legacy.json 留著；
+    /// 打包版不遷移舊的 save.json（使用者決定：打包版四格一開始都是空的），舊檔留在原地不動。
+    /// 目前欄位（ActiveSlot）由標題畫面 SelectSlot／StartNewProfile 決定，記在 PlayerPrefs（BossFight.Profile.LastSlot）；
+    /// 編輯器直接在休息區、Boss 戰、序章按 Play 時用上次的欄位（沒有記錄 = 欄位 1）。
+    /// 讀檔失敗（壞檔、不是 JSON）時把壞檔改名成那一格的 .bak.json（覆蓋舊的備份），開新檔並在 Console 警告。
     /// 第一次讀到時才載入；進 Play 模式時清掉載入狀態，關掉 Domain Reload 時也會重新從檔案讀。
     /// 另外放「這次要在哪個出生點出現」（SetArrival／TakeArrival）：只活在這次執行，不寫進檔案；SceneFlow 換場景前設、新場景的 PlayerSpawner 先看（PeekArrival，決定生成位置）、SceneFlow 再取走（決定要不要淡入）。
     /// 這是 CLAUDE.md「不用 static」規則的第二個例外（第一個是 BattleSession）：存檔要跨場景、跨執行，只放純資料，不放任何元件引用。
@@ -73,12 +98,32 @@ namespace BossFight.Core
     /// </summary>
     public static class ProfileStore
     {
-        const string FileName = "save.json";
-        const string BackupName = "save.bak.json";
+        /// <summary>存檔欄位的數量（標題畫面列出這麼多格）。</summary>
+        public const int SlotCount = 4;
+        const string LastSlotKey = "BossFight.Profile.LastSlot";
+#if UNITY_EDITOR
+        const string SlotPrefix = "save_editor_slot";
+        const string LegacyFileName = "save_editor.json"; // T31 以前編輯器的單一存檔，搬成欄位 1
+        const string LegacyKeptName = "save_editor.legacy.json"; // 已經有欄位時，舊檔改名留著
+#else
+        const string SlotPrefix = "save_slot";
+#endif
 
         static ProfileData data;
+        static int activeSlot = -1; // -1 = 還沒決定，第一次用到時讀 PlayerPrefs
+        static bool migrated;
         static bool hasArrival;
         static string arrival;
+
+        /// <summary>目前的存檔欄位（0 起算）。</summary>
+        public static int ActiveSlot
+        {
+            get
+            {
+                if (activeSlot < 0) activeSlot = Mathf.Clamp(PlayerPrefs.GetInt(LastSlotKey, 0), 0, SlotCount - 1);
+                return activeSlot;
+            }
+        }
 
         /// <summary>序章是否完成；舊存檔沒有這個欄位時為 false。</summary>
         public static bool PrologueDone => Data.prologueDone;
@@ -113,6 +158,7 @@ namespace BossFight.Core
             try
             {
                 if (!PreparePrologueCompletion(Data, result, bossId, skillPoints, equipmentIds, characterIds, out var next, out bool first)) return false;
+                next.lastSaved = DateTime.Now.ToString("o");
                 string path = SavePath, temp = path + ".prologue.tmp";
                 File.WriteAllText(temp, JsonUtility.ToJson(next, true));
                 if (File.Exists(path)) File.Replace(temp, path, null);
@@ -122,10 +168,128 @@ namespace BossFight.Core
             catch (Exception e) { Debug.LogError("[ProfileStore] 序章完成保存失敗，未採用結算快照：" + e.Message); return false; }
         }
 
-        /// <summary>存檔的完整路徑。</summary>
-        public static string SavePath => Path.Combine(Application.persistentDataPath, FileName);
-        /// <summary>壞檔備份的完整路徑。</summary>
-        public static string BackupPath => Path.Combine(Application.persistentDataPath, BackupName);
+        /// <summary>目前欄位的存檔完整路徑。</summary>
+        public static string SavePath => SlotPath(ActiveSlot);
+        /// <summary>目前欄位的壞檔備份完整路徑。</summary>
+        public static string BackupPath => SlotBackupPath(ActiveSlot);
+
+        /// <summary>某一格的存檔完整路徑。</summary>
+        public static string SlotPath(int slot) => Path.Combine(Application.persistentDataPath, $"{SlotPrefix}{slot + 1}.json");
+        /// <summary>某一格的壞檔備份完整路徑。</summary>
+        public static string SlotBackupPath(int slot) => Path.Combine(Application.persistentDataPath, $"{SlotPrefix}{slot + 1}.bak.json");
+
+        // ---------- 存檔欄位（T31） ----------
+
+        /// <summary>讀某一格的摘要（不切換欄位、不改檔案）。slot 超出範圍時回傳空欄位。</summary>
+        public static ProfileSlotInfo PeekSlot(int slot)
+        {
+            MigrateLegacy();
+            var info = new ProfileSlotInfo { slot = slot };
+            if (slot < 0 || slot >= SlotCount) return info;
+            // 目前欄位已經載入時以記憶體裡的為準（還沒寫進檔案的變動也算）
+            if (slot == ActiveSlot && data != null && File.Exists(SlotPath(slot)))
+            {
+                info.exists = true;
+                info.data = data;
+            }
+            else
+            {
+                string path = SlotPath(slot);
+                if (!File.Exists(path)) return info;
+                info.exists = true;
+                try
+                {
+                    info.data = JsonUtility.FromJson<ProfileData>(File.ReadAllText(path));
+                    if (info.data == null) info.corrupt = true;
+                    else Normalize(info.data);
+                }
+                catch (Exception)
+                {
+                    info.corrupt = true;
+                    info.data = null;
+                }
+            }
+            if (info.data != null && DateTime.TryParse(info.data.lastSaved, null, System.Globalization.DateTimeStyles.RoundtripKind, out var time))
+                info.lastSaved = time;
+            return info;
+        }
+
+        /// <summary>切換到某一格（載入存檔用；之後第一次讀到時才從檔案載入），記成上次的欄位。</summary>
+        public static void SelectSlot(int slot)
+        {
+            if (slot < 0 || slot >= SlotCount) return;
+            MigrateLegacy();
+            if (data != null && slot != ActiveSlot) Save(); // 先把目前這一格寫回去
+            activeSlot = slot;
+            data = null;
+            PlayerPrefs.SetInt(LastSlotKey, slot);
+            PlayerPrefs.Save();
+        }
+
+        /// <summary>在某一格開新存檔（標題畫面的「新遊戲」）：切過去、清空並寫檔。</summary>
+        public static void StartNewProfile(int slot)
+        {
+            if (slot < 0 || slot >= SlotCount) return;
+            SelectSlot(slot);
+            data = new ProfileData();
+            Save();
+            Debug.Log($"[ProfileStore] 欄位 {slot + 1} 開新存檔：{SavePath}");
+        }
+
+        /// <summary>刪除某一格的存檔（含暫存檔，壞檔備份留著）；刪的是目前欄位時清掉已載入的內容。回傳 true = 真的刪了檔案。</summary>
+        public static bool DeleteSlot(int slot)
+        {
+            if (slot < 0 || slot >= SlotCount) return false;
+            MigrateLegacy();
+            string path = SlotPath(slot);
+            bool existed = File.Exists(path);
+            try
+            {
+                if (existed) File.Delete(path);
+                if (File.Exists(path + ".tmp")) File.Delete(path + ".tmp");
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[ProfileStore] 刪除欄位 {slot + 1} 失敗：{e.Message}");
+                return false;
+            }
+            if (slot == ActiveSlot) data = null;
+            if (existed) Debug.Log($"[ProfileStore] 欄位 {slot + 1} 已刪除：{path}");
+            return existed;
+        }
+
+        // 編輯器：有 T31 以前的 save_editor.json 時，還沒有任何編輯器欄位就搬成欄位 1；已經有欄位就改名成 save_editor.legacy.json 留著
+        // （都搬走，之後刪光欄位也不會再把舊檔搬回來）。打包版不遷移。
+        static void MigrateLegacy()
+        {
+            if (migrated) return;
+            migrated = true;
+#if UNITY_EDITOR
+            string legacy = Path.Combine(Application.persistentDataPath, LegacyFileName);
+            if (!File.Exists(legacy)) return;
+            bool anySlot = false;
+            for (int i = 0; i < SlotCount; i++) anySlot |= File.Exists(SlotPath(i));
+            try
+            {
+                if (anySlot)
+                {
+                    string kept = Path.Combine(Application.persistentDataPath, LegacyKeptName);
+                    if (File.Exists(kept)) File.Delete(kept);
+                    File.Move(legacy, kept);
+                    Debug.Log($"[ProfileStore] 已經有存檔欄位，舊的編輯器存檔改名留著、不再讀：{kept}");
+                }
+                else
+                {
+                    File.Move(legacy, SlotPath(0));
+                    Debug.Log($"[ProfileStore] 舊的編輯器存檔已搬成欄位 1：{SlotPath(0)}");
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"[ProfileStore] 搬移舊的編輯器存檔失敗：{e.Message}");
+            }
+#endif
+        }
 
         static ProfileData Data
         {
@@ -347,19 +511,20 @@ namespace BossFight.Core
 
         // ---------- 整份存檔 ----------
 
-        /// <summary>清空存檔（開發者模式的「重置存檔」）並寫檔。</summary>
+        /// <summary>清空目前欄位的存檔（ESC 選單的「重置存檔」）並寫檔。</summary>
         public static void ResetProfile()
         {
             data = new ProfileData();
             Save();
-            Debug.Log($"[ProfileStore] 存檔已重置：{SavePath}");
+            Debug.Log($"[ProfileStore] 欄位 {ActiveSlot + 1} 的存檔已重置：{SavePath}");
         }
 
-        /// <summary>寫進 save.json：先寫暫存檔再取代，寫到一半當掉不會留下半個檔案。</summary>
+        /// <summary>寫進目前欄位的檔案：先寫暫存檔再取代，寫到一半當掉不會留下半個檔案。</summary>
         public static void Save()
         {
             if (data == null) return; // 還沒讀過就沒有變動
             data.version = ProfileData.CurrentVersion;
+            data.lastSaved = DateTime.Now.ToString("o");
             string path = SavePath;
             string temp = path + ".tmp";
             try
@@ -376,6 +541,7 @@ namespace BossFight.Core
 
         static void Load()
         {
+            MigrateLegacy();
             string path = SavePath;
             if (!File.Exists(path))
             {
@@ -386,26 +552,7 @@ namespace BossFight.Core
             {
                 var loaded = JsonUtility.FromJson<ProfileData>(File.ReadAllText(path));
                 if (loaded == null) throw new FormatException("檔案是空的");
-                if (loaded.defeatedBosses == null) loaded.defeatedBosses = new List<string>();
-                if (loaded.currentCharacter == null) loaded.currentCharacter = string.Empty;
-                if (loaded.unlockedCharacters == null) loaded.unlockedCharacters = new List<string>();
-                if (loaded.unlockedEquipment == null) loaded.unlockedEquipment = new List<string>();
-                if (loaded.newEquipment == null) loaded.newEquipment = new List<string>();
-                if (loaded.characterEquipment == null) loaded.characterEquipment = new List<CharacterEquipmentSave>();
-                loaded.characterEquipment.RemoveAll(r => r == null);
-                foreach (var record in loaded.characterEquipment)
-                {
-                    if (record.slots == null) record.slots = new List<string>();
-                }
-                if (loaded.characterSkills == null) loaded.characterSkills = new List<CharacterSkillsSave>();
-                loaded.characterSkills.RemoveAll(r => r == null);
-                foreach (var record in loaded.characterSkills)
-                {
-                    if (record.nodes == null) record.nodes = new List<string>();
-                }
-                if (loaded.acceptedQuests == null) loaded.acceptedQuests = new List<string>();
-                if (loaded.completedQuests == null) loaded.completedQuests = new List<string>();
-                data = loaded;
+                data = Normalize(loaded);
             }
             catch (Exception e)
             {
@@ -419,10 +566,36 @@ namespace BossFight.Core
                 {
                     Debug.LogError($"[ProfileStore] 壞檔備份失敗：{moveError.Message}");
                 }
-                Debug.LogWarning($"[ProfileStore] 存檔讀取失敗（{e.Message}），壞檔已改名成 {backup}，開新的存檔。");
+                Debug.LogWarning($"[ProfileStore] 欄位 {ActiveSlot + 1} 存檔讀取失敗（{e.Message}），壞檔已改名成 {backup}，開新的存檔。");
                 data = new ProfileData();
                 Save();
             }
+        }
+
+        // 舊檔缺的欄位補成空的（JsonUtility 讀不到的清單是 null）
+        static ProfileData Normalize(ProfileData loaded)
+        {
+            if (loaded.defeatedBosses == null) loaded.defeatedBosses = new List<string>();
+            if (loaded.currentCharacter == null) loaded.currentCharacter = string.Empty;
+            if (loaded.unlockedCharacters == null) loaded.unlockedCharacters = new List<string>();
+            if (loaded.unlockedEquipment == null) loaded.unlockedEquipment = new List<string>();
+            if (loaded.newEquipment == null) loaded.newEquipment = new List<string>();
+            if (loaded.characterEquipment == null) loaded.characterEquipment = new List<CharacterEquipmentSave>();
+            loaded.characterEquipment.RemoveAll(r => r == null);
+            foreach (var record in loaded.characterEquipment)
+            {
+                if (record.slots == null) record.slots = new List<string>();
+            }
+            if (loaded.characterSkills == null) loaded.characterSkills = new List<CharacterSkillsSave>();
+            loaded.characterSkills.RemoveAll(r => r == null);
+            foreach (var record in loaded.characterSkills)
+            {
+                if (record.nodes == null) record.nodes = new List<string>();
+            }
+            if (loaded.acceptedQuests == null) loaded.acceptedQuests = new List<string>();
+            if (loaded.completedQuests == null) loaded.completedQuests = new List<string>();
+            if (loaded.lastSaved == null) loaded.lastSaved = string.Empty;
+            return loaded;
         }
 
         // ---------- 這次的出生點（不存檔） ----------
@@ -455,6 +628,8 @@ namespace BossFight.Core
         static void ResetOnLaunch()
         {
             data = null; // 下次讀到時重新從檔案載入
+            activeSlot = -1; // 重新讀上次的欄位
+            migrated = false;
             hasArrival = false;
             arrival = null;
             Application.quitting -= Save;
