@@ -19,6 +19,15 @@ namespace BossFight.Battle
         public float startRadius = 1.5f;
         [Tooltip("接近後顯示的互動提示，{0} 為目前裝置的互動鍵")]
         public string interactionHint = "按 [{0}] 與神祕小花對話";
+        [Header("開始對話時的站位")]
+        [Range(0f, 360f), Tooltip("按互動鍵後刀盾狗走到小花的哪一邊（度，以小花為中心，0 = 北、順時針）；對白鏡頭照這個站位構圖")]
+        public float talkAngle = 180f;
+        [Min(0f), Tooltip("站位離小花的水平距離 (m)：雙人鏡頭在刀盾狗右後方，太近時狗會擋住小花")]
+        public float talkDistance = 2.6f;
+        [Min(0.1f), Tooltip("走過去的速度 (m/s)；繞著小花走，不會穿過她")]
+        public float talkMoveSpeed = 3f;
+        [Min(0f), Tooltip("被擋住走不到時，最多走幾秒就直接開始對話")]
+        public float talkMoveTimeout = 3f;
         [Header("劇本")]
         [Tooltip("說話者名稱")] public string speaker;
         [Tooltip("完整開場與召喚時點")] public TutorialLine[] opening;

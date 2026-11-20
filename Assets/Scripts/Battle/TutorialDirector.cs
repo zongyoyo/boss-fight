@@ -57,7 +57,7 @@ namespace BossFight.Battle
         /// <summary>菊花丟的骨頭飛到玩家身上、骨頭補上（HUD 閃骨頭用）。</summary>
         public event Action OnBonesGranted;
 
-        enum Stage { Waiting, Approach, Emerge, Inviting, Opening, Explanation, Operating, Completing, Praise, Ending, EndingPause, Burrow, Complete }
+        enum Stage { Waiting, Approach, Emerge, Inviting, Positioning, Opening, Explanation, Operating, Completing, Praise, Ending, EndingPause, Burrow, Complete }
         Stage stage;
         PlayerRig player;
         bool subscribed, started, waitingLine, waitingCue, parryPending, parrySaid, prankPending, sideDialogue;
@@ -65,7 +65,7 @@ namespace BossFight.Battle
         bool inInteractionRange;
         InputAction interactAction;
         int stepIndex = -1, lineIndex, lastAttackId = -1;
-        float progress, delayLeft, greetingLeft, cueLeft;
+        float progress, delayLeft, greetingLeft, cueLeft, positionLeft;
         TutorialLine[] lines;
         Action sequenceFinished;
         Action debugResume; // 開發者跳步：菊花冒出來之後接著做的事
@@ -199,12 +199,48 @@ namespace BossFight.Battle
             greetingLeft = data.greetingDuration;
             PublishState();
         }
+        // 按下互動鍵：先鎖輸入、走到小花前方的站位（TutorialData.talkAngle／talkDistance），到了才開始正式劇情，
+        // 雙人鏡頭才不會被狗擋住小花
         void BeginStory()
         {
             greetingLeft = 0f;
-            stage = Stage.Opening;
+            dialogue.Hide();
+            stage = Stage.Positioning;
+            positionLeft = data.talkMoveTimeout;
+            session.SetInputLocked(this, true);
             PublishState();
-            Say(data.opening, NextStep);
+        }
+        // 以小花為圓心，半徑與角度同時往站位收（繞著走，不穿過小花）；到了或逾時就面向小花、開始對白
+        void UpdatePositioning(float dt)
+        {
+            Vector3 center = mentor.transform.position;
+            Vector3 position = player.transform.position;
+            Vector3 offset = position - center;
+            offset.y = 0f;
+            Vector3 goalDir = Quaternion.Euler(0f, data.talkAngle, 0f) * Vector3.forward;
+            Vector3 goal = center + goalDir * data.talkDistance;
+            goal.y = position.y;
+            float radius = offset.magnitude;
+            Vector3 dir = radius > 1e-3f ? offset / radius : goalDir;
+            float step = data.talkMoveSpeed * dt;
+            float angle = Vector3.SignedAngle(dir, goalDir, Vector3.up);
+            float maxTurn = step / Mathf.Max(Mathf.Max(radius, data.talkDistance), 1e-3f) * Mathf.Rad2Deg;
+            positionLeft -= dt;
+            bool arrived = Mathf.Abs(angle) <= maxTurn && Mathf.Abs(radius - data.talkDistance) <= step;
+            if (arrived || positionLeft <= 0f)
+            {
+                Vector3 stand = arrived ? goal : position;
+                player.Controller.ScriptedMoveTo(stand, center - stand);
+                stage = Stage.Opening;
+                PublishState();
+                Say(data.opening, NextStep);
+                return;
+            }
+            Vector3 nextDir = Quaternion.Euler(0f, Mathf.Clamp(angle, -maxTurn, maxTurn), 0f) * dir;
+            Vector3 next = center + nextDir * Mathf.MoveTowards(radius, data.talkDistance, step);
+            next.y = position.y;
+            // 走的時候面向前進方向（零向量），到了才轉向小花
+            player.Controller.ScriptedMoveTo(next, Vector3.zero);
         }
         void Say(TutorialLine[] text, Action finished)
         {
@@ -490,6 +526,7 @@ namespace BossFight.Battle
                     if (greetingLeft <= 0f) dialogue.Hide();
                 }
             }
+            else if (stage == Stage.Positioning) UpdatePositioning(Time.deltaTime);
             else if (stage == Stage.Completing)
             {
                 delayLeft = Mathf.Max(0f, delayLeft - Time.deltaTime);

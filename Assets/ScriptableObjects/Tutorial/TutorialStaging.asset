@@ -18,9 +18,9 @@ MonoBehaviour:
     anchor: 0
     frameFrom: 0
     frameTo: 1
-    offset: {x: 0.9, y: 1.4, z: -2.2}
-    lookAt: 1
-    lookOffset: {x: 0, y: 0.4, z: 0}
+    offset: {x: 2.6, y: 1.6, z: -2.4}
+    lookAt: 3
+    lookOffset: {x: 0, y: 0.6, z: 0}
     fieldOfView: 45
   - shot: 2
     anchor: 1

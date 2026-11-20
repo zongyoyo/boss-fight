@@ -35,7 +35,7 @@ namespace BossFight.Cutscene
         [Tooltip("各種鏡頭的擺法；找不到的鏡頭用第一個")]
         public ShotSetting[] shots =
         {
-            new ShotSetting { shot = TutorialShot.TwoShot },
+            new ShotSetting { shot = TutorialShot.TwoShot, offset = new Vector3(2.6f, 1.6f, -2.4f), lookAt = ShotAnchor.PlayerMentor, lookOffset = new Vector3(0f, 0.6f, 0f) },
             new ShotSetting { shot = TutorialShot.Mentor, anchor = ShotAnchor.Mentor, offset = new Vector3(0.35f, 1f, -2f), lookOffset = new Vector3(0f, 0.85f, 0f), fieldOfView = 40f },
             new ShotSetting { shot = TutorialShot.Summon, anchor = ShotAnchor.Player, offset = new Vector3(-1.4f, 1.9f, -2.6f), lookAt = ShotAnchor.MentorSapling, lookOffset = new Vector3(0f, 0.4f, 0f), fieldOfView = 50f },
             new ShotSetting { shot = TutorialShot.Whip, anchor = ShotAnchor.PlayerMentor, offset = new Vector3(3.2f, 1.3f, -0.6f), lookAt = ShotAnchor.PlayerMentor, lookOffset = new Vector3(0f, 0.6f, 0f), fieldOfView = 50f },

@@ -18,6 +18,10 @@ MonoBehaviour:
   greetingDuration: 2
   startRadius: 1.5
   interactionHint: "\u6309 [{0}] \u8207\u795E\u7955\u5C0F\u82B1\u5C0D\u8A71"
+  talkAngle: 180
+  talkDistance: 2.6
+  talkMoveSpeed: 3
+  talkMoveTimeout: 3
   speaker: "\u795E\u7955\u5C0F\u82B1"
   opening:
   - text: "\u55EF\u2026\u2026\u53C8\u4E00\u500B\u8FF7\u8DEF\u95D6\u9032\u68EE\u6797\u6DF1\u8655\u7684\u5192\u96AA\u8005\uFF1F"
