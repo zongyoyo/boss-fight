@@ -10,9 +10,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 973500922aca52a46830b08cb68e9bcc, type: 3}
-  m_Name: 03_Dodge
+  m_Name: 04_Dodge
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Battle.TutorialStepData
-  id: 03_Dodge
+  id: 04_Dodge
   title: "\u9583\u907F"
   opening:
   - text: "\u525B\u624D\u90A3\u4E00\u4E0B\uFF0C\u4F60\u8981\u662F\u61C2\u5F97\u7FFB\u6EFE\uFF0C\u5C31\u4E0D\u6703\u6328\u6253\u4E86\u3002"

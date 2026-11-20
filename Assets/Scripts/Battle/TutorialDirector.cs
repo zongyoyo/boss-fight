@@ -26,7 +26,7 @@ namespace BossFight.Battle
     }
 
     /// <summary>
-    /// 六步教學的事件式流程；只指揮下層，不引用 UI 或 Hub，不寫序章完成存檔。
+    /// 七步教學（移動、啃骨頭、鎖定、閃避、格擋、攻擊、處決）的事件式流程；只指揮下層，不引用 UI 或 Hub，不寫序章完成存檔。
     /// 每句台詞照資料做菊花與小樹精的動作、切對白鏡頭（TutorialStage），開放操作時切回玩家鏡頭並面向小樹精。
     /// 開場演出（PrologueCutsceneFlow）播完才呼叫 StartApproach；沒接演出時（autoStart）自己開始。
     /// </summary>
@@ -134,6 +134,7 @@ namespace BossFight.Battle
             player.Controller.OnPositionChanged += HandlePositionChanged;
             player.Controller.OnHealCompleted += HandleHealed;
             player.Controller.OnActionChanged += HandlePlayerAction;
+            player.Controller.OnLockTargetChanged += HandleLockTargetChanged;
             player.Health.OnDodgeSucceeded += HandleDodged;
             actionBusy = player.Controller.Action != PlayerAction.None;
         }
@@ -144,6 +145,7 @@ namespace BossFight.Battle
             player.Controller.OnPositionChanged -= HandlePositionChanged;
             player.Controller.OnHealCompleted -= HandleHealed;
             player.Controller.OnActionChanged -= HandlePlayerAction;
+            player.Controller.OnLockTargetChanged -= HandleLockTargetChanged;
             player.Health.OnDodgeSucceeded -= HandleDodged;
         }
         void Start()
@@ -342,6 +344,8 @@ namespace BossFight.Battle
             sapling.SetMode(SaplingMode.Idle);
             sapling.SetInvulnerable(Step.invulnerable);
             sapling.SetStaggerAccumulation(false);
+            // 鎖定這步要玩家親手按一次：先前自己鎖上的先解開
+            if (Step.condition == TutorialCondition.Lock && player != null) player.Controller.ClearLockTarget();
             stage = Stage.Explanation;
             PublishState();
             Say(Step.opening, BeginOperation);
@@ -372,6 +376,12 @@ namespace BossFight.Battle
         }
         void HandleMoved(float distance)
         { if (Step != null && Step.condition == TutorialCondition.Move) AddProgress(distance); }
+        // 鎖定的是小樹精才算（LockOnTarget 掛在小樹精根物件上）
+        void HandleLockTargetChanged(LockOnTarget target)
+        {
+            if (Step != null && Step.condition == TutorialCondition.Lock && target != null && sapling.IsAlive &&
+                target.transform.IsChildOf(sapling.transform)) AddProgress(1f);
+        }
         void HandleHealed(float current, float max)
         { if (Step != null && Step.condition == TutorialCondition.Heal && current >= max) AddProgress(1f); }
         // 成功閃避只由 PlayerHealth 結算（同一次翻滾只送一次）；這裡只算小樹精的攻擊
@@ -465,7 +475,7 @@ namespace BossFight.Battle
             PublishState();
             // 保留 owner 鎖，接收流程先取得自己的鎖，再接守衛或正式登場演出。
             OnTutorialCompleted?.Invoke();
-            Debug.Log("[Tutorial] 六步教學完成，已發送守衛交接事件。", this);
+            Debug.Log("[Tutorial] 教學完成，已發送守衛交接事件。", this);
         }
         void Update()
         {

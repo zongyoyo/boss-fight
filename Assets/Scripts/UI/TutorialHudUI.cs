@@ -6,7 +6,7 @@ using UnityEngine.UI;
 
 namespace BossFight.UI
 {
-    /// <summary>事件式操作提示；不攔輸入，改鍵與裝置切換時重建文字。提示上方顯示進度（「2 / 6　啃骨頭」），菊花丟的骨頭到手時閃 HUD 的骨頭。</summary>
+    /// <summary>事件式操作提示；不攔輸入，改鍵與裝置切換時重建文字。提示上方顯示進度（「2 / 7　啃骨頭」），菊花丟的骨頭到手時閃 HUD 的骨頭。</summary>
     public class TutorialHudUI : MonoBehaviour
     {
         [SerializeField] TutorialDirector director;

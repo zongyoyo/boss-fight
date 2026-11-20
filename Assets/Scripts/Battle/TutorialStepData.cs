@@ -5,7 +5,8 @@ using UnityEngine;
 
 namespace BossFight.Battle
 {
-    public enum TutorialCondition { Move, Heal, Dodge, Block, Hit, Execute }
+    // 新的條件加在最後，保留既有資產的編號
+    public enum TutorialCondition { Move, Heal, Dodge, Block, Hit, Execute, Lock }
     // 新的動作加在最後，保留既有資產的編號
     public enum TutorialCue { None, Summon, Whip, GiveBone, Slap, Demo, ShowBars, Rumble }
     [Serializable]
@@ -22,7 +23,7 @@ namespace BossFight.Battle
     public class TutorialStepData : ScriptableObject
     {
         [Tooltip("步驟識別碼")] public string id;
-        [Tooltip("提示上方的步驟名稱（「2 / 6　啃骨頭」）")] public string title;
+        [Tooltip("提示上方的步驟名稱（「2 / 7　啃骨頭」）")] public string title;
         [Tooltip("先播完說明與動作才開放操作")] public TutorialLine[] opening;
         [Tooltip("{0} 為目前裝置的按鍵")] public string hintFormat;
         [Tooltip("Project-wide Action 路徑")] public string actionPath;

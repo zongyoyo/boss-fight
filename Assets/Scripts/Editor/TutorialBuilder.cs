@@ -21,7 +21,7 @@ using Object = UnityEngine.Object;
 namespace BossFight.EditorTools
 {
     /// <summary>
-    /// Tools > Prologue > Build Tutorial：在 Prologue 場景重建六步教學（T27）的 TutorialDirector、對話與 HUD，並接好菊花、小樹精的回饋；
+    /// Tools > Prologue > Build Tutorial：在 Prologue 場景重建七步教學（T27；鎖定一步 Nov 20 加入）的 TutorialDirector、對話與 HUD，並接好菊花、小樹精的回饋；
     /// 不重建地形、鏡頭與角色。資產（教學、各步驟、TutorialUIData）沒有才建。最後補守衛的教學引用與開發者工具。
     /// </summary>
     public static class TutorialBuilder
@@ -76,7 +76,7 @@ namespace BossFight.EditorTools
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
             AssetDatabase.SaveAssets();
-            Debug.Log("[Tutorial] 六步教學、共用對話、HUD、角色回饋已建立並接線。");
+            Debug.Log("[Tutorial] 七步教學、共用對話、HUD、角色回饋已建立並接線。");
         }
 
         static void EnsureData()
@@ -124,23 +124,27 @@ namespace BossFight.EditorTools
                         Line("痛吧？嘻嘻，外面的怪物可不會先跟你打招呼。", DaisyGesture.Snicker),
                         Line("受了傷就啃骨頭補血。喏，先給你一根，現在就啃掉吧。", DaisyGesture.None, TutorialCue.GiveBone) },
                     "吃得真香。血回滿了吧？我們繼續。", DaisyGesture.None),
-                Step("03_Dodge", "閃避", TutorialCondition.Dodge, 2f, "Player/Roll", "[{0}] 翻滾閃避", SaplingMode.DodgeAttack, true,
+                Step("03_LockOn", "鎖定", TutorialCondition.Lock, 1f, "Player/LockOn", "[{0}] 鎖定", SaplingMode.Idle, true,
+                    new[] { Line("打架的時候，眼睛要一直盯著對手。", DaisyGesture.Point),
+                        Line("把視線鎖在它身上，鏡頭就會一直對著它，左右走還會繞著它轉。") },
+                    "很好，這樣它跑到哪你都看得到。", DaisyGesture.Nod),
+                Step("04_Dodge", "閃避", TutorialCondition.Dodge, 2f, "Player/Roll", "[{0}] 翻滾閃避", SaplingMode.DodgeAttack, true,
                     new[] { Line("剛才那一下，你要是懂得翻滾，就不會挨打了。"),
                         Line("看好了，小樹精要甩樹枝了。地上亮起紅光，就代表這招擋不住——", DaisyGesture.Point, TutorialCue.Demo, TutorialShot.TwoShot, TutorialShot.Demo),
                         Line("在它打下來之前，滾出紅色的範圍！") },
                     "滾得還挺圓的嘛。", DaisyGesture.Clap),
-                Step("04_Block", "格擋", TutorialCondition.Block, 2f, "Player/Block", "按住 [{0}] 格擋", SaplingMode.Attack, true,
+                Step("05_Block", "格擋", TutorialCondition.Block, 2f, "Player/Block", "按住 [{0}] 格擋", SaplingMode.Attack, true,
                     new[] { Line("不過一直滾很累人，耐力用完就滾不動了。"),
                         Line("這次換白光，看清楚——", DaisyGesture.Point, TutorialCue.Demo, TutorialShot.TwoShot, TutorialShot.Demo),
                         Line("白光的招式可以用盾牌擋下來，正面舉盾接住它就好。"),
                         Line("要是在打中的前一刻才舉盾，還能把攻擊彈回去喔。", DaisyGesture.Snicker) },
                     "擋得住，就不用怕了。", DaisyGesture.Nod),
-                Step("05_Attack", "攻擊", TutorialCondition.Hit, 3f, "Player/Attack", "[{0}] 攻擊", SaplingMode.Target, false,
+                Step("06_Attack", "攻擊", TutorialCondition.Hit, 3f, "Player/Attack", "[{0}] 攻擊", SaplingMode.Target, false,
                     new[] { Line("好啦，換你反擊了。", DaisyGesture.None, TutorialCue.ShowBars),
                         Line("看到它頭上的量條了嗎？上面是血量，下面那條是軀幹——軀幹條一滿，敵人就會站不穩。", DaisyGesture.Point, shot: TutorialShot.SaplingBars),
                         Line("對著它砍三刀試試。") },
                     string.Empty, DaisyGesture.None),
-                Step("06_Execute", "處決", TutorialCondition.Execute, 1f, "Player/Execute", "靠近按 [{0}] 處決", SaplingMode.Target, false,
+                Step("07_Execute", "處決", TutorialCondition.Execute, 1f, "Player/Execute", "靠近按 [{0}] 處決", SaplingMode.Target, false,
                     new[] { Line("砍得不錯……不過它還站著呢。", DaisyGesture.None, TutorialCue.Rumble),
                         Line("……嗯？沒事沒事，是風啦。", DaisyGesture.TiltHead),
                         Line("敵人的軀幹條一滿，就會站不穩。看好了——", DaisyGesture.None, TutorialCue.Slap, TutorialShot.TwoShot, TutorialShot.Slap, SaplingGesture.Scared),
@@ -252,7 +256,7 @@ namespace BossFight.EditorTools
             var hintGroup = hint.gameObject.AddComponent<CanvasGroup>();
             hintGroup.blocksRaycasts = hintGroup.interactable = false; hintGroup.alpha = 0f;
             var hintLabel = Label("Text", hint, Vector2.zero, uiData.size, uiData.fontSize, TextAnchor.MiddleCenter);
-            // 提示上方的步驟進度「2 / 6　啃骨頭」（H4）
+            // 提示上方的步驟進度「2 / 7　啃骨頭」（H4）
             var counter = Label("Counter", hint, new Vector2(0f, uiData.size.y * 0.5f + uiData.counterFontSize * 0.6f),
                 new Vector2(uiData.size.x, uiData.counterFontSize * 1.4f), uiData.counterFontSize, TextAnchor.MiddleCenter);
             counter.color = uiData.counterColor;
@@ -355,8 +359,10 @@ namespace BossFight.EditorTools
                 if (((Component)teachingActors.FindProperty(actorField).objectReferenceValue).GetComponent<TeachingActorFeedback>() == null)
                     throw new InvalidOperationException("教學角色回饋不完整。");
             var data = AssetDatabase.LoadAssetAtPath<TutorialData>(DataPath);
-            if (data.steps.Length != 6) throw new InvalidOperationException("教學不是六步。");
-            if (data.steps[2].mode != SaplingMode.DodgeAttack || data.steps[3].mode != SaplingMode.Attack)
+            if (data.steps.Length != 7) throw new InvalidOperationException("教學不是七步。");
+            if (data.steps[2].condition != TutorialCondition.Lock || data.steps[2].actionPath != "Player/LockOn")
+                throw new InvalidOperationException("教學第 3 步不是鎖定。");
+            if (data.steps[3].mode != SaplingMode.DodgeAttack || data.steps[4].mode != SaplingMode.Attack)
                 throw new InvalidOperationException("教學紅白模式不符。");
             var combat = AssetDatabase.LoadAssetAtPath<CombatFeedbackData>(FeedbackPath);
             foreach (var cue in new[] { combat.telegraphBlockable, combat.telegraphUnblockable, combat.swing, combat.heavySwing,
@@ -370,7 +376,7 @@ namespace BossFight.EditorTools
                 for (int i = 0; i < receivers.arraySize; i++) found |= receivers.GetArrayElementAtIndex(i).objectReferenceValue == expected;
                 if (!found) throw new InvalidOperationException("缺少玩家接收者：" + expected.GetType().Name);
             }
-            return "[Tutorial] 教學接線檢查通過（6 步、紅白模式、對話、HUD、角色回饋與音效）";
+            return "[Tutorial] 教學接線檢查通過（7 步、鎖定、紅白模式、對話、HUD、角色回饋與音效）";
         }
         /// <summary>非 Play 的事件管道檢查；不生成玩家、不讀存檔。</summary>
         public static string ValidateRules()

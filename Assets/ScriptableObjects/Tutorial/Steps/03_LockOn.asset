@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 973500922aca52a46830b08cb68e9bcc, type: 3}
+  m_Name: 03_LockOn
+  m_EditorClassIdentifier: Assembly-CSharp::BossFight.Battle.TutorialStepData
+  id: 03_LockOn
+  title: "\u9396\u5B9A"
+  opening:
+  - text: "\u6253\u67B6\u7684\u6642\u5019\uFF0C\u773C\u775B\u8981\u4E00\u76F4\u76EF\u8457\u5C0D\u624B\u3002"
+    gesture: 5
+    saplingGesture: 0
+    shot: 0
+    after: 0
+    cueShot: 0
+  - text: "\u628A\u8996\u7DDA\u9396\u5728\u5B83\u8EAB\u4E0A\uFF0C\u93E1\u982D\u5C31\u6703\u4E00\u76F4\u5C0D\u8457\u5B83\uFF0C\u5DE6\u53F3\u8D70\u9084\u6703\u7E5E\u8457\u5B83\u8F49\u3002"
+    gesture: 0
+    saplingGesture: 0
+    shot: 0
+    after: 0
+    cueShot: 0
+  hintFormat: "[{0}] \u9396\u5B9A"
+  actionPath: Player/LockOn
+  condition: 6
+  target: 1
+  mode: 0
+  invulnerable: 1
+  praise: "\u5F88\u597D\uFF0C\u9019\u6A23\u5B83\u8DD1\u5230\u54EA\u4F60\u90FD\u770B\u5F97\u5230\u3002"
+  praiseGesture: 10
