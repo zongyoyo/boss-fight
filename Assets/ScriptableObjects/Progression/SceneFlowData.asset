@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 42355c66f7f9e9d4893dc006418e60e7, type: 3}
   m_Name: SceneFlowData
   m_EditorClassIdentifier: Assembly-CSharp::BossFight.Progression.SceneFlowData
+  titleScene: Title
   hubScene: Hub
   battleScene: BossArena
   prologueScene: Prologue

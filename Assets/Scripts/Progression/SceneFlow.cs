@@ -6,8 +6,9 @@ using UnityEngine.SceneManagement;
 namespace BossFight.Progression
 {
     /// <summary>
-    /// 換場景（T17）：休息區、Boss 戰、序章都放一個（開機分流在 Boot 場景的 BootRouter）。GoToBattle（休息區的傳送門）、ReturnFromBattle（勝敗畫面與 ESC 選單的「返回休息區」）、
-    /// ResetProfile（開發者模式的「重置存檔」：清空存檔、從序章重新開始）。
+    /// 換場景（T17）：標題畫面、休息區、Boss 戰、序章都放一個。GoToBattle（休息區的傳送門）、ReturnFromBattle（勝敗畫面與 ESC 選單的「返回休息區」）、
+    /// ResetProfile（ESC 選單的「重置存檔」：清空目前欄位、從序章重新開始）；T33 起 EnterProfile（標題畫面選好存檔欄位後進場，原本 Boot 場景 BootRouter 的分流）
+    /// 與 ReturnToTitle（ESC 選單的「返回標題畫面」）。
     /// 換場景：黑幕用真實時間淡出（暫停中也會動），全黑時解除暫停、timeScale 回 1，把出生點 id 交給 ProfileStore，再載入新場景；換場景中的其他請求不理。
     /// 新場景的 PlayerSpawner 在 Awake 依出生點 id 生成玩家（T18），SceneFlow 在 Start 取走出生點，從全黑淡入；
     /// 直接進 Play 或重試（BattleManager.Retry）不是換場景進來的，不淡入。
@@ -121,6 +122,25 @@ namespace BossFight.Progression
         public void SkipPrologue()
         {
             if (options != null && options.CanSkipPrologue) ReturnFromPrologue(false);
+        }
+
+        /// <summary>
+        /// 標題畫面選好欄位（ProfileStore 已經切到那一格）後進場：新遊戲進序章（不看「略過序章」，跟重置存檔一樣）；
+        /// 載入時序章完成、或開發者模式勾了「略過序章」（GameOptions.CanSkipPrologue，保留序章未完成）就進休息區的營火旁，否則進序章。
+        /// </summary>
+        public void EnterProfile(bool newGame)
+        {
+            if (data == null) return;
+            bool hub = !newGame && (ProfileStore.PrologueDone || (options != null && options.CanSkipPrologue));
+            Load(hub ? data.hubScene : data.prologueScene, hub ? data.startArrival : string.Empty);
+        }
+
+        /// <summary>回標題畫面（ESC 選單的「返回標題畫面」）；進度都已經寫進目前的欄位，這裡再存一次。</summary>
+        public void ReturnToTitle()
+        {
+            if (data == null || IsLoading) return;
+            ProfileStore.Save();
+            Load(data.titleScene, string.Empty);
         }
 
         /// <summary>清空存檔，從序章重新開始（開發者模式的「重置存檔」）；跟新存檔開機一樣，不看「略過序章」。</summary>

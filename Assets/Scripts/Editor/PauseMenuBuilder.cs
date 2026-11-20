@@ -28,6 +28,8 @@ namespace BossFight.EditorTools
     /// BattleUIBuilder（Build Intro 最後會跑）結束時會呼叫 Build；TransitionCutsceneBuilder、BossBuilder 結束時呼叫 Wire。
     /// 休息區（T20，場景裡有 HubManager、沒有 BattleManager）：主選單只建繼續、設定、退出遊戲，不建難度頁；選單與 HubManager 接上 GamePause、選單接上 HubManager。
     /// HubBuilder 會呼叫 Build。
+    /// T33：每個場景的主選單多一顆「返回標題畫面」（Boss 戰排在返回休息區下面，休息區與序章排在設定下面）。
+    /// 標題畫面（場景裡只有 TitleManager）：PauseMenuUI 設成 settingsOnly（不接 GamePause、不開主選單），TitleBuilder 會呼叫 Build。
     /// </summary>
     public static class PauseMenuBuilder
     {
@@ -68,11 +70,13 @@ namespace BossFight.EditorTools
             var battle = Object.FindAnyObjectByType<BattleManager>();
             var hub = battle == null ? Object.FindAnyObjectByType<HubManager>() : null;
             var prologue = Object.FindAnyObjectByType<InputLockArbiter>();
-            if (battle == null && hub == null && prologue == null)
+            var title = Object.FindAnyObjectByType<BossFight.Title.TitleManager>();
+            if (battle == null && hub == null && prologue == null && title == null)
             {
-                Debug.LogError("[PauseMenu] 需要 BattleManager、HubManager 或 InputLockArbiter。");
+                Debug.LogError("[PauseMenu] 需要 BattleManager、HubManager、InputLockArbiter 或 TitleManager。");
                 return null;
             }
+            bool settingsOnly = battle == null && hub == null && prologue == null; // 標題畫面（T33）：只開設定頁、不暫停
 
             Undo.SetCurrentGroupName("Build Pause Menu");
             int undoGroup = Undo.GetCurrentGroup();
@@ -126,7 +130,8 @@ namespace BossFight.EditorTools
             var so = new SerializedObject(ui);
             so.FindProperty("data").objectReferenceValue = data;
             so.FindProperty("options").objectReferenceValue = options;
-            so.FindProperty("pause").objectReferenceValue = pause;
+            so.FindProperty("pause").objectReferenceValue = settingsOnly ? null : pause;
+            so.FindProperty("settingsOnly").boolValue = settingsOnly;
             so.FindProperty("battle").objectReferenceValue = battle;
             so.FindProperty("hub").objectReferenceValue = hub;
             so.FindProperty("audioManager").objectReferenceValue = Object.FindAnyObjectByType<AudioManager>();
@@ -134,28 +139,32 @@ namespace BossFight.EditorTools
             so.FindProperty("group").objectReferenceValue = group;
 
             // ---------- 主選單 ----------
-            // 休息區少了難度、重新挑戰、返回休息區三顆：視窗矮三格，上下留白不變
-            float mainLess = battle != null ? 0f : 3f;
-            var main = Window("Main", root.transform, new Vector2(620f, 690f + ButtonGap - ButtonGap * mainLess), data.pauseTitle);
-            float mainTop = 175f + ButtonGap * 0.5f - ButtonGap * mainLess * 0.5f;
+            // Boss 戰 7 顆（繼續、設定、難度、重新挑戰、返回休息區、返回標題畫面、退出）；休息區與序章少了難度、重新挑戰、返回休息區三顆。
+            // 視窗高度依按鈕數，上下留白不變。標題畫面（settingsOnly）不會打開主選單，照休息區的建（PauseMenuUI 需要這幾顆按鈕）。
+            int mainCount = battle != null ? 7 : 4;
+            float mainExtra = mainCount - 6; // 以 6 顆的版面為準
+            var main = Window("Main", root.transform, new Vector2(620f, 690f + ButtonGap + ButtonGap * mainExtra), data.pauseTitle);
+            float mainTop = 175f + ButtonGap * 0.5f + ButtonGap * mainExtra * 0.5f;
             so.FindProperty("mainPage").objectReferenceValue = main.gameObject;
             if (battle != null)
             {
                 var mainButtons = ButtonColumn(main, mainTop, data.resumeLabel, data.settingsLabel, data.difficultyLabel, data.retryLabel,
-                                               data.returnToHubLabel, data.quitLabel);
+                                               data.returnToHubLabel, data.returnToTitleLabel, data.quitLabel);
                 Set(so, "resumeButton", mainButtons[0]);
                 Set(so, "settingsButton", mainButtons[1]);
                 Set(so, "difficultyButton", mainButtons[2]);
                 Set(so, "retryButton", mainButtons[3]);
                 Set(so, "hubButton", mainButtons[4]);
-                Set(so, "quitButton", mainButtons[5]);
+                Set(so, "titleButton", mainButtons[5]);
+                Set(so, "quitButton", mainButtons[6]);
             }
             else
             {
-                var mainButtons = ButtonColumn(main, mainTop, data.resumeLabel, data.settingsLabel, data.quitLabel);
+                var mainButtons = ButtonColumn(main, mainTop, data.resumeLabel, data.settingsLabel, data.returnToTitleLabel, data.quitLabel);
                 Set(so, "resumeButton", mainButtons[0]);
                 Set(so, "settingsButton", mainButtons[1]);
-                Set(so, "quitButton", mainButtons[2]);
+                Set(so, "titleButton", mainButtons[2]);
+                Set(so, "quitButton", mainButtons[3]);
             }
 
             // ---------- 設定 ----------
@@ -327,7 +336,7 @@ namespace BossFight.EditorTools
                 so.FindProperty("hub").objectReferenceValue = hub;
                 so.FindProperty("audioManager").objectReferenceValue = audio;
                 so.FindProperty("options").objectReferenceValue = options;
-                so.FindProperty("pause").objectReferenceValue = pause;
+                so.FindProperty("pause").objectReferenceValue = so.FindProperty("settingsOnly").boolValue ? null : pause; // 標題畫面不暫停
                 so.FindProperty("hintDevice").objectReferenceValue = hintDevice;
                 so.ApplyModifiedPropertiesWithoutUndo();
             }
@@ -336,8 +345,9 @@ namespace BossFight.EditorTools
             PlayerSpawnerBuilder.Wire(); // 選單相關的接收者（BattleManager 等）與 AudioManager 重接
 
             EditorSceneManager.MarkSceneDirty(options.gameObject.scene);
-            string missing = (audio == null ? " AudioManager" : "") + (battle == null && hub == null && prologue == null ? " 場景流程" : "") +
-                             (bossTools == null && hub == null && prologue == null ? " DebugTools" : "") + (menu == null ? " PauseMenu" : "");
+            bool title = Object.FindAnyObjectByType<BossFight.Title.TitleManager>() != null; // 標題畫面沒有音樂、戰鬥流程與 Debug 工具
+            string missing = (audio == null && !title ? " AudioManager" : "") + (battle == null && hub == null && prologue == null && !title ? " 場景流程" : "") +
+                             (bossTools == null && hub == null && prologue == null && !title ? " DebugTools" : "") + (menu == null ? " PauseMenu" : "");
             Debug.Log("[PauseMenu] 設定、暫停與按鍵名稱已接上" + (missing.Length > 0 ? $"；缺少：{missing}" : ""));
         }
 

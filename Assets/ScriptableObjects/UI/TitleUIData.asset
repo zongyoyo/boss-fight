@@ -24,3 +24,28 @@ MonoBehaviour:
   buttonGap: 18
   buttonFontSize: 36
   buttonsOffset: {x: 140, y: 140}
+  slotsTitle: "\u9078\u64C7\u5B58\u6A94"
+  slotNameFormat: "\u5B58\u6A94 {0}"
+  emptySlotText: "\u7A7A\u5B58\u6A94"
+  corruptSlotText: "\u5B58\u6A94\u8B80\u53D6\u5931\u6557\uFF0C\u8F09\u5165\u5F8C\u6703\u5F9E\u65B0\u5B58\u6A94\u958B\u59CB"
+  slotSummaryFormat: "{0}\u3000\uFF5C\u3000{1}\u3000\uFF5C\u3000{2}"
+  progressPrologue: "\u5E8F\u7AE0"
+  progressHubFormat: "\u4F11\u606F\u5340\u30FB\u64CA\u6557 {0} \u96BB Boss"
+  timeFormat: yyyy/MM/dd HH:mm
+  noTimeText: "\u2014"
+  loadLabel: "\u8F09\u5165"
+  newGameLabel: "\u65B0\u904A\u6232"
+  deleteLabel: "\u522A\u9664"
+  backLabel: "\u8FD4\u56DE"
+  slotsPanelSize: {x: 820, y: 620}
+  slotsPanelOffset: {x: 110, y: 90}
+  slotSize: {x: 740, y: 90}
+  slotGap: 10
+  slotNameFontSize: 34
+  slotSummaryFontSize: 24
+  chosenSlotColor: {r: 0.62, g: 0.45, b: 0.24, a: 0.75}
+  actionButtonSize: {x: 220, y: 70}
+  deleteConfirmFormat: "\u522A\u9664\u5B58\u6A94 {0}\uFF1F\n\u9019\u4E00\u683C\u7684\u6240\u6709\u9032\u5EA6\u90FD\u6703\u6D88\u5931\uFF0C\u7121\u6CD5\u5FA9\u539F\u3002"
+  confirmYes: "\u522A\u9664"
+  confirmNo: "\u53D6\u6D88"
+  dimColor: {r: 0, g: 0, b: 0, a: 0.6}

@@ -74,7 +74,7 @@ namespace BossFight.EditorTools
             so.FindProperty("pause").objectReferenceValue = Object.FindAnyObjectByType<GamePause>();
             var options = Object.FindAnyObjectByType<GameOptions>();
             so.FindProperty("options").objectReferenceValue = options;
-            // 序章：開發者模式勾「略過序章」時直接回休息區（開機分流在 Boot 場景的 BootRouter）
+            // 序章：開發者模式勾「略過序章」時直接回休息區（載入存檔時的分流在 SceneFlow.EnterProfile）
             so.FindProperty("prologueSkippable").boolValue = flow.gameObject.scene.path == PrologueBuilder.ScenePath;
             so.ApplyModifiedPropertiesWithoutUndo();
             // 舊版 Hub 的開機黑幕相機（Boot 場景接手後不用了）

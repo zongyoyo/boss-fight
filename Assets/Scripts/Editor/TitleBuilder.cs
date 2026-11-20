@@ -24,8 +24,10 @@ namespace BossFight.EditorTools
     ///    不複製站點（村長、傳送門等的佔位與互動）與玩法物件（地面方塊、隱形牆、樹幹碰撞）；村長不放（使用者決定：會被選單擋到）。
     /// 2. 鏡頭：營火站點鏡頭的位置與朝向，再照 TitleLayoutData 移動、轉向，讓刀盾狗與火堆落在畫面右側；Main Camera 拿掉 CinemachineBrain，固定不動。
     /// 3. 刀盾狗：角色 prefab 的複本、完全拆開，只留外觀與 DaoDunDogAnimator（其他玩家元件、受擊範圍、刀的判定都刪掉），放在營火站位點；TitleBackdrop 在 Start 讓它坐好。
-    /// 4. 系統：GameOptions（GameOptions＋GamePause＋InputHintDevice）、SceneFlow（黑幕）、EventSystem、TitleManager。
-    /// 5. 介面（TitleUI Canvas）：左上遊戲名、左下主選單；文字與版面在 TitleUIData，顏色沿用 HubUIData。
+    /// 4. 系統：GameOptions（GameOptions＋GamePause＋InputHintDevice）、SceneFlow（黑幕）、EventSystem、TitleManager（接 GameDatabase）、
+    ///    ESC 選單的標題版（PauseMenuBuilder.Build：settingsOnly，「設定」按鈕打開它的設定頁）。
+    /// 5. 介面（TitleUI Canvas）：左上遊戲名、左下主選單、存檔欄位面板（四格＋載入／刪除／返回）與刪除確認框；文字與版面在 TitleUIData，顏色沿用 HubUIData。
+    /// 6. Build Settings：Title 0、Hub 1、BossArena 2、Prologue 3（T33 起標題畫面取代 Boot 場景）。
     /// 休息區的佈景改了（Build Hub、Tools > Hub > Build Scenery）後，標題場景已存在時會跟著重建。
     /// </summary>
     public static class TitleBuilder
@@ -36,6 +38,7 @@ namespace BossFight.EditorTools
         const string UIDataPath = "Assets/ScriptableObjects/UI/TitleUIData.asset";
         const string HubUIDataPath = "Assets/ScriptableObjects/Hub/HubUIData.asset";
         const string OptionsDataPath = "Assets/ScriptableObjects/Options/GameOptionsData.asset";
+        const string PauseMenuDataPath = "Assets/ScriptableObjects/UI/PauseMenuData.asset";
         const string CanvasName = "TitleUI";
         const float ReferenceAspect = 16f / 9f;
 
@@ -105,16 +108,25 @@ namespace BossFight.EditorTools
             var titleGo = new GameObject("Title");
             var title = titleGo.AddComponent<TitleManager>();
             DaoDunDogBuilder.SetReference(title, "sceneFlow", flow);
+            DaoDunDogBuilder.SetReference(title, "database", ProgressionBuilder.LoadDatabase());
             var backdrop = titleGo.AddComponent<TitleBackdrop>();
             DaoDunDogBuilder.SetReference(backdrop, "dog", dog);
 
-            BuildUI(title, eventSystem, uiData, hubStyle);
+            // 設定：ESC 選單的標題版（settingsOnly，只開設定頁）；Wire 最後也會重建 SceneFlow 的接線
+            var pauseMenu = PauseMenuBuilder.Build();
+            var ui = BuildUI(title, eventSystem, uiData, hubStyle);
+            var uiSo = new SerializedObject(ui);
+            uiSo.FindProperty("pauseMenu").objectReferenceValue = pauseMenu != null ? pauseMenu.GetComponent<PauseMenuUI>() : null;
+            uiSo.FindProperty("pauseData").objectReferenceValue = AssetDatabase.LoadAssetAtPath<PauseMenuData>(PauseMenuDataPath);
+            uiSo.FindProperty("hintDevice").objectReferenceValue = options.GetComponent<InputHintDevice>();
+            uiSo.ApplyModifiedPropertiesWithoutUndo();
 
             // 天色：漸層天空、環境光、霧（HubAtmosphere 在 Awake 也會再套一次）
             HubSceneryBuilder.ApplyAtmosphere(AssetDatabase.LoadAssetAtPath<HubAtmosphereData>(HubBuilder.AtmospherePath));
 
             EditorSceneManager.SaveScene(scene, ScenePath);
             AssetDatabase.SaveAssets();
+            HubBuilder.SetBuildScenes(); // Title 0、Hub 1、BossArena 2、Prologue 3
             Debug.Log($"[Title] 標題畫面已建立：{ScenePath}（佈景留下 {kept} 件、視野外略過 {culled} 件）");
         }
 
@@ -291,7 +303,7 @@ namespace BossFight.EditorTools
 
         // ---------- 介面 ----------
 
-        static void BuildUI(TitleManager title, UnityEngine.EventSystems.EventSystem eventSystem, TitleUIData data, HubUIData style)
+        static TitleMenuUI BuildUI(TitleManager title, UnityEngine.EventSystems.EventSystem eventSystem, TitleUIData data, HubUIData style)
         {
             font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf"); // 內建字型會借用系統字型顯示中文
             roundSprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/UISprite.psd");
@@ -337,7 +349,108 @@ namespace BossFight.EditorTools
             so.FindProperty("startButton").objectReferenceValue = buttons[0];
             so.FindProperty("settingsButton").objectReferenceValue = buttons[1];
             so.FindProperty("quitButton").objectReferenceValue = buttons[2];
+            BuildSlotsPage(so, root.transform, data, style);
             so.ApplyModifiedPropertiesWithoutUndo();
+            return ui;
+        }
+
+        // 存檔欄位面板（左側，主選單的位置）：標題、四格欄位、下方一排載入／刪除（選了欄位才出現）與返回、返回提示；刪除確認框蓋在整個畫面中央
+        static void BuildSlotsPage(SerializedObject so, Transform root, TitleUIData data, HubUIData style)
+        {
+            var panel = Img("SlotsPanel", root, roundSprite, style.panelColor);
+            panel.type = Image.Type.Sliced;
+            panel.raycastTarget = true;
+            Place(panel.rectTransform, Vector2.zero, data.slotsPanelOffset, data.slotsPanelSize);
+            so.FindProperty("slotsPage").objectReferenceValue = panel.gameObject;
+            var heading = Label("Title", panel.transform, data.slotsTitle, 44, FontStyle.Bold, style.titleColor, TextAnchor.MiddleCenter);
+            Place(heading.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -24f), new Vector2(data.slotsPanelSize.x, 60f));
+            so.FindProperty("slotsTitleText").objectReferenceValue = heading;
+
+            int count = ProfileStore.SlotCount;
+            var slotButtons = new List<Button>();
+            var names = new List<Text>();
+            var summaries = new List<Text>();
+            var marks = new List<Image>();
+            float top = -90f;
+            for (int i = 0; i < count; i++)
+            {
+                float y = top - i * (data.slotSize.y + data.slotGap);
+                var image = Img("Slot_" + (i + 1), panel.transform, roundSprite, Color.white);
+                image.type = Image.Type.Sliced;
+                image.raycastTarget = true;
+                Place(image.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, y), data.slotSize);
+                var button = image.gameObject.AddComponent<Button>();
+                button.targetGraphic = image;
+                var colors = button.colors;
+                colors.normalColor = style.buttonColor;
+                colors.highlightedColor = colors.selectedColor = style.buttonHighlightColor;
+                colors.pressedColor = style.buttonHighlightColor * 0.8f;
+                colors.disabledColor = style.buttonColor;
+                button.colors = colors;
+                // 選取中的底色（疊在按鈕上、文字下面）
+                var mark = Img("Chosen", image.transform, roundSprite, data.chosenSlotColor);
+                mark.type = Image.Type.Sliced;
+                Stretch(mark.rectTransform);
+                mark.enabled = false;
+                var name = Label("Name", image.transform, string.Format(data.slotNameFormat, i + 1), data.slotNameFontSize, FontStyle.Bold, style.titleColor, TextAnchor.UpperLeft);
+                Place(name.rectTransform, new Vector2(0f, 1f), new Vector2(24f, -10f), new Vector2(data.slotSize.x - 48f, data.slotNameFontSize * 1.3f));
+                var summary = Label("Summary", image.transform, data.emptySlotText, data.slotSummaryFontSize, FontStyle.Normal, style.textColor, TextAnchor.LowerLeft);
+                Place(summary.rectTransform, new Vector2(0f, 0f), new Vector2(24f, 10f), new Vector2(data.slotSize.x - 48f, data.slotSummaryFontSize * 1.4f));
+                slotButtons.Add(button);
+                names.Add(name);
+                summaries.Add(summary);
+                marks.Add(mark);
+            }
+            IntroCutsceneBuilder.SetArray(so.FindProperty("slotButtons"), slotButtons);
+            IntroCutsceneBuilder.SetArray(so.FindProperty("slotNames"), names);
+            IntroCutsceneBuilder.SetArray(so.FindProperty("slotSummaries"), summaries);
+            IntroCutsceneBuilder.SetArray(so.FindProperty("slotChosenMarks"), marks);
+
+            // 下方一排：載入／新遊戲、刪除（選了欄位才出現）、返回（靠右）
+            float rowY = top - count * (data.slotSize.y + data.slotGap);
+            float left = -data.slotSize.x * 0.5f + data.actionButtonSize.x * 0.5f;
+            var load = MenuButton("Load", panel.transform, data.loadLabel, Vector2.zero, data.actionButtonSize, 32, style);
+            Place((RectTransform)load.transform, new Vector2(0.5f, 1f), new Vector2(left, rowY), data.actionButtonSize);
+            var delete = MenuButton("Delete", panel.transform, data.deleteLabel, Vector2.zero, data.actionButtonSize, 32, style);
+            Place((RectTransform)delete.transform, new Vector2(0.5f, 1f), new Vector2(left + data.actionButtonSize.x + 20f, rowY), data.actionButtonSize);
+            var back = MenuButton("Back", panel.transform, data.backLabel, Vector2.zero, data.actionButtonSize, 32, style);
+            Place((RectTransform)back.transform, new Vector2(0.5f, 1f), new Vector2(-left, rowY), data.actionButtonSize);
+            so.FindProperty("loadButton").objectReferenceValue = load;
+            so.FindProperty("loadLabel").objectReferenceValue = load.GetComponentInChildren<Text>();
+            so.FindProperty("deleteButton").objectReferenceValue = delete;
+            so.FindProperty("slotsBackButton").objectReferenceValue = back;
+            var hint = Label("Hint", panel.transform, "", 26, FontStyle.Normal, style.hintColor, TextAnchor.MiddleCenter);
+            Place(hint.rectTransform, new Vector2(0.5f, 0f), new Vector2(0f, 14f), new Vector2(data.slotsPanelSize.x, 36f));
+            so.FindProperty("slotsHint").objectReferenceValue = hint;
+            panel.gameObject.SetActive(false);
+
+            // 刪除確認：全畫面暗幕（擋住後面）＋中央的框
+            var dim = Img("DeleteConfirm", root, null, data.dimColor);
+            Stretch(dim.rectTransform);
+            dim.raycastTarget = true;
+            var box = Img("Box", dim.transform, roundSprite, style.panelColor);
+            box.type = Image.Type.Sliced;
+            Place(box.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(860f, 380f));
+            var message = Label("Message", box.transform, data.deleteConfirmFormat, 36, FontStyle.Normal, style.textColor, TextAnchor.MiddleCenter);
+            Place(message.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, 60f), new Vector2(780f, 160f));
+            message.horizontalOverflow = HorizontalWrapMode.Wrap;
+            message.lineSpacing = 1.2f;
+            var yes = MenuButton("Yes", box.transform, data.confirmYes, Vector2.zero, new Vector2(220f, 76f), 34, style);
+            Place((RectTransform)yes.transform, new Vector2(0.5f, 0.5f), new Vector2(-130f, -100f), new Vector2(220f, 76f));
+            var no = MenuButton("No", box.transform, data.confirmNo, Vector2.zero, new Vector2(220f, 76f), 34, style);
+            Place((RectTransform)no.transform, new Vector2(0.5f, 0.5f), new Vector2(130f, -100f), new Vector2(220f, 76f));
+            so.FindProperty("confirmPage").objectReferenceValue = dim.gameObject;
+            so.FindProperty("confirmText").objectReferenceValue = message;
+            so.FindProperty("confirmYesButton").objectReferenceValue = yes;
+            so.FindProperty("confirmNoButton").objectReferenceValue = no;
+            dim.gameObject.SetActive(false);
+        }
+
+        static void Stretch(RectTransform rt)
+        {
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.offsetMin = rt.offsetMax = Vector2.zero;
         }
 
         internal static void SetVerticalNavigation(IList<Button> buttons)

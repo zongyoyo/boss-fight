@@ -24,7 +24,7 @@ namespace BossFight.EditorTools
     ///    互動提示與站點面板（HubUIBuilder）、SceneFlow（PauseMenuBuilder.Wire 最後建）。休息區不建 HUD。
     /// 4. 美術 Phase 6：最後由 HubSceneryBuilder 建正式模型的佈景（Level/Scenery：地面網格、樹、站點模型、小道具、草叢），佔位外觀只關 Renderer、碰撞留著；
     ///    再套用黃昏的漸層天空與基礎後處理（HubSceneryBuilder.ApplyAtmosphere）。只改佈景時跑 Tools > Hub > Build Scenery。
-    /// 也把 Build Settings 設成 Boot 0、Hub 1、BossArena 2、Prologue 3（SetBuildScenes）。佔位模型的尺寸、顏色是純視覺參數；玩法相關的位置與距離都在 HubLayoutData。
+    /// 也把 Build Settings 設成 Title 0、Hub 1、BossArena 2、Prologue 3（SetBuildScenes）。佔位模型的尺寸、顏色是純視覺參數；玩法相關的位置與距離都在 HubLayoutData。
     /// </summary>
     public static class HubBuilder
     {
@@ -170,13 +170,13 @@ namespace BossFight.EditorTools
             AssetDatabase.SaveAssets();
             SetBuildScenes();
             TitleBuilder.RebuildIfExists(); // 標題畫面的背景是休息區佈景的複本（T32），跟著重建後再開回休息區
-            Debug.Log($"[Hub] 休息區已建立：{ScenePath}（{interactables.Count} 個站點）；Build Settings：Boot 0、Hub 1、BossArena 2、Prologue 3");
+            Debug.Log($"[Hub] 休息區已建立：{ScenePath}（{interactables.Count} 個站點）；Build Settings：Title 0、Hub 1、BossArena 2、Prologue 3");
         }
 
-        /// <summary>Build Settings：Boot 0（開機分流）、Hub 1、BossArena 2、Prologue 3（SampleScene 拿掉，其他場景排在後面）。</summary>
+        /// <summary>Build Settings：Title 0（標題畫面，T33 起取代開機分流的 Boot）、Hub 1、BossArena 2、Prologue 3（SampleScene 拿掉，其他場景排在後面）。</summary>
         public static void SetBuildScenes()
         {
-            var ordered = new[] { BootBuilder.ScenePath, ScenePath, BattleScenePath, PrologueBuilder.ScenePath };
+            var ordered = new[] { TitleBuilder.ScenePath, ScenePath, BattleScenePath, PrologueBuilder.ScenePath };
             var scenes = new List<EditorBuildSettingsScene>();
             foreach (var path in ordered)
             {
@@ -185,6 +185,7 @@ namespace BossFight.EditorTools
             foreach (var existing in EditorBuildSettings.scenes)
             {
                 if (System.Array.IndexOf(ordered, existing.path) >= 0 || existing.path == "Assets/Scenes/SampleScene.unity") continue;
+                if (AssetDatabase.LoadAssetAtPath<SceneAsset>(existing.path) == null) continue; // 刪掉的場景（T33 的 Boot）
                 scenes.Add(existing);
             }
             EditorBuildSettings.scenes = scenes.ToArray();

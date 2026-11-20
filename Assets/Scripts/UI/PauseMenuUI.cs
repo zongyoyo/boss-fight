@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using BossFight.Battle;
 using BossFight.Core;
@@ -42,6 +43,8 @@ namespace BossFight.UI
     /// 休息區（T20）：主選單只有繼續、設定、退出遊戲（PauseMenuBuilder 不建難度、重新挑戰、返回休息區，欄位留空），沒有 BattleManager；
     /// 暫停時的輸入鎖定由 HubManager 處理；站點介面開著（含關掉的那一幀，Esc 是拿來關介面的）時不開選單；秘技記在 HubManager（一樣是 BattleSession）。
     /// 關掉時把選取還給開選單前的物件（勝敗畫面的按鈕）。
+    /// 返回標題畫面（T33）：每個場景的主選單都有，先確認；確定後跟返回休息區一樣藏起選單、維持暫停，由 SceneFlow.ReturnToTitle 換場景。
+    /// 標題畫面（T33，settingsOnly）：Esc 不開選單、不暫停；標題的「設定」呼叫 OpenSettings 直接開設定頁，在設定頁返回就關掉（送 OnClosed）；不顯示重置存檔（標題畫面用欄位的刪除）。
     /// </summary>
     [DisallowMultipleComponent]
     public class PauseMenuUI : MonoBehaviour
@@ -60,6 +63,8 @@ namespace BossFight.UI
         [SerializeField] EventSystem eventSystem;
         [Tooltip("整個選單（暗幕與所有頁面）")]
         [SerializeField] CanvasGroup group;
+        [Tooltip("標題畫面（T33）：不暫停、沒有主選單，只由 OpenSettings 打開設定頁；不顯示重置存檔")]
+        [SerializeField] bool settingsOnly;
         [Tooltip("目前用鍵鼠還是手把（每一頁下方的返回提示）；留空時一律鍵鼠")]
         [SerializeField] InputHintDevice hintDevice;
         [Tooltip("每一頁下方的返回提示")]
@@ -73,6 +78,8 @@ namespace BossFight.UI
         [SerializeField] Button difficultyButton;
         [SerializeField] Button retryButton;
         [SerializeField] Button hubButton;
+        [Tooltip("返回標題畫面（T33）；舊場景尚未重建時可留空")]
+        [SerializeField] Button titleButton;
         [SerializeField] Button quitButton;
 
         [Header("設定")]
@@ -126,7 +133,10 @@ namespace BossFight.UI
         public PauseMenuPage Page { get; private set; }
         public bool IsOpen => Page != PauseMenuPage.None;
 
-        enum ConfirmAction { Retry, Quit, Difficulty, ReturnToHub, ResetSave }
+        /// <summary>選單關掉（標題畫面選回「設定」按鈕）。</summary>
+        public event Action OnClosed;
+
+        enum ConfirmAction { Retry, Quit, Difficulty, ReturnToHub, ResetSave, ReturnToTitle }
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || BOSSFIGHT_DEV_TOOLS
         static readonly bool HasDeveloperTools = true;
@@ -169,6 +179,7 @@ namespace BossFight.UI
             if (difficultyButton != null) difficultyButton.onClick.AddListener(() => ShowPage(PauseMenuPage.Difficulty, null));
             if (retryButton != null) retryButton.onClick.AddListener(() => ShowConfirm(ConfirmAction.Retry));
             if (hubButton != null) hubButton.onClick.AddListener(() => ShowConfirm(ConfirmAction.ReturnToHub));
+            if (titleButton != null) titleButton.onClick.AddListener(() => ShowConfirm(ConfirmAction.ReturnToTitle));
             quitButton.onClick.AddListener(() => ShowConfirm(ConfirmAction.Quit));
             if (difficultyPage != null)
             {
@@ -272,8 +283,8 @@ namespace BossFight.UI
             bool pausePressed = pauseAction != null && pauseAction.WasPressedThisFrame();
             if (!IsOpen)
             {
-                // 休息區：站點介面開著或這一幀剛關掉時，Esc 是介面的返回，不開選單
-                if (pausePressed && !stationOpen && stationClosedFrame != Time.frameCount) Open();
+                // 休息區：站點介面開著或這一幀剛關掉時，Esc 是介面的返回，不開選單；標題畫面只由 OpenSettings 打開
+                if (pausePressed && !settingsOnly && !stationOpen && stationClosedFrame != Time.frameCount) Open();
                 return;
             }
             if (Busy) return;
@@ -299,15 +310,25 @@ namespace BossFight.UI
             ShowPage(PauseMenuPage.Main, resumeButton);
         }
 
+        /// <summary>標題畫面的「設定」：不暫停，直接打開設定頁；在設定頁返回就關掉。</summary>
+        public void OpenSettings()
+        {
+            if (IsOpen || leaving) return;
+            previousSelection = eventSystem != null ? eventSystem.currentSelectedGameObject : null;
+            SetVisible(true);
+            ShowPage(PauseMenuPage.Settings, controlsButton);
+        }
+
         void Close()
         {
             ResetCode(false);
             ShowPage(PauseMenuPage.None, null);
             SetVisible(false);
-            if (pause != null) pause.SetPaused(false);
+            if (pause != null && !settingsOnly) pause.SetPaused(false);
             if (eventSystem != null)
                 eventSystem.SetSelectedGameObject(previousSelection != null && previousSelection.activeInHierarchy ? previousSelection : null);
             previousSelection = null;
+            OnClosed?.Invoke();
         }
 
         void Back()
@@ -315,7 +336,10 @@ namespace BossFight.UI
             switch (Page)
             {
                 case PauseMenuPage.Main: Close(); break;
-                case PauseMenuPage.Settings: ShowPage(PauseMenuPage.Main, settingsButton); break;
+                case PauseMenuPage.Settings:
+                    if (settingsOnly) Close();
+                    else ShowPage(PauseMenuPage.Main, settingsButton);
+                    break;
                 case PauseMenuPage.Controls: ShowPage(PauseMenuPage.Settings, controlsButton); break;
                 case PauseMenuPage.Volume: ShowPage(PauseMenuPage.Settings, volumeButton); break;
                 case PauseMenuPage.Keyboard: ShowPage(PauseMenuPage.Controls, keyboardButton); break;
@@ -327,6 +351,7 @@ namespace BossFight.UI
                         case ConfirmAction.Quit: ShowPage(PauseMenuPage.Main, quitButton); break;
                         case ConfirmAction.Difficulty: ShowPage(PauseMenuPage.Difficulty, pendingDifficulty == Difficulty.Easy ? easyButton : hardButton); break;
                         case ConfirmAction.ReturnToHub: ShowPage(PauseMenuPage.Main, hubButton); break;
+                        case ConfirmAction.ReturnToTitle: ShowPage(PauseMenuPage.Main, titleButton); break;
                         case ConfirmAction.ResetSave: ShowPage(PauseMenuPage.Settings, resetSaveButton); break;
                         default: ShowPage(PauseMenuPage.Main, retryButton); break;
                     }
@@ -387,6 +412,7 @@ namespace BossFight.UI
                 case ConfirmAction.Quit: confirmText.text = data.quitConfirm; break;
                 case ConfirmAction.Difficulty: confirmText.text = string.Format(data.difficultyConfirmFormat, DifficultyName(pendingDifficulty)); break;
                 case ConfirmAction.ReturnToHub: confirmText.text = data.returnToHubConfirm; break;
+                case ConfirmAction.ReturnToTitle: confirmText.text = data.returnToTitleConfirm; break;
                 case ConfirmAction.ResetSave: confirmText.text = data.resetSaveConfirm; break;
                 default: confirmText.text = data.retryConfirm; break;
             }
@@ -405,7 +431,7 @@ namespace BossFight.UI
 #endif
                 return;
             }
-            if (confirmAction == ConfirmAction.ReturnToHub || confirmAction == ConfirmAction.ResetSave)
+            if (confirmAction == ConfirmAction.ReturnToHub || confirmAction == ConfirmAction.ResetSave || confirmAction == ConfirmAction.ReturnToTitle)
             {
                 // 維持暫停：黑幕淡出時畫面停住，全黑時 SceneFlow 才解除暫停、換場景
                 leaving = true;
@@ -414,6 +440,10 @@ namespace BossFight.UI
                 if (confirmAction == ConfirmAction.ResetSave)
                 {
                     if (sceneFlow != null) sceneFlow.ResetProfile();
+                }
+                else if (confirmAction == ConfirmAction.ReturnToTitle)
+                {
+                    if (sceneFlow != null) sceneFlow.ReturnToTitle();
                 }
                 else if (battle != null)
                 {
@@ -480,11 +510,12 @@ namespace BossFight.UI
         }
 
         // 開發者模式開關、重置存檔沒顯示時，「返回」往上補到空出來的位置
+        // 標題畫面（settingsOnly）不顯示重置存檔（用欄位的刪除）
         void ApplyDeveloperVisible()
         {
             bool reset = developerVisible && developerMode;
             developerButton.gameObject.SetActive(developerVisible);
-            resetSaveButton.gameObject.SetActive(reset);
+            resetSaveButton.gameObject.SetActive(reset && !settingsOnly);
             if (skipPrologueToggle != null) skipPrologueToggle.gameObject.SetActive(reset);
             ((RectTransform)settingsBackButton.transform).anchoredPosition = reset ? settingsBackPosition : developerVisible ? resetSavePosition : developerPosition;
         }
