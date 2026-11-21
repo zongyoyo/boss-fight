@@ -139,6 +139,26 @@ namespace BossFight.Player
         [Tooltip("盾反成功時給攻擊方的失衡值（跟著 PlayerHealth.OnParry 送出）")]
         [Min(0f)] public float parryImbalance = 25f;
 
+        [Header("被打退（往遠離攻擊來源的方向，只算水平）")]
+        [Tooltip("在空中被直接打中：被打飛的水平距離 (m)。期間不能操作、模型往後空翻一圈，時間到而且落地才結束")]
+        [Min(0f)] public float airHitKnockback = 2.5f;
+        [Tooltip("在空中被打飛時往上彈的高度 (m)")]
+        [Min(0f)] public float airHitKnockbackLift = 0.6f;
+        [Tooltip("在空中被打飛的水平位移時間，也是空翻一圈的時間（秒）")]
+        [Min(0.05f)] public float airHitKnockbackTime = 0.5f;
+        [Tooltip("在地上被直接打中（含破防）被推開的距離 (m)；攻擊自己帶擊退距離時（DamageInfo.pushDistance）改用攻擊的")]
+        [Min(0f)] public float hitKnockback = 1.2f;
+        [Tooltip("被直接打中的推開時間（秒），期間不能移動")]
+        [Min(0.01f)] public float hitKnockbackTime = 0.25f;
+        [Tooltip("格擋時被推開的距離 (m)")]
+        [Min(0f)] public float blockKnockback = 0.6f;
+        [Tooltip("格擋的推開時間（秒），期間照常操作")]
+        [Min(0.01f)] public float blockKnockbackTime = 0.18f;
+        [Tooltip("盾反時被推開的距離 (m)；盾反停頓結束後才開始推")]
+        [Min(0f)] public float parryKnockback = 0.25f;
+        [Tooltip("盾反的推開時間（秒），期間照常操作")]
+        [Min(0.01f)] public float parryKnockbackTime = 0.12f;
+
         [Header("處決（Boss 頭暈時按 F）")]
         [Tooltip("可以處決的水平距離 (m)，從角色中心量到目標中心")]
         [Min(0f)] public float executeRange = 3f;

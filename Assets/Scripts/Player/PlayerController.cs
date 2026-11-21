@@ -21,6 +21,8 @@ namespace BossFight.Player
         Execute,
         GuardBreak,
         Dead,
+        /// <summary>在空中被直接打中、被打飛：不能操作，往後空翻一圈，airHitKnockbackTime 到而且落地才結束。</summary>
+        Launched,
     }
 
     /// <summary>
@@ -32,6 +34,8 @@ namespace BossFight.Player
     /// 揮刀中按會先記下來，到可取消的時間才接。轉向目標劈出 executeAttack，整段不能取消，executeInvulnerable 時無敵。
     /// 揮刀交給 PlayerAttack；受傷結算在 PlayerHealth，這裡訂閱它的事件處理蓄力中斷、破防與倒地。
     /// 演出期間（開場、轉階段）由 CutsceneDirector 呼叫 SetInputLocked 鎖住輸入：不讀任何按鍵，只照 ScriptedMoveTo 給的位置走（重力照常）。
+    /// 被打退：受傷結算後往遠離攻擊來源的水平方向推開，距離與時間讀 PlayerStats 的「被打退」（空中受擊 &gt; 受擊 &gt; 格擋 &gt; 盾反）。
+    /// 地上被直接打中時推開的期間不能移動；在空中被直接打中改成擊飛（PlayerAction.Launched）：往上彈、不能操作，落地才結束。
     /// 動畫由 DaoDunDogAnimator 讀這裡的狀態來擺姿勢。
     /// </summary>
     [RequireComponent(typeof(CharacterController), typeof(PlayerStamina))]
@@ -83,6 +87,13 @@ namespace BossFight.Player
         public float ChargeProgress => Action == PlayerAction.Charge ? Mathf.Clamp01(actionTime / stats.heavyChargeTime) : 0f;
         /// <summary>啃骨頭進度 0..1。</summary>
         public float HealProgress => Action == PlayerAction.Heal ? Mathf.Clamp01(actionTime / stats.boneDuration) : 0f;
+        public bool IsLaunched => Action == PlayerAction.Launched;
+        /// <summary>擊飛的空翻進度 0..1（airHitKnockbackTime 走完為 1，之後等落地）。</summary>
+        public float LaunchProgress => IsLaunched ? Mathf.Clamp01(actionTime / stats.airHitKnockbackTime) : 0f;
+        /// <summary>目前（或上一次）被打退的方向，水平單位向量。</summary>
+        public Vector3 KnockbackDirection => damagePushDirection;
+        /// <summary>地上被直接打中後推開的期間，不能移動。</summary>
+        public bool IsHitStunned => hitStunTime > 0f;
         /// <summary>破防剩餘時間（秒）。</summary>
         public float GuardBreakRemaining => Action == PlayerAction.GuardBreak ? Mathf.Max(0f, stats.guardBreakDuration - actionTime) : 0f;
         public float MoveSpeed => stats.moveSpeed;
@@ -108,6 +119,7 @@ namespace BossFight.Player
         bool hasScriptedTarget;
         Vector3 damagePushDirection;
         float damagePushDistance, damagePushDuration, damagePushTime, damagePushTravelled;
+        float hitStunTime;
 
         /// <summary>移動方向以這個鏡頭為準（Main Camera）；PlayerSpawner 生成後設定。</summary>
         public void SetCameraTransform(Transform value) => cameraTransform = value;
@@ -171,6 +183,7 @@ namespace BossFight.Player
         void OnDisable()
         {
             damagePushDistance = 0f;
+            hitStunTime = 0f;
             health.OnDamageTaken -= HandleDamageTaken;
             health.OnDied -= HandleDied;
             ReleaseExecutionTarget();
@@ -210,6 +223,8 @@ namespace BossFight.Player
         public void Teleport(Vector3 position, Quaternion rotation)
         {
             damagePushDistance = 0f;
+            hitStunTime = 0f;
+            if (IsLaunched) SetAction(PlayerAction.None);
             cc.enabled = false;
             transform.SetPositionAndRotation(position, rotation);
             cc.enabled = true;
@@ -232,6 +247,7 @@ namespace BossFight.Player
                 wishDir = scriptedDelta.sqrMagnitude > 1e-6f ? scriptedDelta.normalized : Vector3.zero;
             }
 
+            bool stunned = hitStunTime > 0f;
             if (!IsDead && !InputLocked) HandleActionInput(wishDir);
 
             bool blocking = !InputLocked && Action == PlayerAction.None && IsGrounded && blockAction.IsPressed();
@@ -251,7 +267,8 @@ namespace BossFight.Player
                         break;
                     }
                     float speed = stats.moveSpeed * (IsBlocking ? stats.blockMoveSpeedMultiplier : 1f);
-                    planarVelocity = Vector3.MoveTowards(planarVelocity, wishDir * speed, stats.acceleration * dt);
+                    // 被直接打中、推開的期間不能移動
+                    planarVelocity = stunned ? Vector3.zero : Vector3.MoveTowards(planarVelocity, wishDir * speed, stats.acceleration * dt);
                     delta = planarVelocity * dt;
                     if (LockTarget != null) delta = OrbitAroundTarget(delta);
                     break;
@@ -264,13 +281,13 @@ namespace BossFight.Player
                     delta = attack.Tick(dt);
                     break;
                 default:
-                    // 蓄力、啃骨頭、破防、倒地：原地不動
+                    // 蓄力、啃骨頭、破防、倒地、擊飛：自己不動（擊飛的位移在下面的擊退）
                     planarVelocity = Vector3.zero;
                     delta = Vector3.zero;
                     break;
             }
 
-            UpdateFacing(wishDir, dt);
+            UpdateFacing(stunned ? Vector3.zero : wishDir, dt);
 
             // 畫面停頓（timeScale = 0）時不動 CharacterController：Move 位移為 0 時 isGrounded 會變成 false，舉盾跟著掉
             if (dt > 0f)
@@ -278,6 +295,7 @@ namespace BossFight.Player
                 // 擊退是傷害鏈的可選資料；鎖輸入時也照走，不改相機或別人的輸入鎖。
                 Vector3 push = DamagePushStep(dt);
                 delta += push;
+                if (hitStunTime > 0f) hitStunTime = Mathf.Max(0f, hitStunTime - dt);
                 if (InputLocked && hasScriptedTarget) scriptedTarget += push;
                 // 重力：著地時歸零再加一幀的量，讓 CharacterController 持續貼地
                 IsGrounded = cc.isGrounded;
@@ -295,7 +313,7 @@ namespace BossFight.Player
 
                 if (transform.position != beforeMove) OnPositionChanged?.Invoke(transform.position);
 
-                if (!InputLocked && Action == PlayerAction.None && input.sqrMagnitude > 0f)
+                if (!InputLocked && !stunned && Action == PlayerAction.None && input.sqrMagnitude > 0f)
                 {
                     float distance = Flat(transform.position - beforeMove).magnitude;
                     if (distance > 0f) OnMoved?.Invoke(distance);
@@ -392,6 +410,10 @@ namespace BossFight.Player
                 case PlayerAction.GuardBreak:
                     actionTime += dt;
                     if (actionTime >= stats.guardBreakDuration) SetAction(PlayerAction.None);
+                    break;
+                case PlayerAction.Launched:
+                    actionTime += dt;
+                    if (actionTime >= stats.airHitKnockbackTime && IsGrounded) SetAction(PlayerAction.None);
                     break;
             }
         }
@@ -595,16 +617,57 @@ namespace BossFight.Player
         void HandleDamageTaken(PlayerDamageReport report)
         {
             if (IsDead) return;
-            if (report.result == DamageResult.Hit && report.info.pushDistance > 0f)
+            var result = report.result;
+            bool airborne = result == DamageResult.Hit && !IsGrounded;
+            StartKnockback(report.info, result, airborne);
+            if (airborne) Launch(report.info);
+            else if (result == DamageResult.Hit && Action == PlayerAction.Charge) SetAction(PlayerAction.None); // 蓄力中被打會中斷
+            else if (result == DamageResult.GuardBroken) SetAction(PlayerAction.GuardBreak);
+        }
+
+        // 被打退：空中受擊 > 受擊（含破防）> 格擋 > 盾反；閃過、沒作用不推。攻擊自己帶擊退距離時，地上受擊改用攻擊的
+        void StartKnockback(in DamageInfo info, DamageResult result, bool airborne)
+        {
+            float distance, duration;
+            switch (result)
             {
-                Vector3 away = Flat(transform.position - report.info.sourcePosition);
-                damagePushDirection = away.sqrMagnitude > 1e-6f ? away.normalized : -transform.forward;
-                damagePushDistance = report.info.pushDistance;
-                damagePushDuration = Mathf.Max(0f, report.info.pushDuration);
-                damagePushTime = damagePushTravelled = 0f;
+                case DamageResult.Hit:
+                case DamageResult.GuardBroken:
+                    if (airborne) { distance = stats.airHitKnockback; duration = stats.airHitKnockbackTime; }
+                    else if (result == DamageResult.Hit && info.pushDistance > 0f) { distance = info.pushDistance; duration = info.pushDuration; }
+                    else { distance = stats.hitKnockback; duration = stats.hitKnockbackTime; }
+                    break;
+                case DamageResult.Blocked:
+                    distance = stats.blockKnockback; duration = stats.blockKnockbackTime;
+                    break;
+                case DamageResult.Parried:
+                    distance = stats.parryKnockback; duration = stats.parryKnockbackTime;
+                    break;
+                default:
+                    return;
             }
-            if (report.result == DamageResult.Hit && Action == PlayerAction.Charge) SetAction(PlayerAction.None); // 蓄力中被打會中斷
-            else if (report.result == DamageResult.GuardBroken) SetAction(PlayerAction.GuardBreak);
+            if (distance <= 0f) return;
+
+            Vector3 away = Flat(transform.position - info.sourcePosition);
+            damagePushDirection = away.sqrMagnitude > 1e-6f ? away.normalized : -Flat(transform.forward).normalized;
+            damagePushDistance = distance;
+            damagePushDuration = Mathf.Max(0f, duration);
+            damagePushTime = damagePushTravelled = 0f;
+            // 地上被直接打中：推開的期間不能移動
+            if (result == DamageResult.Hit && !airborne) hitStunTime = damagePushDuration;
+        }
+
+        // 空中被直接打中：面向攻擊來源往後飛、往上彈，期間不能操作（模型的後空翻在 DaoDunDogAnimator）
+        void Launch(in DamageInfo info)
+        {
+            if (Action == PlayerAction.Attack || Action == PlayerAction.Execute) attack.Stop();
+            jumpRequested = bufferedAttack = bufferedRoll = bufferedExecute = false;
+            planarVelocity = Vector3.zero;
+            hitStunTime = 0f;
+            if (damagePushDistance > 0f) transform.rotation = Quaternion.LookRotation(-damagePushDirection);
+            if (stats.airHitKnockbackLift > 0f)
+                verticalVelocity = Mathf.Max(verticalVelocity, Mathf.Sqrt(2f * Mathf.Abs(stats.gravity) * stats.airHitKnockbackLift));
+            SetAction(PlayerAction.Launched);
         }
 
         void HandleDied()
@@ -649,7 +712,8 @@ namespace BossFight.Player
             if (damagePushDistance <= 0f) return Vector3.zero;
             damagePushTime += dt;
             float t = damagePushDuration > 0f ? Mathf.Clamp01(damagePushTime / damagePushDuration) : 1f;
-            float travelled = damagePushDistance * Mathf.SmoothStep(0f, 1f, t);
+            // 先快後慢：被撞開的那一下最快，之後減速停下
+            float travelled = damagePushDistance * (1f - (1f - t) * (1f - t));
             Vector3 step = damagePushDirection * (travelled - damagePushTravelled);
             damagePushTravelled = travelled;
             if (t >= 1f) damagePushDistance = 0f;

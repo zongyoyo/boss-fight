@@ -345,6 +345,14 @@ ScriptableObject 的「類別」寫在 `Scripts/` 對應的系統資料夾，「
 - ESC 選單：PauseMenuBuilder 在有 PrologueOutcome 的場景建 6 顆（多重新挑戰、返回休息區），PauseMenuUI 不是重複挑戰時藏起這兩顆、視窗縮回原本 4 顆的高度。序章的戰敗畫面不推薦簡單模式（`GuardianVictoryUI.defeatHint` 留空：序章選單沒有難度頁）。
 - 背景驗收（T34）：用沒用到的欄位 4 測（`script eval` 把測試存檔寫進 `persistentDataPath/save_editor_slot4.json`、LastSlot 設 3；Git Bash 看到的 LocalLow 是沙箱快照，寫進去 Unity 讀不到），測完刪掉、LastSlot 設回原值。打開傳送門用反射呼叫 `HubManager.Open`，解鎖用 `ProfileStore.CompleteQuest`；演出畫面用 `Application.onBeforeRender` 定時 `ScreenCapture.CaptureScreenshot`（Pipeline 的 screenshot 只拍相機、沒有 Overlay UI）。出發用 `SceneFlow.GoToBattle("Prologue", "GuardianChallenge")` 或面板按鈕的 onClick；跳過用反射呼叫 CutsceneDirector 的 `Skip`；勝利用 `IBattleDebugTarget.DebugDefeatBoss`。Unity 的 Temp 資料夾離開 Play 時可能被清掉，測試腳本放 Temp 以外。
 
+## 打擊感：被打退與招式踏步（Nov 21，使用者決定）
+
+- 玩家被打退由被打方結算（PlayerController 訂閱 `PlayerHealth.OnDamageTaken`），所有攻擊來源（OIIA 貓、大樹守衛、小樹精、菊花）都適用：方向是遠離 `DamageInfo.sourcePosition`（Hazard 的來源是 Boss 本體），只算水平，曲線先快後慢；撞牆、樹由 CharacterController 擋住。距離與時間在 PlayerStats 的「被打退」：空中受擊 2.5 m＞受擊（含破防）1.2 m＞格擋 0.6 m＞盾反 0.25 m（盾反停頓結束後才推）。攻擊自己帶 `DamageInfo.pushDistance`（菊花）時，地上受擊改用攻擊的值。
+- 地上被直接打中：推開的 `hitKnockbackTime` 內不能移動（`IsHitStunned`，動作照常可按）。格擋、盾反推開時照常操作。
+- 空中被直接打中：`PlayerAction.Launched`（排在 enum 最後）。轉向攻擊來源、往後飛、往上彈 `airHitKnockbackLift`，DaoDunDogAnimator 沿打退方向轉一圈（後空翻）；`airHitKnockbackTime` 到而且落地才結束，期間不能操作。擊飛不另外給無敵（使用者決定沿用受擊無敵 0.5 秒）。Teleport 會結束擊飛。
+- 貓掌連拍／三連拍：每拍一下，Boss 沿鎖定的攻擊方向往前踏 `PawSwipeData.lungeDistance`（0.6 m／0.12 秒）。踏到離玩家身體 `lungeStopGap` 就停，不出場地；地上下一下的範圍跟著移動。強化的最後一下用 `finisherLungeDistance`（預設 0，二階段帶電那下站定）。其他招式要踏步時照這個做法，數值放在招式的 BossMoveData。
+- F12「刀盾狗」頁與貓掌連拍的招式頁都能調這些值。
+
 ## 工作流程
 
 1. 一個任務開一次對話。開始前先讀這份檔案，以及 `docs/boss-oiia.md`（T0–T16）或 `docs/hub-progression.md`（T17 起）的對應章節。

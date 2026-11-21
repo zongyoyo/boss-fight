@@ -5,6 +5,7 @@ namespace BossFight.Boss.Moves
     /// <summary>
     /// 貓掌連拍：預兆舉起右爪，出招時左右爪輪流往前拍 strikeCount 下，每下傷害是 damage。
     /// 判定是 Boss 前方的長方體（從 Boss 中心往前 hitReach）；方向在第一下鎖定，兩下之間不轉向。
+    /// 每拍一下沿攻擊方向往前踏 lungeDistance（強化的最後一下用 finisherLungeDistance），踏到玩家身前就停。
     /// enhancedFinisher 打開時最後一下改用 finisher 的數值（第二階段的貓掌三連拍：第三下帶電、範圍變大、紅光不可擋）。
     /// 資產在 Assets/ScriptableObjects/Boss/Moves/Phase1/、Phase2/。
     /// </summary>
@@ -25,6 +26,14 @@ namespace BossFight.Boss.Moves
         [Tooltip("判定的高度 (m)，從腳底往上")]
         [Min(0.1f)] public float hitHeight = 2f;
 
+        [Header("每一下往前踏")]
+        [Tooltip("每拍一下沿攻擊方向往前滑的距離 (m)；0 = 不踏步。強化的最後一下改用 finisherLungeDistance")]
+        [Min(0f)] public float lungeDistance = 0.6f;
+        [Tooltip("踏步時間（秒），從拍下那一刻開始，先快後慢")]
+        [Min(0.01f)] public float lungeDuration = 0.12f;
+        [Tooltip("踏到離玩家身體只剩這個空隙 (m) 就停下，不會擠進玩家")]
+        [Min(0f)] public float lungeStopGap = 0.3f;
+
         [Header("最後一下強化（第二階段三連拍）")]
         [Tooltip("最後一下改用下面的數值；關掉時每一下都一樣（第一階段）")]
         public bool enhancedFinisher;
@@ -40,6 +49,11 @@ namespace BossFight.Boss.Moves
         [Min(0.05f)] public float finisherInterval = 0.8f;
         [Tooltip("最後一下帶電（落雷特效）")]
         public bool finisherElectric = true;
+        [Tooltip("最後一下的踏步距離 (m)；0 = 站定放雷")]
+        [Min(0f)] public float finisherLungeDistance = 0f;
+
+        /// <summary>第 index 下的踏步距離 (m)。</summary>
+        public float LungeDistance(int index) => IsFinisher(index) ? finisherLungeDistance : lungeDistance;
 
         /// <summary>第 index 下（從 0 算）是不是強化的最後一下。</summary>
         public bool IsFinisher(int index) => enhancedFinisher && strikeCount > 1 && index == strikeCount - 1;

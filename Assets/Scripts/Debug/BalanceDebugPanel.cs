@@ -414,8 +414,15 @@ namespace BossFight.DebugTools
                     var m = new Section { title = $"[{d.phase}] {d.displayName}", foldable = true };
                     sections[3].Add(m);
                     AddKnob(m, d is TornadoData ? "每跳傷害" : "傷害", d, nameof(BossMoveData.damage), 0f, 100f, 1f);
-                    if (d is PawSwipeData paw && paw.enhancedFinisher)
-                        AddKnob(m, "最後一下傷害", d, nameof(PawSwipeData.finisherDamage), 0f, 100f, 1f);
+                    if (d is PawSwipeData paw)
+                    {
+                        if (paw.enhancedFinisher)
+                            AddKnob(m, "最後一下傷害", d, nameof(PawSwipeData.finisherDamage), 0f, 100f, 1f);
+                        AddKnob(m, "每下踏步 (m)", d, nameof(PawSwipeData.lungeDistance), 0f, 3f, 0.05f);
+                        AddKnob(m, "踏步時間 (s)", d, nameof(PawSwipeData.lungeDuration), 0.01f, 0.5f, 0.01f);
+                        if (paw.enhancedFinisher)
+                            AddKnob(m, "最後一下踏步 (m)", d, nameof(PawSwipeData.finisherLungeDistance), 0f, 3f, 0.05f);
+                    }
                     AddKnob(m, "冷卻 (s)", d, nameof(BossMoveData.cooldown), 0f, 30f, 0.5f);
                     AddKnob(m, "預兆 (s)", d, nameof(BossMoveData.telegraphTime), 0f, 3f, 0.05f);
                     AddKnob(m, d is ThunderCircleData ? "破綻（含施法）(s)" : "破綻 (s)", d, nameof(BossMoveData.recoveryTime), 0f, 6f, 0.1f);
@@ -445,6 +452,15 @@ namespace BossFight.DebugTools
                 AddKnob(s, "命中累積骨頭（根）", playerStats, nameof(PlayerStats.boneGainPerHit), 0f, 0.5f, 0.01f);
                 AddKnob(s, "處決累積骨頭（根）", playerStats, nameof(PlayerStats.boneGainPerExecution), 0f, 1f, 0.05f);
                 AddKnob(s, "受擊累積骨頭（根）", playerStats, nameof(PlayerStats.boneGainWhenHurt), 0f, 0.2f, 0.01f);
+                AddKnob(s, "空中受擊擊飛 (m)", playerStats, nameof(PlayerStats.airHitKnockback), 0f, 8f, 0.1f);
+                AddKnob(s, "擊飛上彈 (m)", playerStats, nameof(PlayerStats.airHitKnockbackLift), 0f, 3f, 0.05f);
+                AddKnob(s, "擊飛時間 (s)", playerStats, nameof(PlayerStats.airHitKnockbackTime), 0.05f, 1.5f, 0.05f);
+                AddKnob(s, "受擊擊退 (m)", playerStats, nameof(PlayerStats.hitKnockback), 0f, 5f, 0.05f);
+                AddKnob(s, "受擊擊退時間 (s)", playerStats, nameof(PlayerStats.hitKnockbackTime), 0.01f, 1f, 0.01f);
+                AddKnob(s, "格擋擊退 (m)", playerStats, nameof(PlayerStats.blockKnockback), 0f, 3f, 0.05f);
+                AddKnob(s, "格擋擊退時間 (s)", playerStats, nameof(PlayerStats.blockKnockbackTime), 0.01f, 1f, 0.01f);
+                AddKnob(s, "盾反擊退 (m)", playerStats, nameof(PlayerStats.parryKnockback), 0f, 2f, 0.05f);
+                AddKnob(s, "盾反擊退時間 (s)", playerStats, nameof(PlayerStats.parryKnockbackTime), 0.01f, 1f, 0.01f);
                 for (int i = first; i < s.knobs.Count; i++)
                 {
                     var field = s.knobs[i].field;

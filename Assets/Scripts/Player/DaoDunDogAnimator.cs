@@ -5,7 +5,7 @@ namespace BossFight.Player
 {
     /// <summary>
     /// 刀盾狗的程序化動畫（不用 Animator Controller）：走路擺腿、身體搖擺、舉盾、翻滾、空中收腿、搖尾巴（有尾巴時），
-    /// 以及三段連擊、蓄力與重擊、處決、啃骨頭、破防、受擊、盾反、倒地，受擊後的無敵時間會閃爍；休息區的營火會叫它坐下（SetSitting，T21）。
+    /// 以及三段連擊、蓄力與重擊、處決、啃骨頭、破防、受擊、盾反、倒地、空中被打飛的後空翻，受擊後的無敵時間會閃爍；休息區的營火會叫它坐下（SetSitting，T21）。
     /// 只改各關節 pivot 的 localRotation / localPosition（骨頭另外改大小），pivot 由 Editor/DaoDunDogBuilder 建立並指派。
     /// 狀態讀 PlayerController 與 PlayerAttack；受擊與盾反訂閱 PlayerHealth 的事件。這裡的數字全是視覺參數。
     /// </summary>
@@ -276,10 +276,12 @@ namespace BossFight.Player
             float run = c != null ? Mathf.Max(0.01f, c.MoveSpeed) : 1f;
             bool grounded = c == null || c.IsGrounded;
             bool rolling = c != null && c.IsRolling;
+            bool launched = c != null && c.IsLaunched;
+            bool curled = rolling || launched;
 
-            // 空中或翻滾時收腿；翻滾很短，收得快一點
-            moveWeight = Mathf.MoveTowards(moveWeight, grounded && !rolling ? Mathf.Clamp01(speed / run) : 0f, dt * 6f);
-            airWeight = Mathf.MoveTowards(airWeight, grounded && !rolling ? 0f : 1f, dt * (rolling ? 16f : 8f));
+            // 空中、翻滾或被打飛時收腿；翻滾與空翻很短，收得快一點
+            moveWeight = Mathf.MoveTowards(moveWeight, grounded && !curled ? Mathf.Clamp01(speed / run) : 0f, dt * 6f);
+            airWeight = Mathf.MoveTowards(airWeight, grounded && !curled ? 0f : 1f, dt * (curled ? 16f : 8f));
             blockWeight = Mathf.MoveTowards(blockWeight, c != null && c.IsBlocking ? 1f : 0f, dt * blockBlendSpeed);
             guardBreakWeight = Mathf.MoveTowards(guardBreakWeight, action == PlayerAction.GuardBreak ? 1f : 0f, dt * guardBreakBlendSpeed);
             healWeight = Mathf.MoveTowards(healWeight, action == PlayerAction.Heal ? 1f : 0f, dt * 8f);
@@ -302,6 +304,13 @@ namespace BossFight.Player
                 {
                     Vector3 axis = transform.InverseTransformDirection(Vector3.Cross(Vector3.up, c.RollDirection));
                     roll = Quaternion.AngleAxis(360f * Mathf.SmoothStep(0f, 1f, c.RollProgress), axis);
+                }
+                else if (launched)
+                {
+                    // 被打飛：面向攻擊來源往後飛，往飛的方向轉一圈就是後空翻
+                    Vector3 axis = transform.InverseTransformDirection(Vector3.Cross(Vector3.up, c.KnockbackDirection));
+                    if (axis.sqrMagnitude > 1e-4f)
+                        roll = Quaternion.AngleAxis(360f * Mathf.SmoothStep(0f, 1f, c.LaunchProgress), axis);
                 }
                 float fall = Mathf.SmoothStep(0f, 1f, Mathf.Max(deathWeight, cinematicLying));
                 roll = Quaternion.AngleAxis(-90f * fall, Vector3.forward) * roll;

@@ -7,7 +7,7 @@ namespace BossFight.Boss.Moves
     /// <summary>
     /// 貓掌連拍（第一階段，近距離）／貓掌三連拍（第二階段）：預兆舉起右爪並轉向玩家，地上 Boss 前方的長方形範圍慢慢填滿；
     /// 填滿那一刻右爪拍下（第一下），接著另一隻爪舉起、範圍重新填色，strikeInterval 秒後拍下一下，共 strikeCount 下。方向在第一下鎖定。
-    /// 每一下都會讓範圍閃亮並在前方出現爪痕。數值讀 PawSwipeData；可擋、可盾反（白光）。
+    /// 每一下都會讓範圍閃亮並在前方出現爪痕，同時沿攻擊方向往前踏（PawSwipeData.lungeDistance，踏到玩家身前就停）。數值讀 PawSwipeData；可擋、可盾反（白光）。
     /// enhancedFinisher：最後一下前改送一次預兆（finisherCanBlock 決定白光或紅光，BossMove.Telegraph），地上換成放大 finisherRangeScale 倍的範圍，
     /// finisherInterval 秒後以 finisher 的傷害、可擋、可盾反拍下，帶電時在落點劈一道閃電。
     /// </summary>
@@ -41,6 +41,11 @@ namespace BossFight.Boss.Moves
         float timer;
         int strikeIndex;
         bool hitOpen;
+        // 地上範圍目前的倍率（強化的最後一下會放大）；0 = 已經收掉
+        float areaScale;
+        // 這一下的踏步：方向、總距離（0 = 沒在踏）、經過時間、已走距離
+        Vector3 lungeDir;
+        float lungeTotal, lungeTime, lungeTravelled;
 
         void Awake()
         {
@@ -65,6 +70,8 @@ namespace BossFight.Boss.Moves
         public override void BeginTelegraph()
         {
             timer = 0f;
+            lungeTotal = 0f;
+            areaScale = 1f;
             poser.SetPaw(true, PawPose.Raised);
             area.ShowRect(OnGround(Boss.transform.position), Boss.transform.forward, paw.hitReach, paw.hitWidth, Data.canBlock);
         }
@@ -87,6 +94,7 @@ namespace BossFight.Boss.Moves
         public override bool TickActive(float dt)
         {
             timer += dt;
+            LungeStep(dt);
             if (hitOpen && timer >= paw.hitWindow)
             {
                 hitOpen = false;
@@ -129,15 +137,24 @@ namespace BossFight.Boss.Moves
             Vector3 forward = Flat(Boss.transform.forward).normalized;
             Vector3 origin = OnGround(Boss.transform.position);
             area.Strike();
-            if (last) area.Hide();
+            if (last)
+            {
+                area.Hide();
+                areaScale = 0f;
+            }
             else if (paw.IsFinisher(strikeIndex + 1))
             {
                 // 下一下是強化的最後一下：換顏色重新預兆，地上換成放大的範圍
-                float s = paw.finisherRangeScale;
-                area.ShowRect(origin, forward, paw.hitReach * s, paw.hitWidth * s, paw.finisherCanBlock);
+                areaScale = paw.finisherRangeScale;
+                area.ShowRect(origin, forward, paw.hitReach * areaScale, paw.hitWidth * areaScale, paw.finisherCanBlock);
                 Telegraph(paw.finisherCanBlock, paw.finisherInterval);
             }
             else area.SetFill(0f);
+
+            // 拍下的同時往攻擊方向踏一步（帶電的最後一下預設站定）
+            lungeDir = forward;
+            lungeTotal = paw.LungeDistance(strikeIndex);
+            lungeTime = lungeTravelled = 0f;
 
             Vector3 slashPos = origin + forward * (reach * slashForward);
             var rot = Quaternion.LookRotation(forward) * Quaternion.Euler(0f, 0f, right ? -slashTilt : slashTilt);
@@ -145,6 +162,37 @@ namespace BossFight.Boss.Moves
             if (finisher && paw.finisherElectric)
                 TimedFx.Spawn(boltPrefab, slashPos, Quaternion.Euler(0f, Random.Range(0f, 360f), 0f), boltColor, boltSize);
             Impact(finisher ? BossImpactKind.PawFinisher : BossImpactKind.PawSwipe, slashPos);
+        }
+
+        // 依踏步曲線往前滑這一幀的量，踏到玩家身前就停；不出場地。地上下一下的範圍跟著 Boss 走
+        void LungeStep(float dt)
+        {
+            if (lungeTotal <= 0f) return;
+            lungeTime += dt;
+            float t = Mathf.Clamp01(lungeTime / paw.lungeDuration);
+            float travelled = lungeTotal * (1f - (1f - t) * (1f - t));
+            float step = Mathf.Min(travelled - lungeTravelled, RoomToTarget());
+            lungeTravelled = travelled;
+            if (t >= 1f) lungeTotal = 0f;
+            if (step <= 0f) return;
+
+            Boss.transform.position = Boss.ClampToArena(Boss.transform.position + lungeDir * step);
+            if (areaScale > 0f)
+                area.MoveRect(OnGround(Boss.transform.position), lungeDir, paw.hitReach * areaScale, paw.hitWidth * areaScale);
+        }
+
+        // 沿踏步方向還能走多遠才碰到玩家（兩邊的身體半徑加上 lungeStopGap）；玩家不在前進路線上時不限制
+        float RoomToTarget()
+        {
+            var target = Boss.Target;
+            if (target == null) return float.PositiveInfinity;
+            Vector3 to = Flat(target.position - Boss.transform.position);
+            float along = Vector3.Dot(to, lungeDir);
+            if (along <= 0f) return float.PositiveInfinity;
+            float r = Boss.BodyRadius + Boss.TargetBodyRadius + paw.lungeStopGap;
+            float lateralSqr = Mathf.Max(0f, to.sqrMagnitude - along * along);
+            if (lateralSqr >= r * r) return float.PositiveInfinity;
+            return Mathf.Max(0f, along - Mathf.Sqrt(r * r - lateralSqr));
         }
 
         public override void BeginRecovery()
@@ -155,8 +203,12 @@ namespace BossFight.Boss.Moves
             poser.SetPaw(false, PawPose.Rest);
         }
 
+        // 最後一下的判定比踏步短，踏完剩下的部分
+        public override void TickRecovery(float dt) => LungeStep(dt);
+
         public override void End()
         {
+            lungeTotal = 0f;
             hitOpen = false;
             hitbox.Deactivate();
             area.HideImmediate();

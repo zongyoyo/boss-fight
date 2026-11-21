@@ -216,6 +216,9 @@ namespace BossFight.DebugTools
                 case PlayerAction.GuardBreak:
                     s = $"<color=#ff9f40>破防 {player.GuardBreakRemaining:0.00} s</color>";
                     break;
+                case PlayerAction.Launched:
+                    s = $"<color=#ff9f40>擊飛 {player.LaunchProgress * 100f:0}%</color>";
+                    break;
                 case PlayerAction.Dead:
                     s = "<color=#ff4040>倒地（F5 或勝敗畫面的重試）</color>";
                     break;
